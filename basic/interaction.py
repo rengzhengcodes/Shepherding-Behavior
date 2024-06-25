@@ -247,7 +247,6 @@ def calculate_mass_center(agents):
 def drive_the_herd_using_convex_hull(agents, shepherd_x, shepherd_y, target_place_x, target_place_y):
     # Collects only members of the flock that are staying.
     agents = agents[agents[:, 21] == 0]
-    print(agents)
 
     # Calculate the convex hull of the flock.
     with nb.objmode(hull='int64[:]'):
