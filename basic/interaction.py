@@ -2,8 +2,8 @@ import numba as nb
 import numpy as np
 import matplotlib.pyplot as plt
 import math
+from scipy.spatial import ConvexHull
 from basic.vision_functions import drive_the_herd_using_vision, collect_the_herd_using_vision
-
 
 @nb.jit(nopython=True)
 def transform_angle(theta):  # [-pi, pi]
@@ -243,6 +243,50 @@ def calculate_mass_center(agents):
     return n, sum_x, sum_y
 
 
+def drive_the_herd_using_convex_hull(agents, shepherd_x, shepherd_y, target_place_x, target_place_y):
+    # Collects only members of the flock that are staying.
+    agents = agents[agents[:, 21] == 0]
+    print(agents)
+
+    # Calculate the convex hull of the flock.
+    hull = ConvexHull(agents[:, :2])
+
+    # Gets vector Shepherd -> Target.
+    ST = np.array([target_place_x - shepherd_x, target_place_y - shepherd_y])
+
+    # Gets center of mass estimate as average of the convex hull vertices.
+    center_of_mass_x = np.mean(agents[hull.vertices, 0])
+    center_of_mass_y = np.mean(agents[hull.vertices, 1])
+
+    # calculate the distance, angle between the center of the mass and the shepherd;
+    distance_mass_target, angle_mass_target = Get_relative_distance_angle(center_of_mass_x, center_of_mass_y,
+                                                                          target_place_x, target_place_y)
+
+    # update the safe drive distance to the center according to the CURRENT num of moving agents,
+    # initial parameter of shepherd swarm[:,5];
+    num_agents_moving = agents[agents[:, 21] == 0].shape[0]
+    if num_agents_moving >= 10:
+        l1_new = (2 / 3) * np.sqrt(num_agents_moving) * 10   #7.5
+    else:
+        l1_new = 15
+    
+    # L1: drive point: from shepherd to mass center
+    # angle_mass_target: from the target place to the mass
+    drive_point_x = center_of_mass_x + l1_new * np.cos(angle_mass_target)
+    drive_point_y = center_of_mass_y + l1_new * np.sin(angle_mass_target)
+
+    # the shepherd should be attracted by the drive point
+    distance_drive_herd, angle_drive_herd = Get_relative_distance_angle(drive_point_x, drive_point_y,
+                                                                        shepherd_x, shepherd_y)
+
+    # the drive force is linear to the distance between the shepherd and the drive point;
+    force_x = distance_drive_herd * np.cos(angle_drive_herd)  # angle_drive_herd: from shepherd to drive point;
+    force_y = distance_drive_herd * np.sin(angle_drive_herd)  #
+    # !!! Attention: the vector (force_x, force_y) is not unit;
+
+    return drive_point_x, drive_point_y, force_x, force_y
+
+
 @nb.jit(nopython=True)
 def drive_the_herd(agents, shepherd_x, shepherd_y, target_place_x, target_place_y):
     # get the center of only moving mass, not concluding the staying mass;
@@ -345,6 +389,11 @@ def herd(agents, shepherd, target_place_x, target_place_y, VISION_HERD):
                 # find the drive point and calculate the force attraction from the drive point; drive_point_x,
                 drive_point_x, drive_point_y, drive_force_x, drive_force_y = drive_the_herd(agents, shepherd_x, shepherd_y,
                                                                                 target_place_x, target_place_y)
+                
+            if True:
+                # Necessary as ConvexHull does not work with numba.
+                with nb.objmode(drive_point_x='float64', drive_point_y='float64', drive_force_x='float64', drive_force_y='float64'):
+                    drive_point_x, drive_point_y, drive_force_x, drive_force_y = drive_the_herd_using_convex_hull(agents, shepherd_x, shepherd_y, target_place_x, target_place_y)
             else:
                 # using vision
                 drive_point_x, drive_point_y, drive_force_x, drive_force_y, drive_agent_id = drive_the_herd_using_vision(

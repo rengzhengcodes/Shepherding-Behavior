@@ -41,7 +41,7 @@ if __name__ == '__main__':
     # self-organized flocking
     for tick in range(TICK):
         agents_update, shepherd_update, max_agents_indexes = evolve(agents, shepherd, Target_place_x,
-                                                                    Target_place_y, Target_size)
+                                                                    Target_place_y, Target_size, VISION_HERD=False)
         agents = agents_update
         shepherd = shepherd_update
     # prepare the shepherd and record data
@@ -53,8 +53,8 @@ if __name__ == '__main__':
     # continue the sheep data with shepherd
     for tick in range(Iterations):
         # start evolve function
-        agents_update, shepherd_update, max_agents_indexes = evolve(agents, shepherd, Target_place_x, Target_place_y,
-                                                                    Target_size)
+        agents_update, shepherd_update, max_agents_indexes = evolve(agents, shepherd, Target_place_x, 
+                                                                    Target_place_y, Target_size, VISION_HERD=False)
         # update data
         agents = agents_update
         shepherd = shepherd_update
@@ -73,7 +73,7 @@ if __name__ == '__main__':
         # print("topological_network:", topological_network)
         # print("metric_network:", metric_network)
 
-    draw_dynamic(Final_tick, Data_agents, Data_shepherds, Boundary_x, Boundary_y, Target_place_x, Target_place_y, Target_size)
+    draw_dynamic(Final_tick, Data_agents, Data_shepherds, Boundary_x, Boundary_y, Target_place_x, Target_place_y, Target_size, L3)
 
     # plot_snapshot(Final_tick, agents, shepherd, Repetition, Boundary_x, Boundary_y, Target_place_x, Target_place_y, Target_size)
     # save_data(N_sheep, N_shepherd, Repetition, Final_tick, Data_agents, Data_shepherds)
