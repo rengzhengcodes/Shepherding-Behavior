@@ -243,20 +243,22 @@ def calculate_mass_center(agents):
     return n, sum_x, sum_y
 
 
+@nb.jit(nopython=True)
 def drive_the_herd_using_convex_hull(agents, shepherd_x, shepherd_y, target_place_x, target_place_y):
     # Collects only members of the flock that are staying.
     agents = agents[agents[:, 21] == 0]
     print(agents)
 
     # Calculate the convex hull of the flock.
-    hull = ConvexHull(agents[:, :2])
+    with nb.objmode(hull='int64[:]'):
+        hull = ConvexHull(agents[:, :2]).vertices
 
     # Gets vector Shepherd -> Target.
     ST = np.array([target_place_x - shepherd_x, target_place_y - shepherd_y])
 
     # Gets center of mass estimate as average of the convex hull vertices.
-    center_of_mass_x = np.mean(agents[hull.vertices, 0])
-    center_of_mass_y = np.mean(agents[hull.vertices, 1])
+    center_of_mass_x = np.mean(agents[hull, 0])
+    center_of_mass_y = np.mean(agents[hull, 1])
 
     # calculate the distance, angle between the center of the mass and the shepherd;
     distance_mass_target, angle_mass_target = Get_relative_distance_angle(center_of_mass_x, center_of_mass_y,
@@ -390,10 +392,12 @@ def herd(agents, shepherd, target_place_x, target_place_y, VISION_HERD):
                 drive_point_x, drive_point_y, drive_force_x, drive_force_y = drive_the_herd(agents, shepherd_x, shepherd_y,
                                                                                 target_place_x, target_place_y)
                 
-            if True:
-                # Necessary as ConvexHull does not work with numba.
-                with nb.objmode(drive_point_x='float64', drive_point_y='float64', drive_force_x='float64', drive_force_y='float64'):
-                    drive_point_x, drive_point_y, drive_force_x, drive_force_y = drive_the_herd_using_convex_hull(agents, shepherd_x, shepherd_y, target_place_x, target_place_y)
+            elif True:
+                # using convex hull
+                (drive_point_x, drive_point_y, 
+                 drive_force_x, drive_force_y) = drive_the_herd_using_convex_hull(agents, 
+                                                                                 shepherd_x, shepherd_y,
+                                                                                target_place_x, target_place_y)
             else:
                 # using vision
                 drive_point_x, drive_point_y, drive_force_x, drive_force_y, drive_agent_id = drive_the_herd_using_vision(
