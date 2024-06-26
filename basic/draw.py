@@ -88,9 +88,7 @@ def draw_single(swarm, shepherd, Boundary_x, Boundary_y, Target_place_x, Target_
         plt.plot(center_of_hull_x, center_of_hull_y, "k*", markersize=5)
 
         # Draws the convex hull.
-        plt.plot(hull[:, 0], hull[:, 1], 'g--', lw=2)
-        # Finishes the hull connection.
-        plt.plot(hull[-1:1, 0], hull[-1:1, 1], 'g--', lw=2)
+        plt.fill(hull[:, 0], hull[:, 1], color='g', linestyle=':', lw=2, fill=False)
 
     # draw target center
     plt.plot(Target_place_x, Target_place_y, "b*")

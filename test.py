@@ -20,8 +20,8 @@ Target_place_x = 400
 Target_place_y = 400
 Target_size = 100  # radius
 
-Boundary_x = Target_place_x + Target_size
-Boundary_y = Target_place_y + Target_size
+Boundary_x = Target_place_x + Target_size + 300
+Boundary_y = Target_place_y + Target_size + 300
 
 
 TICK = 10000
