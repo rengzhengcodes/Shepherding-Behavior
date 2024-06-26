@@ -1,0 +1,15 @@
+# Python compiled cache files.
+__pycache__/
+
+# Python virtual environments.
+env/
+.env/
+venv/
+.venv/
+
+# Generated data files.
+data/
+images/
+
+# MacOS folder attributes file.
+.DS_Store
