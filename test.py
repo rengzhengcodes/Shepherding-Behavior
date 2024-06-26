@@ -41,7 +41,7 @@ if __name__ == '__main__':
     # self-organized flocking
     for tick in range(TICK):
         agents_update, shepherd_update, max_agents_indexes = evolve(agents, shepherd, Target_place_x,
-                                                                    Target_place_y, Target_size, VISION_HERD=False)
+                                                                    Target_place_y, Target_size, VISION_HERD=True)
         agents = agents_update
         shepherd = shepherd_update
     # prepare the shepherd and record data
@@ -54,7 +54,7 @@ if __name__ == '__main__':
     for tick in range(Iterations):
         # start evolve function
         agents_update, shepherd_update, max_agents_indexes = evolve(agents, shepherd, Target_place_x, 
-                                                                    Target_place_y, Target_size, VISION_HERD=False)
+                                                                    Target_place_y, Target_size, VISION_HERD=True)
         # update data
         agents = agents_update
         shepherd = shepherd_update

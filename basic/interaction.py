@@ -245,22 +245,28 @@ def calculate_mass_center(agents):
 
 @nb.jit(nopython=True)
 def drive_the_herd_using_convex_hull(agents, shepherd_x, shepherd_y, target_place_x, target_place_y):
-    # Collects only members of the flock that are staying.
-    agents = agents[agents[:, 21] == 0]
+    # Calculate the convex hull of the flock not staying.
+    with nb.objmode(hull='int32[:]'):
+        if agents[agents[:, 21] == 0].shape[0] <= 2:
+            hull = np.array(range(agents.shape[0]), dtype=np.int32)
+        else: 
+            hull = ConvexHull(agents[agents[:, 21] == 0, :2]).vertices
 
-    # Calculate the convex hull of the flock.
-    with nb.objmode(hull='int64[:]'):
-        hull = ConvexHull(agents[:, :2]).vertices
+    # Resets all agent hull status.
+    agents[:, 22] = 0
+    # Set hull status.
+    for i, agent in enumerate(hull):
+        agents[agent, 22] = i
 
     # Gets vector Shepherd -> Target.
     ST = np.array([target_place_x - shepherd_x, target_place_y - shepherd_y])
 
     # Gets center of mass estimate as average of the convex hull vertices.
-    center_of_mass_x = np.mean(agents[hull, 0])
-    center_of_mass_y = np.mean(agents[hull, 1])
+    center_of_hull_x = np.mean(agents[hull, 0])
+    center_of_hull_y = np.mean(agents[hull, 1])
 
     # calculate the distance, angle between the center of the mass and the shepherd;
-    distance_mass_target, angle_mass_target = Get_relative_distance_angle(center_of_mass_x, center_of_mass_y,
+    distance_mass_target, angle_mass_target = Get_relative_distance_angle(center_of_hull_x, center_of_hull_y,
                                                                           target_place_x, target_place_y)
 
     # update the safe drive distance to the center according to the CURRENT num of moving agents,
@@ -273,8 +279,8 @@ def drive_the_herd_using_convex_hull(agents, shepherd_x, shepherd_y, target_plac
     
     # L1: drive point: from shepherd to mass center
     # angle_mass_target: from the target place to the mass
-    drive_point_x = center_of_mass_x + l1_new * np.cos(angle_mass_target)
-    drive_point_y = center_of_mass_y + l1_new * np.sin(angle_mass_target)
+    drive_point_x = center_of_hull_x + l1_new * np.cos(angle_mass_target)
+    drive_point_y = center_of_hull_y + l1_new * np.sin(angle_mass_target)
 
     # the shepherd should be attracted by the drive point
     distance_drive_herd, angle_drive_herd = Get_relative_distance_angle(drive_point_x, drive_point_y,
@@ -386,17 +392,16 @@ def herd(agents, shepherd, target_place_x, target_place_y, VISION_HERD):
         # drive_mode: attract by the mass center and the target, repulsion from other shepherd;
         if shepherd[shepherd_index][13] == 1.0:
             current_drive_agent_id = int(shepherd[shepherd_index][20])
-            if not VISION_HERD:
-                # find the drive point and calculate the force attraction from the drive point; drive_point_x,
-                drive_point_x, drive_point_y, drive_force_x, drive_force_y = drive_the_herd(agents, shepherd_x, shepherd_y,
-                                                                                target_place_x, target_place_y)
-                
-            elif True:
+            # if not VISION_HERD:
+            #     # find the drive point and calculate the force attraction from the drive point; drive_point_x,
+            #     drive_point_x, drive_point_y, drive_force_x, drive_force_y = drive_the_herd(agents, shepherd_x, shepherd_y,
+            #                                                                     target_place_x, target_place_y)
+            if True:
                 # using convex hull
                 (drive_point_x, drive_point_y, 
                  drive_force_x, drive_force_y) = drive_the_herd_using_convex_hull(agents, 
                                                                                  shepherd_x, shepherd_y,
-                                                                                target_place_x, target_place_y)
+                                                                                 target_place_x, target_place_y)
             else:
                 # using vision
                 drive_point_x, drive_point_y, drive_force_x, drive_force_y, drive_agent_id = drive_the_herd_using_vision(

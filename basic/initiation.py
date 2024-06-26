@@ -3,7 +3,7 @@ import numpy as np
 
 def initiate(agent_num, space_x, space_y, Target_size):
     
-    swarm = np.zeros(shape=(agent_num, 22))
+    swarm = np.zeros(shape=(agent_num, 23), dtype=float)
     swarm[:, 0] = np.random.uniform(50, space_x, agent_num)
     swarm[:, 1] = np.random.uniform(50, space_y, agent_num)
     swarm[:, 2] = np.random.uniform(-np.pi, np.pi, agent_num)
@@ -15,7 +15,7 @@ def initiate(agent_num, space_x, space_y, Target_size):
     swarm[:, 8] = 0
     swarm[:, 9] = 0
     swarm[:, 10] = 2             # K_repulsion_agent  0.4 1 0.6 1 #2
-    swarm[:, 11] = 0           #0.8 ##!!!!!!! # K_attraction  0.04 0.08 0.7 0.6 #0.8
+    swarm[:, 11] = 0.8           #0.8 ##!!!!!!! # K_attraction  0.04 0.08 0.7 0.6 #0.8
     swarm[:, 12] = 1.5           # K_repulsion avoid shepherd  5 #1.8 #2.5
     swarm[:, 13] = 0.1           # K_Dr: noise strength
     swarm[:, 14] = 0.01          # tick_time 0.001
@@ -25,7 +25,8 @@ def initiate(agent_num, space_x, space_y, Target_size):
     swarm[:, 18] = np.pi*2/3     # maximum turning rate
     swarm[:, 19] = np.pi         # FOV field of view np.pi * 4 / 3  #240 degree
     swarm[:, 20] = Target_size
-    swarm[:, 21] = 0.0             ### agent state: moving -> 0; staying -> 1;
+    swarm[:, 21] = 0.0             ### agent state: moving -> 0; staying -> 1.
+    swarm[:, 22] = 0.0             ### hull membership: hull -> 1; non-hull -> 0.
     return swarm
 
 def initiate_shepherd(N_shepherd, agent_num, L3):

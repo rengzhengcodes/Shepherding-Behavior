@@ -46,7 +46,9 @@ def draw_single(swarm, shepherd, Boundary_x, Boundary_y, Target_place_x, Target_
             circles = plt.Circle((swarm[index, 0], swarm[index, 1]), radius=Agent_size, facecolor='none', edgecolor='b',
                                  alpha=0.8)
         else:  # moving state radius=2.5
-            circles = plt.Circle((swarm[index, 0], swarm[index, 1]), radius=Agent_size, facecolor='none', edgecolor='g',
+            # Determines edge color based on if the sheep is in the hull or not.
+            facecolor = 'g' if swarm[index, 22] != 0 else 'none'
+            circles = plt.Circle((swarm[index, 0], swarm[index, 1]), radius=Agent_size, facecolor=facecolor, edgecolor='g',
                                  alpha=0.8)
             # if index == 0:
             #     plt.text(swarm[index, 0] * 1.05, swarm[index, 1] * 1.05, "agent_0", fontsize = 10)
@@ -74,6 +76,22 @@ def draw_single(swarm, shepherd, Boundary_x, Boundary_y, Target_place_x, Target_
     # draw center of mass
     center_of_mass_x, center_of_mass_y = calculate_mass_center(swarm)
     plt.plot(center_of_mass_x, center_of_mass_y, "r*", markersize=5)
+
+    # draw center of convex hull.
+    hull = swarm[swarm[:, 22] != 0]
+    if np.any(hull):
+        # Sorts hull by CCW order for plotting.
+        hull = hull[np.argsort(hull[:, 22])]
+
+        # Calculates and plots the center of the hull.
+        center_of_hull_x, center_of_hull_y = np.mean(hull[:, 0]), np.mean(hull[:, 1])
+        plt.plot(center_of_hull_x, center_of_hull_y, "k*", markersize=5)
+
+        # Draws the convex hull.
+        plt.plot(hull[:, 0], hull[:, 1], 'g--', lw=2)
+        # Finishes the hull connection.
+        plt.plot(hull[-1:1, 0], hull[-1:1, 1], 'g--', lw=2)
+
     # draw target center
     plt.plot(Target_place_x, Target_place_y, "b*")
     target_circle = plt.Circle((Target_place_x, Target_place_y), radius=Target_size, facecolor='none', edgecolor='b',
