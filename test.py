@@ -11,8 +11,8 @@ from basic.draw import draw_single, draw_dynamic, plot_snapshot
 from basic.create_network import create_metric_network, create_topological_network
 
 
-N_sheep = 300
-N_shepherd = 3
+N_sheep = 80
+N_shepherd = 1
 Space_x = 150
 Space_y = 150
 
@@ -28,6 +28,7 @@ TICK = 10000
 Iterations = 200000
 
 L3 = 20
+MODE = 3
 
 Repetition = 0
 
@@ -36,12 +37,12 @@ Num_nearst_neighbor = 5
 start = timer()
 if __name__ == '__main__':
 
-    agents = initiate(N_sheep, Space_x, Space_y, Target_size)
-    shepherd = initiate_shepherd(0, N_sheep, L3)
+    agents = initiate(N_sheep, N_shepherd, Space_x, Space_y, Target_size)
+    shepherd = initiate_shepherd(0, N_shepherd, L3)
     # self-organized flocking
     for tick in range(TICK):
         agents_update, shepherd_update, max_agents_indexes = evolve(agents, shepherd, Target_place_x,
-                                                                    Target_place_y, Target_size, VISION_HERD=True)
+                                                                    Target_place_y, Target_size, MODE=MODE)
         agents = agents_update
         shepherd = shepherd_update
     # prepare the shepherd and record data
@@ -54,7 +55,7 @@ if __name__ == '__main__':
     for tick in range(Iterations):
         # start evolve function
         agents_update, shepherd_update, max_agents_indexes = evolve(agents, shepherd, Target_place_x, 
-                                                                    Target_place_y, Target_size, VISION_HERD=True)
+                                                                    Target_place_y, Target_size, MODE=MODE)
         # update data
         agents = agents_update
         shepherd = shepherd_update
@@ -73,7 +74,7 @@ if __name__ == '__main__':
         # print("topological_network:", topological_network)
         # print("metric_network:", metric_network)
 
-    draw_dynamic(Final_tick, Data_agents, Data_shepherds, Boundary_x, Boundary_y, Target_place_x, Target_place_y, Target_size, L3)
+    draw_dynamic(Final_tick, Data_agents, Data_shepherds, Boundary_x, Boundary_y, Target_place_x, Target_place_y, Target_size, L3, MODE=MODE)
 
     # plot_snapshot(Final_tick, agents, shepherd, Repetition, Boundary_x, Boundary_y, Target_place_x, Target_place_y, Target_size)
     # save_data(N_sheep, N_shepherd, Repetition, Final_tick, Data_agents, Data_shepherds)

@@ -37,7 +37,7 @@ def draw_network(swarm):
 
 
 # @nb.jit(nopython=True)
-def draw_single(swarm, shepherd, Boundary_x, Boundary_y, Target_place_x, Target_place_y, Target_size):
+def draw_single(swarm, shepherd, Boundary_x, Boundary_y, Target_place_x, Target_place_y, Target_size, MODE):
     # draw sheep
     N = swarm.shape[0]
     Agent_size = swarm[0][7]
@@ -78,17 +78,23 @@ def draw_single(swarm, shepherd, Boundary_x, Boundary_y, Target_place_x, Target_
     plt.plot(center_of_mass_x, center_of_mass_y, "r*", markersize=5)
 
     # draw center of convex hull.
-    hull = swarm[swarm[:, 22] != 0]
-    if np.any(hull):
-        # Sorts hull by CCW order for plotting.
-        hull = hull[np.argsort(hull[:, 22])]
+    if MODE == 2:
+        hull = swarm[swarm[:, 22] != 0]
+        if np.any(hull):
+            # Sorts hull by CCW order for plotting.
+            hull = hull[np.argsort(hull[:, 22])]
 
-        # Calculates and plots the center of the hull.
-        center_of_hull_x, center_of_hull_y = np.mean(hull[:, 0]), np.mean(hull[:, 1])
-        plt.plot(center_of_hull_x, center_of_hull_y, "k*", markersize=5)
+            # Calculates and plots the center of the hull.
+            center_of_hull_x, center_of_hull_y = np.mean(hull[:, 0]), np.mean(hull[:, 1])
+            plt.plot(center_of_hull_x, center_of_hull_y, "k*", markersize=5)
 
-        # Draws the convex hull.
-        plt.fill(hull[:, 0], hull[:, 1], color='g', linestyle=':', lw=2, fill=False)
+            # Draws the convex hull.
+            plt.fill(hull[:, 0], hull[:, 1], color='g', linestyle=':', lw=2, fill=False)
+    # Draw the direct line between shepherd and agent it can see.
+    if MODE == 3:
+        for i in range(N_shepherd):
+            for agent in swarm[(swarm[:, 23].view('uint64') & (0b01 << i)) != 0b0]:
+                plt.plot([shepherd[i][0], agent[0]], [shepherd[i][1], agent[1]], color='cyan')    
 
     # draw target center
     plt.plot(Target_place_x, Target_place_y, "b*")
@@ -102,7 +108,7 @@ def draw_single(swarm, shepherd, Boundary_x, Boundary_y, Target_place_x, Target_
 
 
 def draw_dynamic(Iterations, Data_agents, Data_shepherds, Space_x, Space_y, Target_place_x, Target_place_y,
-                 Target_size, L3):
+                 Target_size, L3, MODE):
     N_sheep = Data_agents[:, :, 0].shape[0]
     plt.figure(figsize=(8, 6), dpi=300)
     plt.ion()
@@ -119,7 +125,7 @@ def draw_dynamic(Iterations, Data_agents, Data_shepherds, Space_x, Space_y, Targ
     for index in range(0, Iterations, 100):
         plt.cla()
         draw_single(Data_agents[:, :, index], Data_shepherds[:, :, index], Space_x, Space_y, Target_place_x,
-                    Target_place_y, Target_size)
+                    Target_place_y, Target_size, MODE)
 
         plt.title("N_sheep = " + str(N_sheep) + "_L3 = " + str(L3) + "_tick = " + str(index))
         plt.savefig(folder_path + str(int(index / 100)) + ".png")

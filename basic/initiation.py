@@ -1,12 +1,12 @@
 
 import numpy as np
 
-def initiate(agent_num, space_x, space_y, Target_size):
+def initiate(N_sheep, N_shepherd, space_x, space_y, Target_size):
     
-    swarm = np.zeros(shape=(agent_num, 23), dtype=float)
-    swarm[:, 0] = np.random.uniform(50, space_x, agent_num)
-    swarm[:, 1] = np.random.uniform(50, space_y, agent_num)
-    swarm[:, 2] = np.random.uniform(-np.pi, np.pi, agent_num)
+    swarm = np.zeros(shape=(N_sheep, 24), dtype='float64')
+    swarm[:, 0] = np.random.uniform(50, space_x, N_sheep)
+    swarm[:, 1] = np.random.uniform(50, space_y, N_sheep)
+    swarm[:, 2] = np.random.uniform(-np.pi, np.pi, N_sheep)
     swarm[:, 3] = 10    # repulsion_distance 10  #12.5  #10 #7 #6.5 #7.5
     swarm[:, 4] = 0      # alignment_distance no use
     swarm[:, 5] = 25     # attraction_distance #25  #30
@@ -27,10 +27,11 @@ def initiate(agent_num, space_x, space_y, Target_size):
     swarm[:, 20] = Target_size
     swarm[:, 21] = 0.0             ### agent state: moving -> 0; staying -> 1.
     swarm[:, 22] = 0.0             ### hull membership: hull -> 1; non-hull -> 0.
+    swarm[:, 23] = 0.0             ### Tracks which shepherd sees the agent using little endian binary encoding. 1 if shepherd sees agent, 0 otherwise.
     return swarm
 
 def initiate_shepherd(N_shepherd, agent_num, L3):
-    shepherd_swarm = np.zeros(shape=(N_shepherd, 22), dtype=float)
+    shepherd_swarm = np.zeros(shape=(N_shepherd, 23), dtype=float)
     # parameter
     shepherd_swarm[:, 0] = np.random.uniform(0, 50, N_shepherd)  #0, 50
     shepherd_swarm[:, 1] = np.random.uniform(0, 50, N_shepherd)
