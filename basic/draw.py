@@ -93,16 +93,21 @@ def draw_single(swarm, shepherd, Boundary_x, Boundary_y, Target_place_x, Target_
     # Draw the direct line between shepherd and agent it can see.
     if MODE == 3:
         for i in range(N_shepherd):
-            for agent in swarm[(swarm[:, 23].view('uint64') & (0b01 << i)) != 0b0]:
-                plt.plot([shepherd[i][0], agent[0]], [shepherd[i][1], agent[1]], color='cyan')    
+            relevant_swarm = swarm[(swarm[:, 23].view('uint64') & (0b01 << i)) != 0b0]
+            for agent in relevant_swarm:
+                plt.plot([shepherd[i][0], agent[0]], [shepherd[i][1], agent[1]], color='m')  
+            # draw center of visible sheep. If no visible sheep it assumes self as CoM.
+            center_of_visible_sheep_x = np.mean(relevant_swarm[:, 0])
+            center_of_visible_sheep_y = np.mean(relevant_swarm[:, 1])
+            plt.plot(center_of_visible_sheep_x, center_of_visible_sheep_y, "m*", markersize=5)  
 
     # draw target center
     plt.plot(Target_place_x, Target_place_y, "b*")
     target_circle = plt.Circle((Target_place_x, Target_place_y), radius=Target_size, facecolor='none', edgecolor='b',
                                alpha=0.5)
     plt.gca().add_patch(target_circle)
-    plt.xlim(xmin=0, xmax=Boundary_x)
-    plt.ylim(ymin=0, ymax=Boundary_y)
+    plt.xlim(xmin=-Boundary_x//4, xmax=Boundary_x)
+    plt.ylim(ymin=-Boundary_y//4, ymax=Boundary_y)
     # plt.axis('equal')
     # plt.axis('square')
 
@@ -173,8 +178,8 @@ def plot_snapshot(Final_tick, swarm, shepherd, repetition, Boundary_x, Boundary_
                                alpha=0.5)
     plt.gca().add_patch(target_circle)
 
-    plt.xlim(xmin=0, xmax=Boundary_x)
-    plt.ylim(ymin=0, ymax=Boundary_y)
+    plt.xlim(xmin=-100, xmax=Boundary_x)
+    plt.ylim(ymin=-100, ymax=Boundary_y)
 
     plt.title("Ns = " + str(N_sheep) + "N = " + str(N_shepherd) + "tick =" + str(Final_tick))
     plt.savefig(folder_path + "/" + "N_sheep=" + str(N_sheep) + "_N_shepherd=" + str(N_shepherd)

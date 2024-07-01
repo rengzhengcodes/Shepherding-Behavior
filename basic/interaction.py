@@ -308,16 +308,17 @@ def drive_the_herd_using_visible_convex_hull(agents, shepherd_x, shepherd_y, she
         else: 
             visible_hull = ConvexHull(sheperd_and_sheep_coordinates, qhull_options="QG0")
             # Takes the visible simplices (edges)/
-            visible_hull = visible_hull.simplices[visible_hull.good == True]
+            visible_hull = visible_hull.simplices[visible_hull.good]
             # Accounts for the shepherd inserted into the sheep swarm skewing indices.
             visible_hull -= 1
             visible_hull = np.unique(visible_hull).flatten()
             # Returns it back to the original indices.
-            visible_hull = np.where(agents[:, 21] == 0)[0][visible_hull]
+            visible_hull = np.where(agents[:, 21] == 0)[0][visible_hull]        
+            # If there is no visible hull, e.g., if the shepherd is inside, the shepherd
+            # assumes the nearest sheep as the center of mass.
+            if visible_hull.shape[0] == 0:
+                visible_hull = np.array([np.argmin(np.sqrt((agents[:, 0] - shepherd_x) ** 2 + (agents[:, 1] - shepherd_y) ** 2))])
 
-    # Resets all agent hull status and who they are seen by.
-    agents[:, 22] = 0
-    agents[:, 23] = 0
     # Set hull and visibility status.
     with nb.objmode():
         for i, agent in enumerate(visible_hull):
@@ -331,14 +332,8 @@ def drive_the_herd_using_visible_convex_hull(agents, shepherd_x, shepherd_y, she
     ST = np.array([target_place_x - shepherd_x, target_place_y - shepherd_y])
 
     # Gets center of mass estimate as average of the visible convex hull vertices.
-    if np.any(visible_hull):
-        center_of_hull_x = np.mean(agents[visible_hull, 0])
-        center_of_hull_y = np.mean(agents[visible_hull, 1])
-    # If there is no visible hull, e.g., if the shepherd is inside, the shepherd
-    # assumed it is the center.
-    else:
-        center_of_hull_x = shepherd_x
-        center_of_hull_y = shepherd_y
+    center_of_hull_x = np.mean(agents[visible_hull, 0])
+    center_of_hull_y = np.mean(agents[visible_hull, 1])
 
     # calculate the distance, angle between the center of the mass and the shepherd;
     distance_mass_target, angle_mass_target = Get_relative_distance_angle(center_of_hull_x, center_of_hull_y,
@@ -455,6 +450,13 @@ def herd(agents, shepherd, target_place_x, target_place_y, MODE):
     # avoid the other shepherd first!
     distance_other_shepherd, angle_other_shepherd = keep_distance_from_other_shepherd(shepherd)
 
+    if MODE == 3:
+        # Reset hull status.
+        agents[:, 22] = 0
+        # Resets who is visible to the shepherd, must be done outside of loop
+        # or else each shepherd erases information for all other shepherds in this
+        # call of herd.
+        agents[:, 23] = 0.0
     for shepherd_index in range(shepherd.shape[0]):
         shepherd_x = shepherd[shepherd_index][0]
         shepherd_y = shepherd[shepherd_index][1]
@@ -509,7 +511,7 @@ def herd(agents, shepherd, target_place_x, target_place_y, MODE):
             # get the info of the furthest agent;
             max_agent_index, r_agent, max_angle_target_to_agent = Get_furthest_agent(agents, shepherd_x, shepherd_y,
                                                                                      target_place_x, target_place_y)
-            if MODE != 1:
+            if MODE == 1:
                 # max_angle_target_to_agent +: clockwise, -: anti-clockwise; threshold = np.pi/3
                 if (np.absolute(max_angle_target_to_agent) > Angle_Threshold_Collection) and (agents[max_agent_index][21] == 0.0):
                     # collect_mode = true
