@@ -16,7 +16,7 @@ def initiate(N_sheep, N_shepherd, space_x, space_y, Target_size):
     swarm[:, 9] = 0
     swarm[:, 10] = 2             # K_repulsion_agent  0.4 1 0.6 1 #2
     swarm[:, 11] = 0.8           #0.8 ##!!!!!!! # K_attraction  0.04 0.08 0.7 0.6 #0.8
-    swarm[:, 12] = 2           # K_repulsion avoid shepherd  5 #1.8 #2.5
+    swarm[:, 12] = 1.5           # K_repulsion avoid shepherd  5 #1.8 #2.5
     swarm[:, 13] = 0.1           # K_Dr: noise strength
     swarm[:, 14] = 0.01          # tick_time 0.001
     swarm[:, 15] = 1             # alpha: acceleration 1   1

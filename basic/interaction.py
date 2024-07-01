@@ -247,23 +247,8 @@ def calculate_mass_center(agents):
 
 @nb.jit(nopython=True)
 def drive_the_herd_using_convex_hull(agents, shepherd_x, shepherd_y, target_place_x, target_place_y):
-    # Calculate the convex hull of the flock not staying.
-    with nb.objmode(hull='int64[:]'):
-        if agents[agents[:, 21] == 0].shape[0] <= 2:
-            hull = np.where(agents[:, 21] == 0)[0]
-        else: 
-            hull = ConvexHull(agents[agents[:, 21] == 0, :2]).vertices
-            # Returns it back to the original indices.
-            hull = np.where(agents[:, 21] == 0)[0][hull]
-
-    # Resets all agent hull status.
-    agents[:, 22] = 0   
-    # Set hull status.
-    for i, agent in enumerate(hull):
-        agents[agent, 22] = i + 1
-
-    # Gets vector Shepherd -> Target.
-    ST = np.array([target_place_x - shepherd_x, target_place_y - shepherd_y])
+    # Gets the precalculated convex hull of the flock.
+    hull = np.where(agents[:, 22] != 0)[0]
 
     # Gets center of mass estimate as average of the convex hull vertices.
     center_of_hull_x = np.mean(agents[hull, 0])
@@ -450,6 +435,20 @@ def herd(agents, shepherd, target_place_x, target_place_y, MODE):
     # avoid the other shepherd first!
     distance_other_shepherd, angle_other_shepherd = keep_distance_from_other_shepherd(shepherd)
 
+    if MODE == 2:
+        # Reset hull status.
+        agents[:, 22] = 0
+        # Finds the convex hull of the flock.
+        with nb.objmode(hull='int64[:]'):
+            if agents[agents[:, 21] == 0].shape[0] <= 2:
+                hull = np.where(agents[:, 21] == 0)[0]
+            else: 
+                hull = ConvexHull(agents[agents[:, 21] == 0, :2]).vertices
+                # Returns it back to the original indices.
+                hull = np.where(agents[:, 21] == 0)[0][hull]
+
+        # Sets the hull items in their CCW order.    
+        agents[hull, 22] = np.arange(1, hull.shape[0] + 1)
     if MODE == 3:
         # Reset hull status.
         agents[:, 22] = 0
