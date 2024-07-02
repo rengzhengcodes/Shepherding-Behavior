@@ -94,8 +94,7 @@ def draw_single(swarm, shepherd, Boundary_x, Boundary_y, Target_place_x, Target_
     if MODE == 3:
         for i in range(N_shepherd):
             relevant_swarm = swarm[(swarm[:, 23].view('uint64') & (0b01 << i)) != 0b0]
-            for agent in relevant_swarm:
-                plt.plot([shepherd[i][0], agent[0]], [shepherd[i][1], agent[1]], color='m')  
+            plt.plot([np.repeat(shepherd[i, 0], relevant_swarm.shape[0]), relevant_swarm[:, 0]], [np.repeat(shepherd[i, 1], relevant_swarm.shape[0]), relevant_swarm[:, 1]], color='m')
             # draw center of visible sheep. If no visible sheep it assumes self as CoM.
             center_of_visible_sheep_x = np.mean(relevant_swarm[:, 0])
             center_of_visible_sheep_y = np.mean(relevant_swarm[:, 1])

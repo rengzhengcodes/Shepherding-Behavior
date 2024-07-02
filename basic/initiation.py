@@ -26,12 +26,12 @@ def initiate(N_sheep, N_shepherd, space_x, space_y, Target_size):
     swarm[:, 19] = np.pi         # FOV field of view np.pi * 4 / 3  #240 degree
     swarm[:, 20] = Target_size
     swarm[:, 21] = 0.0             ### agent state: moving -> 0; staying -> 1.
-    swarm[:, 22] = 0.0             ### hull membership: hull -> 1; non-hull -> 0.
+    swarm[:, 22] = 0.0             ### hull membership: hull -> 1+ designating CCW order; non-hull -> 0.
     swarm[:, 23] = 0.0             ### Tracks which shepherd sees the agent using little endian binary encoding. 1 if shepherd sees agent, 0 otherwise.
     return swarm
 
 def initiate_shepherd(N_shepherd, agent_num, L3):
-    shepherd_swarm = np.zeros(shape=(N_shepherd, 23), dtype=float)
+    shepherd_swarm = np.zeros(shape=(N_shepherd, 22), dtype=float)
     # parameter
     shepherd_swarm[:, 0] = np.random.uniform(0, 50, N_shepherd)  #0, 50
     shepherd_swarm[:, 1] = np.random.uniform(0, 50, N_shepherd)

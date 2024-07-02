@@ -305,13 +305,12 @@ def drive_the_herd_using_visible_convex_hull(agents, shepherd_x, shepherd_y, she
                 visible_hull = np.array([np.argmin(np.sqrt((agents[:, 0] - shepherd_x) ** 2 + (agents[:, 1] - shepherd_y) ** 2))])
 
     # Set hull and visibility status.
+    agents[visible_hull, 22] = np.arange(1, visible_hull.shape[0] + 1)
+    # Very suspicious little endian coding that should be rewritten using the following numpy trick:
+    # https://stackoverflow.com/a/40249859
+    # unstable if float dtype ever changes in the array.
     with nb.objmode():
-        for i, agent in enumerate(visible_hull):
-            agents[agent, 22] = i + 1
-            # Very suspicious little endian coding that should be rewritten using the following numpy trick:
-            # https://stackoverflow.com/a/40249859
-            # unstable if float dtype ever changes in the array.
-            agents[agent, 23] = np.array(agents[agent, 23].view('uint64') | (0b01 << shepherd_index), dtype='int64').view('float64')
+        agents[visible_hull, 23] = (agents[visible_hull, 23].view('uint64') | (0b01 << shepherd_index)).view('float64')
 
     # Gets vector Shepherd -> Target.
     ST = np.array([target_place_x - shepherd_x, target_place_y - shepherd_y])
@@ -328,7 +327,7 @@ def drive_the_herd_using_visible_convex_hull(agents, shepherd_x, shepherd_y, she
     # initial parameter of shepherd swarm[:,5];
     num_agents_moving = agents[agents[:, 21] == 0].shape[0]
     if num_agents_moving >= 10:
-        l1_new = (2 / 3) * np.sqrt(num_agents_moving) * 10   #7.5
+        l1_new = (2 / 3) * np.sqrt(num_agents_moving) * 2   #7.5
     else:
         l1_new = 15
     
@@ -517,6 +516,8 @@ def herd(agents, shepherd, target_place_x, target_place_y, MODE):
                     shepherd[shepherd_index][13] = 0.0
                     # lock the ID of the furthest agent for the collect mode;
                     shepherd[shepherd_index][16] = int(max_agent_index)
+            elif MODE == 3:
+                pass
             else:
                 agent_x = agents[int(max_agent_index)][0]
                 agent_y = agents[int(max_agent_index)][1]
@@ -543,7 +544,11 @@ def herd(agents, shepherd, target_place_x, target_place_y, MODE):
             collect_agent_id = shepherd[shepherd_index][16]
             agent_x = agents[int(collect_agent_id)][0]
             agent_y = agents[int(collect_agent_id)][1]
-            if MODE != 1:
+            if MODE == 1:
+                # attract by the furthest agent out of FOV;
+                # using target place: x/y;
+                collect_point_x, collect_point_y, force_x, force_y = collect_furthest_agent(agent_x, agent_y, shepherd_x, shepherd_y, target_place_x, target_place_y, l0)
+            else:
                 # attract by the furthest agent;
                 # using center of mas: x/y;
                 collect_point_x, collect_point_y, force_x, force_y = collect_furthest_agent(agent_x, agent_y,
@@ -551,10 +556,6 @@ def herd(agents, shepherd, target_place_x, target_place_y, MODE):
                                                                                             center_of_mass_x,
                                                                                             center_of_mass_y,
                                                                                             l0)
-            else:
-                # attract by the furthest agent out of FOV;
-                # using target place: x/y;
-                collect_point_x, collect_point_y, force_x, force_y = collect_furthest_agent(agent_x, agent_y, shepherd_x, shepherd_y, target_place_x, target_place_y, l0)
 
             # repulsion from other shepherd and attraction from the furthest agent;
             F_x = force_x + f_x_other_shepherd
@@ -566,15 +567,15 @@ def herd(agents, shepherd, target_place_x, target_place_y, MODE):
             distance_agent_mass, angle_agent_mass = Get_relative_distance_angle(collect_point_x, collect_point_y,
                                                                                 center_of_mass_x, center_of_mass_y)
             # !!! switch to the drive mode:
-            if MODE != 1:
-                # if the agent is closer enough to the center or the agents are staying inside the circe;
-                if distance_agent_mass <= d_furthest or agents[int(shepherd[shepherd_index][16])][21] == 1.0:
-                    shepherd[shepherd_index][13] = 1.0  # drive_mode_true
-            else:
+            if MODE == 1:
                 # if the agent is closer enough to ANY AGENT in the GROUP or the agents are staying inside the circe;
                 # get the center of projection of the GROUP
                 angle_difference_agent_mass = collect_the_herd_using_vision(collect_agent_id, agents, shepherd_x, shepherd_y)
                 if (angle_difference_agent_mass <= np.pi/3) or (agents[int(shepherd[shepherd_index][16])][21] == 1.0):
+                    shepherd[shepherd_index][13] = 1.0  # drive_mode_true
+            else:
+                # if the agent is closer enough to the center or the agents are staying inside the circe;
+                if distance_agent_mass <= d_furthest or agents[int(shepherd[shepherd_index][16])][21] == 1.0:
                     shepherd[shepherd_index][13] = 1.0  # drive_mode_true
 
         # calculate the linear speed and angular speed;
