@@ -66,11 +66,11 @@ def draw_single(swarm, shepherd, Boundary_x, Boundary_y, Target_place_x, Target_
         plt.plot([shepherd[i][14], shepherd[i][0]], [shepherd[i][15], shepherd[i][1]], color='cyan')
         shepherd_state = shepherd[i][13]
         if shepherd_state == 1:  # drive mode
-            plt.plot(shepherd[i, 0], shepherd[i, 1], marker='o', color='r', markersize=Agent_size * 2, alpha=0.2)
+            plt.plot(shepherd[i, 0], shepherd[i, 1], marker='o', color='r', markersize=Agent_size, alpha=0.2)
             plt.quiver(shepherd[i, 0], shepherd[i, 1], np.cos(shepherd[i, 2]), np.sin(shepherd[i, 2]), headwidth=3,
                        headlength=3, headaxislength=3.5, minshaft=4, minlength=1, color='r', scale_units='inches', scale=10)
         else:
-            plt.plot(shepherd[i, 0], shepherd[i, 1], marker='o', color='b', markersize=Agent_size * 2, alpha=0.2)
+            plt.plot(shepherd[i, 0], shepherd[i, 1], marker='o', color='b', markersize=Agent_size, alpha=0.2)
             plt.quiver(shepherd[i, 0], shepherd[i, 1], np.cos(shepherd[i, 2]), np.sin(shepherd[i, 2]), headwidth=3,
                        headlength=3, headaxislength=3.5, minshaft=4, minlength=1, color='r', scale_units='inches', scale=10)
     # draw center of mass
@@ -94,7 +94,7 @@ def draw_single(swarm, shepherd, Boundary_x, Boundary_y, Target_place_x, Target_
     if MODE == 3:
         for i in range(N_shepherd):
             relevant_swarm = swarm[(swarm[:, 23].view('uint64') & (0b01 << i)) != 0b0]
-            plt.plot([np.repeat(shepherd[i, 0], relevant_swarm.shape[0]), relevant_swarm[:, 0]], [np.repeat(shepherd[i, 1], relevant_swarm.shape[0]), relevant_swarm[:, 1]], color='m')
+            plt.plot([np.repeat(shepherd[i, 0], relevant_swarm.shape[0]), relevant_swarm[:, 0]], [np.repeat(shepherd[i, 1], relevant_swarm.shape[0]), relevant_swarm[:, 1]], color='m', lw=1)
             # draw center of visible sheep. If no visible sheep it assumes self as CoM.
             center_of_visible_sheep_x = np.mean(relevant_swarm[:, 0])
             center_of_visible_sheep_y = np.mean(relevant_swarm[:, 1])

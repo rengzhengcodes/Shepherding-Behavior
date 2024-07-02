@@ -345,7 +345,7 @@ def drive_the_herd_using_visible_convex_hull(agents, shepherd_x, shepherd_y, she
     force_y = distance_drive_herd * np.sin(angle_drive_herd)  #
     # !!! Attention: the vector (force_x, force_y) is not unit;
 
-    return drive_point_x, drive_point_y, force_x, force_y
+    return drive_point_x, drive_point_y, force_x, force_y, center_of_hull_x, center_of_hull_y
 
 
 @nb.jit(nopython=True)
@@ -421,20 +421,10 @@ def herd(agents, shepherd, target_place_x, target_place_y, MODE):
     Angle_Threshold_Collection = shepherd[0][17]  # HALF FOV threshold for collect mode;
     K_attraction_target = 0.01 #shepherd[0][18]  # K_attraction_target   0.01
 
-    # first get the position of the center of the mass
-    num_agents_moving, center_of_mass_x, center_of_mass_y = calculate_mass_center(agents)
-
-    # d_furthest = shepherd[0][12]    # L2
-    if num_agents_moving >= 50:
-        d_furthest = 10 * (np.sqrt(num_agents_moving)) * 2/3   #7.5 *
-        # Although it could be an issue when the agent number = 1, d_furthest = 5
-    else:
-        d_furthest = 50  ## 35 ## related to l1, and was also used in drive the herd function
-
-    # avoid the other shepherd first!
-    distance_other_shepherd, angle_other_shepherd = keep_distance_from_other_shepherd(shepherd)
-
-    if MODE == 2:
+    if MODE == 0:
+        # first get the position of the center of the mass
+        num_agents_moving, center_of_mass_x, center_of_mass_y = calculate_mass_center(agents)
+    elif MODE == 2:
         # Reset hull status.
         agents[:, 22] = 0
         # Finds the convex hull of the flock.
@@ -448,13 +438,33 @@ def herd(agents, shepherd, target_place_x, target_place_y, MODE):
 
         # Sets the hull items in their CCW order.    
         agents[hull, 22] = np.arange(1, hull.shape[0] + 1)
-    if MODE == 3:
+
+        # Finds the center of the hull.
+        num_agents_moving, center_of_hull_x, center_of_hull_y = np.count_nonzero(agents[:, 21] == 0), np.mean(agents[hull, 0]), np.mean(agents[hull, 1])
+        # Proxy for code concision later.
+        center_of_mass_x, center_of_mass_y = center_of_hull_x, center_of_hull_y
+    elif MODE == 3:
         # Reset hull status.
         agents[:, 22] = 0
         # Resets who is visible to the shepherd, must be done outside of loop
         # or else each shepherd erases information for all other shepherds in this
         # call of herd.
         agents[:, 23] = 0.0
+        # Sets center of mass values for error handling.
+        center_of_mass_x, center_of_mass_y = None, None
+        # Sets the number of moving agents.
+        num_agents_moving = np.count_nonzero(agents[:, 21] == 0)
+
+   # d_furthest = shepherd[0][12]    # L2
+    if num_agents_moving >= 50:
+        d_furthest = 10 * (np.sqrt(num_agents_moving)) * 2/3   #7.5 *
+        # Although it could be an issue when the agent number = 1, d_furthest = 5
+    else:
+        d_furthest = 50  ## 35 ## related to l1, and was also used in drive the herd function
+
+    # avoid the other shepherd first!
+    distance_other_shepherd, angle_other_shepherd = keep_distance_from_other_shepherd(shepherd)
+
     for shepherd_index in range(shepherd.shape[0]):
         shepherd_x = shepherd[shepherd_index][0]
         shepherd_y = shepherd[shepherd_index][1]
@@ -485,10 +495,11 @@ def herd(agents, shepherd, target_place_x, target_place_y, MODE):
             elif MODE == 3:
                 # using visible convex hull
                 (drive_point_x, drive_point_y,
-                 drive_force_x, drive_force_y) = drive_the_herd_using_visible_convex_hull(agents, 
+                 drive_force_x, drive_force_y, 
+                 center_of_hull_x, center_of_hull_y) = drive_the_herd_using_visible_convex_hull(agents, 
                                                                                             shepherd_x, shepherd_y, shepherd_index,
                                                                                             target_place_x, target_place_y)
-
+                center_of_mass_x, center_of_mass_y = center_of_hull_x, center_of_hull_y
             # calculate the attraction force from the target;
             distance_shepherd_target, angle_shepherd_target = Get_relative_distance_angle(target_place_x,
                                                                                           target_place_y,
@@ -516,8 +527,6 @@ def herd(agents, shepherd, target_place_x, target_place_y, MODE):
                     shepherd[shepherd_index][13] = 0.0
                     # lock the ID of the furthest agent for the collect mode;
                     shepherd[shepherd_index][16] = int(max_agent_index)
-            elif MODE == 3:
-                pass
             else:
                 agent_x = agents[int(max_agent_index)][0]
                 agent_y = agents[int(max_agent_index)][1]
@@ -548,6 +557,17 @@ def herd(agents, shepherd, target_place_x, target_place_y, MODE):
                 # attract by the furthest agent out of FOV;
                 # using target place: x/y;
                 collect_point_x, collect_point_y, force_x, force_y = collect_furthest_agent(agent_x, agent_y, shepherd_x, shepherd_y, target_place_x, target_place_y, l0)
+            elif MODE == 3:
+                # using visible convex hull
+                _, _, _, _, center_of_hull_x, center_of_hull_y = drive_the_herd_using_visible_convex_hull(agents, 
+                                                                                                    shepherd_x, shepherd_y, shepherd_index,
+                                                                                                    target_place_x, target_place_y)
+                collect_point_x, collect_point_y, force_x, force_y = collect_furthest_agent(agent_x, agent_y, 
+                                                                                            shepherd_x, shepherd_y, 
+                                                                                            center_of_hull_x, center_of_hull_y, 
+                                                                                            l0)
+                # Aliased for code concision.   
+                center_of_mass_x, center_of_mass_y = center_of_hull_x, center_of_hull_y
             else:
                 # attract by the furthest agent;
                 # using center of mas: x/y;
