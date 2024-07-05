@@ -44,12 +44,12 @@ def draw_single(swarm, shepherd, Boundary_x, Boundary_y, Target_place_x, Target_
     for index in range(N):
         if swarm[index, 21] == 1:  # staying state radius=2.5
             circles = plt.Circle((swarm[index, 0], swarm[index, 1]), radius=Agent_size, facecolor='none', edgecolor='b',
-                                 alpha=0.8)
+                                 alpha=0.8, lw=0.5)
         else:  # moving state radius=2.5
             # Determines edge color based on if the sheep is in the hull or not.
             facecolor = 'g' if swarm[index, 22] != 0 else 'none'
             circles = plt.Circle((swarm[index, 0], swarm[index, 1]), radius=Agent_size, facecolor=facecolor, edgecolor='g',
-                                 alpha=0.8)
+                                 alpha=0.8, lw=0.5)
             # if index == 0:
             #     plt.text(swarm[index, 0] * 1.05, swarm[index, 1] * 1.05, "agent_0", fontsize = 10)
         plt.gca().add_patch(circles)
@@ -63,6 +63,7 @@ def draw_single(swarm, shepherd, Boundary_x, Boundary_y, Target_place_x, Target_
     # draw shepherd and its collect point
     N_shepherd = shepherd.shape[0]
     for i in range(N_shepherd):
+        #Shepherd to collect_x/drive_x collect_y/drive_y
         plt.plot([shepherd[i][14], shepherd[i][0]], [shepherd[i][15], shepherd[i][1]], color='cyan')
         shepherd_state = shepherd[i][13]
         if shepherd_state == 1:  # drive mode
@@ -73,9 +74,16 @@ def draw_single(swarm, shepherd, Boundary_x, Boundary_y, Target_place_x, Target_
             plt.plot(shepherd[i, 0], shepherd[i, 1], marker='o', color='b', markersize=Agent_size, alpha=0.2)
             plt.quiver(shepherd[i, 0], shepherd[i, 1], np.cos(shepherd[i, 2]), np.sin(shepherd[i, 2]), headwidth=3,
                        headlength=3, headaxislength=3.5, minshaft=4, minlength=1, color='r', scale_units='inches', scale=10)
+    
     # draw center of mass
     center_of_mass_x, center_of_mass_y = calculate_mass_center(swarm)
     plt.plot(center_of_mass_x, center_of_mass_y, "r*", markersize=5)
+
+    # Plots the agent being collected.
+    collecting_shepherds = shepherd[shepherd[:, 13] == 0]
+    for agent in collecting_shepherds:
+        collecting_agent = swarm[int(agent[16])]
+        plt.plot((agent[0], collecting_agent[0]), (agent[1], collecting_agent[1]), color='y', linestyle=':', lw=2)
 
     # draw center of convex hull.
     if MODE == 2:
@@ -94,7 +102,7 @@ def draw_single(swarm, shepherd, Boundary_x, Boundary_y, Target_place_x, Target_
     if MODE == 3:
         for i in range(N_shepherd):
             relevant_swarm = swarm[(swarm[:, 23].view('uint64') & (0b01 << i)) != 0b0]
-            plt.plot([np.repeat(shepherd[i, 0], relevant_swarm.shape[0]), relevant_swarm[:, 0]], [np.repeat(shepherd[i, 1], relevant_swarm.shape[0]), relevant_swarm[:, 1]], color='m', lw=1)
+            plt.plot([np.repeat(shepherd[i, 0], relevant_swarm.shape[0]), relevant_swarm[:, 0]], [np.repeat(shepherd[i, 1], relevant_swarm.shape[0]), relevant_swarm[:, 1]], color='m', lw=1, alpha=0.25)
             # draw center of visible sheep. If no visible sheep it assumes self as CoM.
             center_of_visible_sheep_x = np.mean(relevant_swarm[:, 0])
             center_of_visible_sheep_y = np.mean(relevant_swarm[:, 1])

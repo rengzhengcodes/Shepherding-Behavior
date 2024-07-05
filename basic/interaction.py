@@ -286,9 +286,11 @@ def drive_the_herd_using_convex_hull(agents, shepherd_x, shepherd_y, target_plac
 @nb.jit(nopython=True)
 def drive_the_herd_using_visible_convex_hull(agents, shepherd_x, shepherd_y, shepherd_index, target_place_x, target_place_y):
     # Calculate the convex hull of the flock not staying.
-    sheperd_and_sheep_coordinates = np.concatenate((np.array([[shepherd_x, shepherd_y]]), agents[agents[:, 21] == 0, :2]))
+    roaming_agents = agents[agents[:, 21] == 0]
+    sheperd_and_sheep_coordinates = np.concatenate((np.array([[shepherd_x, shepherd_y]]), roaming_agents[:, :2]))
+    
     with nb.objmode(visible_hull='int64[:]'):
-        if agents[agents[:, 21] == 0].shape[0] <= 2:
+        if roaming_agents.shape[0] <= 2:
             visible_hull = np.where(agents[:, 21] == 0)[0]
         else: 
             visible_hull = ConvexHull(sheperd_and_sheep_coordinates, qhull_options="QG0")
@@ -297,12 +299,13 @@ def drive_the_herd_using_visible_convex_hull(agents, shepherd_x, shepherd_y, she
             # Accounts for the shepherd inserted into the sheep swarm skewing indices.
             visible_hull -= 1
             visible_hull = np.unique(visible_hull).flatten()
-            # Returns it back to the original indices.
-            visible_hull = np.where(agents[:, 21] == 0)[0][visible_hull]        
             # If there is no visible hull, e.g., if the shepherd is inside, the shepherd
             # assumes the nearest sheep as the center of mass.
             if visible_hull.shape[0] == 0:
-                visible_hull = np.array([np.argmin(np.sqrt((agents[:, 0] - shepherd_x) ** 2 + (agents[:, 1] - shepherd_y) ** 2))])
+                visible_hull = np.array([np.argmin(np.sqrt((roaming_agents[:, 0] - shepherd_x) ** 2 + (roaming_agents[:, 1] - shepherd_y) ** 2))])
+
+            # Converts visible_hull back to the original indices.
+            visible_hull = np.where(agents[:, 21] == 0)[0][visible_hull]        
 
     # Set hull and visibility status.
     agents[visible_hull, 22] = np.arange(1, visible_hull.shape[0] + 1)
@@ -345,7 +348,7 @@ def drive_the_herd_using_visible_convex_hull(agents, shepherd_x, shepherd_y, she
     force_y = distance_drive_herd * np.sin(angle_drive_herd)  #
     # !!! Attention: the vector (force_x, force_y) is not unit;
 
-    return drive_point_x, drive_point_y, force_x, force_y, center_of_hull_x, center_of_hull_y
+    return drive_point_x, drive_point_y, force_x, force_y, center_of_hull_x, center_of_hull_y, visible_hull
 
 
 @nb.jit(nopython=True)
@@ -496,7 +499,7 @@ def herd(agents, shepherd, target_place_x, target_place_y, MODE):
                 # using visible convex hull
                 (drive_point_x, drive_point_y,
                  drive_force_x, drive_force_y, 
-                 center_of_hull_x, center_of_hull_y) = drive_the_herd_using_visible_convex_hull(agents, 
+                 center_of_hull_x, center_of_hull_y, visible_hull) = drive_the_herd_using_visible_convex_hull(agents, 
                                                                                             shepherd_x, shepherd_y, shepherd_index,
                                                                                             target_place_x, target_place_y)
                 center_of_mass_x, center_of_mass_y = center_of_hull_x, center_of_hull_y
@@ -518,8 +521,15 @@ def herd(agents, shepherd, target_place_x, target_place_y, MODE):
             # check the current furthest agent which triggers the switch of collect mode;
             # if not VISION_HERD:
             # get the info of the furthest agent;
-            max_agent_index, r_agent, max_angle_target_to_agent = Get_furthest_agent(agents, shepherd_x, shepherd_y,
+            if MODE == 3:
+                max_agent_index, r_agent, max_angle_target_to_agent = Get_furthest_agent(agents[visible_hull], shepherd_x, shepherd_y,
+                                                                                         target_place_x, target_place_y)
+                # Converts max agent index in visible hull to the original index.
+                max_agent_index = np.where(agents[visible_hull])[0][max_agent_index]
+            else:
+                max_agent_index, r_agent, max_angle_target_to_agent = Get_furthest_agent(agents, shepherd_x, shepherd_y,
                                                                                      target_place_x, target_place_y)
+
             if MODE == 1:
                 # max_angle_target_to_agent +: clockwise, -: anti-clockwise; threshold = np.pi/3
                 if (np.absolute(max_angle_target_to_agent) > Angle_Threshold_Collection) and (agents[max_agent_index][21] == 0.0):
@@ -541,6 +551,7 @@ def herd(agents, shepherd, target_place_x, target_place_y, MODE):
                     shepherd[shepherd_index][13] = 0.0
                     # lock the ID of the furthest agent for the collect mode;
                     shepherd[shepherd_index][16] = int(max_agent_index)
+
             # if the drive agent is staying, then switch to collect mode:  ??? to be checked;
             if agents[current_drive_agent_id][21] == 1.0:
                 # collect_mode = true
@@ -559,7 +570,7 @@ def herd(agents, shepherd, target_place_x, target_place_y, MODE):
                 collect_point_x, collect_point_y, force_x, force_y = collect_furthest_agent(agent_x, agent_y, shepherd_x, shepherd_y, target_place_x, target_place_y, l0)
             elif MODE == 3:
                 # using visible convex hull
-                _, _, _, _, center_of_hull_x, center_of_hull_y = drive_the_herd_using_visible_convex_hull(agents, 
+                _, _, _, _, center_of_hull_x, center_of_hull_y, visible_hull = drive_the_herd_using_visible_convex_hull(agents, 
                                                                                                     shepherd_x, shepherd_y, shepherd_index,
                                                                                                     target_place_x, target_place_y)
                 collect_point_x, collect_point_y, force_x, force_y = collect_furthest_agent(agent_x, agent_y, 
@@ -594,7 +605,7 @@ def herd(agents, shepherd, target_place_x, target_place_y, MODE):
                 if (angle_difference_agent_mass <= np.pi/3) or (agents[int(shepherd[shepherd_index][16])][21] == 1.0):
                     shepherd[shepherd_index][13] = 1.0  # drive_mode_true
             else:
-                # if the agent is closer enough to the center or the agents are staying inside the circe;
+                # if the agent is closer enough to the center or the agents are staying inside the circle;
                 if distance_agent_mass <= d_furthest or agents[int(shepherd[shepherd_index][16])][21] == 1.0:
                     shepherd[shepherd_index][13] = 1.0  # drive_mode_true
 
