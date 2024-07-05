@@ -522,7 +522,7 @@ def herd(agents, shepherd, target_place_x, target_place_y, MODE):
                 max_agent_index, r_agent, max_angle_target_to_agent = Get_furthest_agent(agents[visible_hull], shepherd_x, shepherd_y,
                                                                                          target_place_x, target_place_y)
                 # Converts max agent index in visible hull to the original index.
-                max_agent_index = np.where(agents[visible_hull])[0][max_agent_index]
+                max_agent_index = visible_hull[max_agent_index]
             else:
                 max_agent_index, r_agent, max_angle_target_to_agent = Get_furthest_agent(agents, shepherd_x, shepherd_y,
                                                                                      target_place_x, target_place_y)
@@ -550,7 +550,7 @@ def herd(agents, shepherd, target_place_x, target_place_y, MODE):
                     shepherd[shepherd_index][16] = int(max_agent_index)
 
             # if the drive agent is staying, then switch to collect mode:  ??? to be checked;
-            if agents[current_drive_agent_id][21] == 1.0:
+            if agents[current_drive_agent_id][21]:
                 # collect_mode = true
                 shepherd[shepherd_index][13] = 0.0
                 # lock the ID of the furthest agent for the collect mode;
