@@ -315,9 +315,6 @@ def drive_the_herd_using_visible_convex_hull(agents, shepherd_x, shepherd_y, she
     with nb.objmode():
         agents[visible_hull, 23] = (agents[visible_hull, 23].view('uint64') | (0b01 << shepherd_index)).view('float64')
 
-    # Gets vector Shepherd -> Target.
-    ST = np.array([target_place_x - shepherd_x, target_place_y - shepherd_y])
-
     # Gets center of mass estimate as average of the visible convex hull vertices.
     center_of_hull_x = np.mean(agents[visible_hull, 0])
     center_of_hull_y = np.mean(agents[visible_hull, 1])
@@ -575,7 +572,7 @@ def herd(agents, shepherd, target_place_x, target_place_y, MODE):
                                                                                                     target_place_x, target_place_y)
                 collect_point_x, collect_point_y, force_x, force_y = collect_furthest_agent(agent_x, agent_y, 
                                                                                             shepherd_x, shepherd_y, 
-                                                                                            center_of_hull_x, center_of_hull_y, 
+                                                                                            target_place_x, target_place_y, 
                                                                                             l0)
                 # Aliased for code concision.   
                 center_of_mass_x, center_of_mass_y = center_of_hull_x, center_of_hull_y
