@@ -1,5 +1,6 @@
 import numba as nb
 import numpy as np
+from scipy.spatial import ConvexHull
 import matplotlib.pyplot as plt
 import os, sys
 
@@ -100,6 +101,14 @@ def draw_single(swarm, shepherd, Boundary_x, Boundary_y, Target_place_x, Target_
             plt.fill(hull[:, 0], hull[:, 1], color='g', linestyle=':', lw=2, fill=False)
     # Draw the direct line between shepherd and agent it can see.
     if MODE == 3:
+        # Manually calculates entire hull.
+        moving_swarm = swarm[swarm[:, 21] == 0]
+        if moving_swarm.shape[0] > 2:
+            hull = ConvexHull(moving_swarm[:, :2]).vertices
+        else:
+            hull = np.arange(moving_swarm.shape[0])
+        plt.fill(moving_swarm[hull, 0], moving_swarm[hull, 1], color='g', linestyle=':', lw=2, fill=False)
+
         for i in range(N_shepherd):
             relevant_swarm = swarm[(swarm[:, 23].view('uint64') & (0b01 << i)) != 0b0]
             plt.plot([np.repeat(shepherd[i, 0], relevant_swarm.shape[0]), relevant_swarm[:, 0]], [np.repeat(shepherd[i, 1], relevant_swarm.shape[0]), relevant_swarm[:, 1]], color='m', lw=1, alpha=0.25)
