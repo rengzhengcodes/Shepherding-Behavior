@@ -11,8 +11,8 @@ from basic.draw import draw_single, draw_dynamic, plot_snapshot
 from basic.create_network import create_metric_network, create_topological_network
 
 
-N_sheep = 300
-N_shepherd = 3
+N_sheep = 50
+N_shepherd = 1
 Space_x = 150
 Space_y = 150
 
@@ -28,7 +28,7 @@ TICK = 10000
 Iterations = 500000
 
 L3 = np.sqrt(N_sheep / N_shepherd) * 5 # average flock radius per shepherd
-MODE = 3
+MODE = 4
 
 Repetition = 0
 

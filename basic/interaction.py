@@ -352,27 +352,31 @@ def drive_the_herd_using_visible_convex_hull(agents, shepherd_x, shepherd_y, she
 def identify_flocks(agents, flock_distance):
     # Calculates the flocks using full DFS.
     i = 0   # Flock number
-    remaining_agents = agents[agents[:, 21] == 0]   # Tracks agents remaining.
-    remaining_agents[:, 24] = 0                     # Clears flock membership.
-    while remaining_agents:
+    agents[agents[:, 21] == 1, 24] = -1.0             # Clears flock membership.
+    agents[agents[:, 21] == 0, 24] = 0.0              # Clears flock membership.
+    remaining_agents = np.where(agents[:, 21] == 0)[0]# Tracks agents remaining.
+
+    while remaining_agents.shape[0] > 0:
         # Increments counter.
         i += 1
         # Gets the first unvisited agent.
         seed = remaining_agents[0]
         # Marks the seed as visited.
-        seed[24] = i
+        agents[seed, 24] = i
         # Initializes the stack.
         stack = [seed]
         # DFS.
         while stack:
             current = stack.pop()
             for agent in remaining_agents:
-                if agent[24] == 0 and np.sqrt((current[0] - agent[0]) ** 2 + (current[1] - agent[1]) ** 2) <= flock_distance:
-                    agent[24] = i
+                if (agents[agent, 24] == 0
+                    and (np.sqrt((agents[current, 0] - agents[agent, 0]) ** 2 + 
+                                 (agents[current, 1] - agents[agent, 1]) ** 2) <= flock_distance)):
+                    agents[agent, 24] = i
                     stack.append(agent)
         
         # Updates the remaining agents.
-        remaining_agents = remaining_agents[remaining_agents[:, 24] == 0]
+        remaining_agents = np.where(agents[:, 24] == 0)[0]
 
 
 @nb.jit(nopython=True)
@@ -380,7 +384,7 @@ def drive_the_herd_using_subflock_convex_hulls(agents, shepherd_x, shepherd_y, s
     # Goes through every flock and calculates the visible hull agents.
     visible_hulls_section = np.zeros(0, dtype='int64')
     # Calculates the number of flocks.
-    num_flocks = np.max(agents[:, 24] + 1)
+    num_flocks = np.max(agents[:, 24])
     # Does compute of visible hulls for each flock.
     for flock_index in range(1, num_flocks + 1):
         # Gets the flock.

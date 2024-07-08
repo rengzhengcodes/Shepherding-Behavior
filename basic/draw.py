@@ -118,7 +118,7 @@ def draw_single(swarm, shepherd, Boundary_x, Boundary_y, Target_place_x, Target_
             plt.plot(center_of_visible_sheep_x, center_of_visible_sheep_y, "m*", markersize=5)
     if MODE == 4:
         # Goes through each flock and plots the hull.
-        for i in range(1, np.max(swarm[:, 24]) + 1):
+        for i in range(1, int(np.max(swarm[:, 24])) + 1):
             flock = swarm[swarm[:, 24] == i]
             if flock.shape[0] > 2:
                 hull = ConvexHull(flock[:, :2]).vertices
