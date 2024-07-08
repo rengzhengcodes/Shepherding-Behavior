@@ -115,7 +115,25 @@ def draw_single(swarm, shepherd, Boundary_x, Boundary_y, Target_place_x, Target_
             # draw center of visible sheep. If no visible sheep it assumes self as CoM.
             center_of_visible_sheep_x = np.mean(relevant_swarm[:, 0])
             center_of_visible_sheep_y = np.mean(relevant_swarm[:, 1])
-            plt.plot(center_of_visible_sheep_x, center_of_visible_sheep_y, "m*", markersize=5)  
+            plt.plot(center_of_visible_sheep_x, center_of_visible_sheep_y, "m*", markersize=5)
+    if MODE == 4:
+        # Goes through each flock and plots the hull.
+        for i in range(1, np.max(swarm[:, 24]) + 1):
+            flock = swarm[swarm[:, 24] == i]
+            if flock.shape[0] > 2:
+                hull = ConvexHull(flock[:, :2]).vertices
+            else:
+                hull = np.arange(flock.shape[0])
+            plt.fill(flock[hull, 0], flock[hull, 1], color='g', linestyle=':', lw=2, fill=False)
+
+        for i in range(N_shepherd):
+            relevant_swarm = swarm[(swarm[:, 23].view('uint64') & (0b01 << i)) != 0b0]
+            plt.plot([np.repeat(shepherd[i, 0], relevant_swarm.shape[0]), relevant_swarm[:, 0]], [np.repeat(shepherd[i, 1], relevant_swarm.shape[0]), relevant_swarm[:, 1]], color='m', lw=1, alpha=0.25)
+            # draw center of visible sheep. If no visible sheep it assumes self as CoM.
+            center_of_visible_sheep_x = np.mean(relevant_swarm[:, 0])
+            center_of_visible_sheep_y = np.mean(relevant_swarm[:, 1])
+            plt.plot(center_of_visible_sheep_x, center_of_visible_sheep_y, "m*", markersize=5)
+
 
     # draw target center
     plt.plot(Target_place_x, Target_place_y, "b*")

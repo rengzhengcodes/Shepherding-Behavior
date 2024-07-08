@@ -349,6 +349,91 @@ def drive_the_herd_using_visible_convex_hull(agents, shepherd_x, shepherd_y, she
 
 
 @nb.jit(nopython=True)
+def identify_flocks(agents, flock_distance):
+    # Calculates the flocks using full DFS.
+    i = 0   # Flock number
+    remaining_agents = agents[agents[:, 21] == 0]   # Tracks agents remaining.
+    remaining_agents[:, 24] = 0                     # Clears flock membership.
+    while remaining_agents:
+        # Increments counter.
+        i += 1
+        # Gets the first unvisited agent.
+        seed = remaining_agents[0]
+        # Marks the seed as visited.
+        seed[24] = i
+        # Initializes the stack.
+        stack = [seed]
+        # DFS.
+        while stack:
+            current = stack.pop()
+            for agent in remaining_agents:
+                if agent[24] == 0 and np.sqrt((current[0] - agent[0]) ** 2 + (current[1] - agent[1]) ** 2) <= flock_distance:
+                    agent[24] = i
+                    stack.append(agent)
+        
+        # Updates the remaining agents.
+        remaining_agents = remaining_agents[remaining_agents[:, 24] == 0]
+
+
+@nb.jit(nopython=True)
+def drive_the_herd_using_subflock_convex_hulls(agents, shepherd_x, shepherd_y, shepherd_index, target_place_x, target_place_y):
+    # Goes through every flock and calculates the visible hull agents.
+    visible_hulls_section = np.zeros(0, dtype='int64')
+    # Calculates the number of flocks.
+    num_flocks = np.max(agents[:, 24] + 1)
+    # Does compute of visible hulls for each flock.
+    for flock_index in range(1, num_flocks + 1):
+        # Gets the flock.
+        flock = agents[agents[:, 24] == flock_index]
+        # Gets the visible convex hull.
+        _, _, _, _, _, _, visible_flock_hull = drive_the_herd_using_visible_convex_hull(flock, shepherd_x, shepherd_y, shepherd_index, target_place_x, target_place_y)
+        # Corrects the indices.
+        visible_flock_hull = np.where(agents[:, 24] == flock_index)[0][visible_flock_hull]
+        # Set hull and visibility status.
+        agents[visible_flock_hull, 22] = np.arange(1, visible_flock_hull.shape[0] + 1)
+        # Concatenates the visible hulls.
+        visible_hulls_section = np.append(visible_hulls_section, visible_flock_hull)
+    
+    # Very suspicious little endian coding that should be rewritten using the following numpy trick:
+    # https://stackoverflow.com/a/40249859
+    # unstable if float dtype ever changes in the array.
+    with nb.objmode():
+        agents[visible_hulls_section, 23] = (agents[visible_hulls_section, 23].view('uint64') | (0b01 << shepherd_index)).view('float64')
+
+    # Calculates the center of mass of the shepherd flock.
+    center_of_hull_x = np.mean(agents[visible_hulls_section, 0])
+    center_of_hull_y = np.mean(agents[visible_hulls_section, 1])
+
+    # calculate the distance, angle between the center of the mass and the shepherd;
+    distance_mass_target, angle_mass_target = Get_relative_distance_angle(center_of_hull_x, center_of_hull_y,
+                                                                          target_place_x, target_place_y)
+
+    # update the safe drive distance to the center according to the CURRENT num of moving agents,
+    # initial parameter of shepherd swarm[:,5];
+    num_agents_moving = visible_hulls_section.shape[0]
+    if num_agents_moving >= 10:
+        l1_new = (2 / 3) * np.sqrt(num_agents_moving) * 2   #7.5
+    else:
+        l1_new = 15
+    
+    # L1: drive point: from shepherd to mass center
+    # angle_mass_target: from the target place to the mass
+    drive_point_x = center_of_hull_x + l1_new * np.cos(angle_mass_target)
+    drive_point_y = center_of_hull_y + l1_new * np.sin(angle_mass_target)
+
+    # the shepherd should be attracted by the drive point
+    distance_drive_herd, angle_drive_herd = Get_relative_distance_angle(drive_point_x, drive_point_y,
+                                                                        shepherd_x, shepherd_y)
+
+    # the drive force is linear to the distance between the shepherd and the drive point;
+    force_x = distance_drive_herd * np.cos(angle_drive_herd)  # angle_drive_herd: from shepherd to drive point;
+    force_y = distance_drive_herd * np.sin(angle_drive_herd)  #
+    # !!! Attention: the vector (force_x, force_y) is not unit;
+
+    return drive_point_x, drive_point_y, force_x, force_y, center_of_hull_x, center_of_hull_y, visible_hulls_section
+
+
+@nb.jit(nopython=True)
 def drive_the_herd(agents, shepherd_x, shepherd_y, target_place_x, target_place_y):#
     # get the center of only moving mass, not concluding the staying mass;
     num_agents_moving, center_of_mass_x, center_of_mass_y = calculate_mass_center(agents)
@@ -454,6 +539,19 @@ def herd(agents, shepherd, target_place_x, target_place_y, MODE):
         center_of_mass_x, center_of_mass_y = None, None
         # Sets the number of moving agents.
         num_agents_moving = np.count_nonzero(agents[:, 21] == 0)
+    elif MODE == 4:
+        # Reset hull status.
+        agents[:, 22] = 0
+        # Resets who is visible to the shepherd, must be done outside of loop
+        # or else each shepherd erases information for all other shepherds in this
+        # call of herd.
+        agents[:, 23] = 0.0
+        # Sets center of mass values for error handling.
+        center_of_mass_x, center_of_mass_y = None, None
+        # Sets the number of moving agents.
+        num_agents_moving = np.count_nonzero(agents[:, 21] == 0)
+        # Resets the flock membership.
+        identify_flocks(agents, max(agents[0][3], agents[0][5]))
 
    # d_furthest = shepherd[0][12]    # L2
     if num_agents_moving >= 50:
@@ -500,6 +598,15 @@ def herd(agents, shepherd, target_place_x, target_place_y, MODE):
                                                                                             shepherd_x, shepherd_y, shepherd_index,
                                                                                             target_place_x, target_place_y)
                 center_of_mass_x, center_of_mass_y = center_of_hull_x, center_of_hull_y
+            elif MODE == 4:
+                # using subflock convex hulls
+                (drive_point_x, drive_point_y,
+                 drive_force_x, drive_force_y, 
+                 center_of_hull_x, center_of_hull_y, visible_hulls_section) = drive_the_herd_using_subflock_convex_hulls(agents, 
+                                                                                            shepherd_x, shepherd_y, shepherd_index,
+                                                                                            target_place_x, target_place_y)
+                center_of_mass_x, center_of_mass_y = center_of_hull_x, center_of_hull_y
+
             # calculate the attraction force from the target;
             distance_shepherd_target, angle_shepherd_target = Get_relative_distance_angle(target_place_x,
                                                                                           target_place_y,
@@ -523,6 +630,11 @@ def herd(agents, shepherd, target_place_x, target_place_y, MODE):
                                                                                          target_place_x, target_place_y)
                 # Converts max agent index in visible hull to the original index.
                 max_agent_index = visible_hull[max_agent_index]
+            elif MODE == 4:
+                max_agent_index, r_agent, max_angle_target_to_agent = Get_furthest_agent(agents[visible_hulls_section], shepherd_x, shepherd_y,
+                                                                                         target_place_x, target_place_y)
+                # Converts max agent index in visible hull to the original index.
+                max_agent_index = visible_hulls_section[max_agent_index]
             else:
                 max_agent_index, r_agent, max_angle_target_to_agent = Get_furthest_agent(agents, shepherd_x, shepherd_y,
                                                                                      target_place_x, target_place_y)
@@ -573,6 +685,17 @@ def herd(agents, shepherd, target_place_x, target_place_y, MODE):
                 collect_point_x, collect_point_y, force_x, force_y = collect_furthest_agent(agent_x, agent_y, 
                                                                                             shepherd_x, shepherd_y, 
                                                                                             target_place_x, target_place_y, 
+                                                                                            l0)
+                # Aliased for code concision.   
+                center_of_mass_x, center_of_mass_y = center_of_hull_x, center_of_hull_y
+            elif MODE == 4:
+                # using subflock convex hulls
+                _, _, _, _, center_of_hull_x, center_of_hull_y, visible_hulls_section = drive_the_herd_using_subflock_convex_hulls(agents, 
+                                                                                                    shepherd_x, shepherd_y, shepherd_index,
+                                                                                                    target_place_x, target_place_y)
+                collect_point_x, collect_point_y, force_x, force_y = collect_furthest_agent(agent_x, agent_y, 
+                                                                                            shepherd_x, shepherd_y, 
+                                                                                            center_of_hull_x, center_of_hull_y,
                                                                                             l0)
                 # Aliased for code concision.   
                 center_of_mass_x, center_of_mass_y = center_of_hull_x, center_of_hull_y

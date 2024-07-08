@@ -3,7 +3,7 @@ import numpy as np
 
 def initiate(N_sheep, N_shepherd, space_x, space_y, Target_size):
     
-    swarm = np.zeros(shape=(N_sheep, 24), dtype='float64')
+    swarm = np.zeros(shape=(N_sheep, 25), dtype='float64')
     swarm[:, 0] = np.random.uniform(50, space_x, N_sheep)
     swarm[:, 1] = np.random.uniform(50, space_y, N_sheep)
     swarm[:, 2] = np.random.uniform(-np.pi, np.pi, N_sheep)
@@ -28,6 +28,8 @@ def initiate(N_sheep, N_shepherd, space_x, space_y, Target_size):
     swarm[:, 21] = 0.0             ### agent state: moving -> 0; staying -> 1.
     swarm[:, 22] = 0.0             ### hull membership: hull -> 1+ designating CCW order; non-hull -> 0.
     swarm[:, 23] = 0.0             ### Tracks which shepherd sees the agent using little endian binary encoding. 1 if shepherd sees agent, 0 otherwise.
+    swarm[:, 24] = 0.0             ### Tracks which flock the sheep is in.
+
     return swarm
 
 def initiate_shepherd(N_shepherd, agent_num, L3):
