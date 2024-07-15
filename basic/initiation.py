@@ -10,7 +10,7 @@ def initiate(N_sheep, N_shepherd, space_x, space_y, Target_size):
     swarm[:, 3] = 10    # repulsion_distance 10  #12.5  #10 #7 #6.5 #7.5
     swarm[:, 4] = 0      # alignment_distance no use
     swarm[:, 5] = 25     # attraction_distance #25  #30
-    swarm[:, 6] = 1      #1!!!! # v0 # 0.4 # 0.1 # 1 # 1.5
+    swarm[:, 6] = 0.75   #1!!!! # v0 # 0.4 # 0.1 # 1 # 1.5
     swarm[:, 7] = 5      # agent_size # 2.5
     swarm[:, 8] = 0
     swarm[:, 9] = 0

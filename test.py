@@ -1,4 +1,4 @@
-import os, sys
+import os, sys, random
 from timeit import default_timer as timer
 from datetime import timedelta
 import numba as nb
@@ -24,11 +24,11 @@ Boundary_x = Target_place_x + Target_size + 300
 Boundary_y = Target_place_y + Target_size + 300
 
 
-TICK = 10000
+TICK = 5000
 Iterations = 200000
 
 L3 = np.sqrt(N_sheep / N_shepherd) * 5 # average flock radius per shepherd
-MODE = 4
+MODE = 2
 
 Repetition = 0
 reps = 10
@@ -40,6 +40,7 @@ if __name__ == '__main__':
     successes = 0
     for rep in range(reps):
         print("Repetition:", rep)
+        random.seed(rep)
         np.random.seed(rep)
         agents = initiate(N_sheep, N_shepherd, Space_x, Space_y, Target_size)
         shepherd = initiate_shepherd(0, N_shepherd, L3)
@@ -82,7 +83,7 @@ if __name__ == '__main__':
 
         # plot_snapshot(Final_tick, agents, shepherd, Repetition, Boundary_x, Boundary_y, Target_place_x, Target_place_y, Target_size)
         # save_data(N_sheep, N_shepherd, Repetition, Final_tick, Data_agents, Data_shepherds)
-        # save_data_L3(N_sheep, N_shepherd, Repetition, Final_tick, Data_agents, Data_shepherds, L3)
+        save_data_L3(N_sheep, N_shepherd, rep, Final_tick, Data_agents, Data_shepherds, L3)
         print("N_Shepherd=",N_shepherd,"N_sheep=",N_sheep,"L3=",L3,"Repetition_",rep,"Final_tick=",Final_tick)
         end = timer()
         print("program takes:", timedelta(seconds=end-start), "seconds")
