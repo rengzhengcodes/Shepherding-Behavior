@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from basic.initiation import initiate, initiate_shepherd
 from basic.interaction import evolve, make_periodic_boundary
-from basic.save_data import save_data, save_data_L3
+from basic.save_data import save_data, save_data_L3, save_all
 from basic.draw import draw_single, draw_dynamic, plot_snapshot
 from basic.create_network import create_metric_network, create_topological_network
 
@@ -28,20 +28,26 @@ TICK = 5000
 Iterations = 200000
 
 L3 = np.sqrt(N_sheep / N_shepherd) * 5 # average flock radius per shepherd
-MODE = 4
+MODE = 2
 
 Repetition = 0
 reps = 10
 
 Num_nearst_neighbor = 5
 
+# Function seeds numpy rng in numba code.
+@nb.jit(nopython=True)
+def seed_run(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+
+
 start = timer()
 if __name__ == '__main__':
     successes = 0
-    for rep in range(reps):
+    for rep in [6]:#range(reps):
         print("Repetition:", rep)
-        random.seed(rep)
-        np.random.seed(rep)
+        seed_run(rep)
         agents = initiate(N_sheep, N_shepherd, Space_x, Space_y, Target_size)
         shepherd = initiate_shepherd(0, N_shepherd, L3)
         # self-organized flocking
@@ -79,11 +85,10 @@ if __name__ == '__main__':
             # print("topological_network:", topological_network)
             # print("metric_network:", metric_network)
 
-        # draw_dynamic(Final_tick, Data_agents, Data_shepherds, Boundary_x, Boundary_y, Target_place_x, Target_place_y, Target_size, L3, MODE=MODE)
-
-        # plot_snapshot(Final_tick, agents, shepherd, Repetition, Boundary_x, Boundary_y, Target_place_x, Target_place_y, Target_size)
+        draw_dynamic(Final_tick, Data_agents, Data_shepherds, Boundary_x, Boundary_y, Target_place_x, Target_place_y, Target_size, L3, MODE=MODE)
         # save_data(N_sheep, N_shepherd, Repetition, Final_tick, Data_agents, Data_shepherds)
-        save_data_L3(N_sheep, N_shepherd, rep, Final_tick, Data_agents, Data_shepherds, L3)
+        # save_data_L3(N_sheep, N_shepherd, rep, Final_tick, Data_agents, Data_shepherds, L3)
+        # save_all(N_sheep, N_shepherd, rep, Final_tick, Data_agents, Data_shepherds, L3, MODE)
         print("N_Shepherd=",N_shepherd,"N_sheep=",N_sheep,"L3=",L3,"Repetition_",rep,"Final_tick=",Final_tick)
         end = timer()
         print("program takes:", timedelta(seconds=end-start), "seconds")

@@ -150,6 +150,21 @@ def Get_final_tick(file_name):
     return tick
 
 
+def get_mode(file_name):
+    file_name_string = os.path.splitext(file_name)[0].split("_")
+    for item in file_name_string:
+        if "MODE" in item:
+            mode = int(item.split("=")[1])
+    return mode
+    
+
+def visualize_from_all(file_path):
+    with h5py.File(file_path, "r") as f:
+        # print(f.keys())
+        agents = f.get("agent_data")[:]
+        shepherd = f.get("shepherd_data")[:]
+
+
 ###############show shepherd states in one single_data########
 Space_x = 150
 Space_y = 150

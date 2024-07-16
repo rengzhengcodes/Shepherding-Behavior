@@ -1,6 +1,9 @@
 
+import numba as nb
 import numpy as np
 
+
+@nb.jit(nopython=True)
 def initiate(N_sheep, N_shepherd, space_x, space_y, Target_size):
     
     swarm = np.zeros(shape=(N_sheep, 25), dtype='float64')
@@ -32,6 +35,8 @@ def initiate(N_sheep, N_shepherd, space_x, space_y, Target_size):
 
     return swarm
 
+
+@nb.jit(nopython=True)
 def initiate_shepherd(N_shepherd, agent_num, L3):
     shepherd_swarm = np.zeros(shape=(N_shepherd, 22), dtype=float)
     # parameter

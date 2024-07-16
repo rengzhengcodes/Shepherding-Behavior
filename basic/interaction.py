@@ -688,7 +688,7 @@ def herd(agents, shepherd, target_place_x, target_place_y, MODE):
                                                                                                     target_place_x, target_place_y)
                 collect_point_x, collect_point_y, force_x, force_y = collect_furthest_agent(agent_x, agent_y, 
                                                                                             shepherd_x, shepherd_y, 
-                                                                                            target_place_x, target_place_y, 
+                                                                                            center_of_hull_x, center_of_hull_y, 
                                                                                             l0)
                 # Aliased for code concision.   
                 center_of_mass_x, center_of_mass_y = center_of_hull_x, center_of_hull_y

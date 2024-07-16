@@ -89,3 +89,19 @@ def save_file(N_sheep, N_shepherd, Repetition, Final_tick):
     f.write("Final=tick=%d\n" % int(Final_tick))
     f.close()
     return
+
+
+def save_all(n_sheep, n_shepherd, rep, final_tick, agents, shepherds, L3, MODE):
+    # get directory for the path
+    directory = f"{os.getcwd()}/data"
+
+    # Makes directory if it does not exist.
+    if not os.path.exists(directory):
+        os.mkdir(directory)
+    # Defines the file name.
+    file_name = f"N_sheep={n_sheep}_N_shepherd={n_shepherd}_Final_tick={final_tick}_Repetition={rep}_L3={L3}_MODE={MODE}"
+
+    # save_data
+    with h5py.File(directory + "/" + file_name + ".hdf5", "w") as f:
+        f.create_dataset("agents", data=agents, compression="gzip", compression_opts=9)
+        f.create_dataset("shepherds", data=shepherds, compression="gzip", compression_opts=9)
