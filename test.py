@@ -28,7 +28,7 @@ TICK = 5000
 Iterations = 200000
 
 L3 = np.sqrt(N_sheep / N_shepherd) * 5 # average flock radius per shepherd
-MODE = 2
+MODE = 3
 
 Repetition = 0
 reps = 10
@@ -45,7 +45,7 @@ def seed_run(seed):
 start = timer()
 if __name__ == '__main__':
     successes = 0
-    for rep in [6]:#range(reps):
+    for rep in range(reps):
         print("Repetition:", rep)
         seed_run(rep)
         agents = initiate(N_sheep, N_shepherd, Space_x, Space_y, Target_size)
@@ -85,7 +85,7 @@ if __name__ == '__main__':
             # print("topological_network:", topological_network)
             # print("metric_network:", metric_network)
 
-        draw_dynamic(Final_tick, Data_agents, Data_shepherds, Boundary_x, Boundary_y, Target_place_x, Target_place_y, Target_size, L3, MODE=MODE)
+        # draw_dynamic(Final_tick, Data_agents, Data_shepherds, Boundary_x, Boundary_y, Target_place_x, Target_place_y, Target_size, L3, MODE=MODE)
         # save_data(N_sheep, N_shepherd, Repetition, Final_tick, Data_agents, Data_shepherds)
         # save_data_L3(N_sheep, N_shepherd, rep, Final_tick, Data_agents, Data_shepherds, L3)
         # save_all(N_sheep, N_shepherd, rep, Final_tick, Data_agents, Data_shepherds, L3, MODE)
