@@ -28,7 +28,7 @@ TICK = 5000
 Iterations = 200000
 
 L3 = np.sqrt(N_sheep / N_shepherd) * 5 # average flock radius per shepherd
-MODE = 3
+MODE = 4
 
 Repetition = 0
 reps = 10

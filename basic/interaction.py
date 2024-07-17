@@ -385,7 +385,8 @@ def drive_the_herd_using_subflock_convex_hulls(agents, shepherd_x, shepherd_y, s
     visible_hulls_section = np.zeros(0, dtype='int64')
     # Calculates the number of flocks.
     num_flocks = np.max(agents[:, 24])
-    # Does compute of visible hulls for each flock.
+    # Does compute of visible hulls for each flock and chooses the one to attend to.
+    closest_distance = np.inf
     for flock_index in range(1, num_flocks + 1):
         # Gets the flock.
         flock = agents[agents[:, 24] == flock_index]
@@ -393,10 +394,15 @@ def drive_the_herd_using_subflock_convex_hulls(agents, shepherd_x, shepherd_y, s
         _, _, _, _, _, _, visible_flock_hull = drive_the_herd_using_visible_convex_hull(flock, shepherd_x, shepherd_y, shepherd_index, target_place_x, target_place_y)
         # Corrects the indices.
         visible_flock_hull = np.where(agents[:, 24] == flock_index)[0][visible_flock_hull]
-        # Set hull and visibility status.
-        agents[visible_flock_hull, 22] = np.arange(1, visible_flock_hull.shape[0] + 1)
-        # Concatenates the visible hulls.
-        visible_hulls_section = np.append(visible_hulls_section, visible_flock_hull)
+        # Calculates the minimal distance to a point in the hull.
+        min_distance = np.min(np.sqrt((agents[visible_flock_hull, 0] - shepherd_x) ** 2 + (agents[visible_flock_hull, 1] - shepherd_y) ** 2))
+        # If it trumps the previous minimal distance, updates the visible hull.
+        if min_distance < closest_distance:
+            closest_distance = min_distance
+            visible_hulls_section = visible_flock_hull
+    
+    # Set hull and visibility status.
+    agents[visible_hulls_section, 22] = np.arange(1, visible_hulls_section.shape[0] + 1)
     
     # Very suspicious little endian coding that should be rewritten using the following numpy trick:
     # https://stackoverflow.com/a/40249859
