@@ -1,5 +1,7 @@
-import os, sys, random
+import os, json, random, sys
+from joblib import Parallel, delayed
 from timeit import default_timer as timer
+import datetime
 from datetime import timedelta
 import numba as nb
 import numpy as np
@@ -30,8 +32,7 @@ Iterations = 200000
 L3 = np.sqrt(N_sheep / N_shepherd) * 5 # average flock radius per shepherd
 MODE = 4
 
-Repetition = 0
-reps = 10
+reps = 5000
 
 Num_nearst_neighbor = 5
 
@@ -45,8 +46,9 @@ def seed_run(seed):
 start = timer()
 if __name__ == '__main__':
     successes = 0
-    for rep in range(reps):
-        print("Repetition:", rep)
+
+    def run(rep):
+        print("Starting repetition", rep)
         seed_run(rep)
         agents = initiate(N_sheep, N_shepherd, Space_x, Space_y, Target_size)
         shepherd = initiate_shepherd(0, N_shepherd, L3)
@@ -79,25 +81,63 @@ if __name__ == '__main__':
             if sum(agents[:, 21]) == N_sheep:   # finish
                 Final_tick = tick
                 break
-            # try to create network
-            # topological_network = create_topological_network(agents, Num_nearst_neighbor)
-            # metric_network = create_metric_network(agents, agents[0][5], np.pi)   # Fov not used
-            # print("topological_network:", topological_network)
-            # print("metric_network:", metric_network)
 
-        # draw_dynamic(Final_tick, Data_agents, Data_shepherds, Boundary_x, Boundary_y, Target_place_x, Target_place_y, Target_size, L3, MODE=MODE)
-        # save_data(N_sheep, N_shepherd, Repetition, Final_tick, Data_agents, Data_shepherds)
-        # save_data_L3(N_sheep, N_shepherd, rep, Final_tick, Data_agents, Data_shepherds, L3)
-        # save_all(N_sheep, N_shepherd, rep, Final_tick, Data_agents, Data_shepherds, L3, MODE)
-        print("N_Shepherd=",N_shepherd,"N_sheep=",N_sheep,"L3=",L3,"Repetition_",rep,"Final_tick=",Final_tick)
-        end = timer()
-        print("program takes:", timedelta(seconds=end-start), "seconds")
-        if np.all(agents[:, 21] == 1):
-            successes += 1
-            print(f"Successes: {successes}/{reps}")
+        # Output logging, print the final tick.
+        results = {
+            # Static parameters, for reference.
+            "Space_x": Space_x,
+            "Space_y": Space_y,
+            "Target_place_x": Target_place_x,
+            "Target_place_y": Target_place_y,
+            "Target_size": Target_size,
+
+            # Viewing parameters.
+            "Boundary_x": Boundary_x,
+            "Boundary_y": Boundary_y,
+            "TICK": TICK,
+            "Iterations": Iterations,
+
+            # Model parameters
+            "N_shepherd": N_shepherd,
+            "N_sheep": N_sheep,
+            "L3": L3,
+            "Repetition": rep,
+            "MODE": MODE,
+
+            # Results
+            "Final_tick": Final_tick,
+            "Success": np.all(agents[:, 21] == 1)
+        }
+
+        return results
     
+    start = timer()
+    results = Parallel(n_jobs=4)(delayed(run)(rep) for rep in range(reps))
+    end = timer()
+    print(f"Elapsed time: ", timedelta(seconds=end-start))
+
+    # Creates results folder if it does not exist
+    res_dir = f"~/Documents/{MODE}/shepherd-results"
+    if not os.path.exists(res_dir):
+        os.makedirs(res_dir)
+    
+    # Create a file with a text list of results.
+    with open(f"{res_dir}/results-{datetime.now()}|{N_sheep}_sheep|{N_shepherd}_shepherds.txt", "w") as f:
+        json.dump(results, f)
+
+    # Prints out result summary.
     print(f"Success rate: {successes/reps}")
-            
+    
+    # Retrieves all final ticks.
+    final_ticks = [result["Final_tick"] for result in results]
+    print(f"Average final tick: {np.mean(final_ticks)}")
+    print(f"Standard deviation: {np.std(final_ticks)}")
+    print(f"Minimum final tick: {np.min(final_ticks)}")
+    print(f"Maximum final tick: {np.max(final_ticks)}")
+
+    # Creates a histogram of final ticks.
+    plt.hist(final_ticks, bins=20)
+    plt.show()
 
     #However, depending on the specific formulation of the shepherding task and model parameters,
     # we also observed scenarios with an optimal number of shepherds where the guiding time becomes minimal. This appears to be related to possible obstruction of the shepherds by themselves.
