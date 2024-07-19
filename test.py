@@ -27,7 +27,7 @@ Boundary_x = Target_place_x + Target_size + 300
 Boundary_y = Target_place_y + Target_size + 300
 
 
-TICK = 5000
+TICK = 1000
 Iterations = 200000
 
 L3 = np.sqrt(N_sheep / N_shepherd) * 5 # average flock radius per shepherd
