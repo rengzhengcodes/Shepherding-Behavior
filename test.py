@@ -12,6 +12,7 @@ from basic.save_data import save_data, save_data_L3, save_all
 from basic.draw import draw_single, draw_dynamic, plot_snapshot
 from basic.create_network import create_metric_network, create_topological_network
 
+THREADS = -1
 
 N_sheep = 300
 N_shepherd = 3
@@ -112,17 +113,18 @@ if __name__ == '__main__':
         return results
     
     start = timer()
-    results = Parallel(n_jobs=4)(delayed(run)(rep) for rep in range(reps))
+    results = Parallel(n_jobs=THREADS)(delayed(run)(rep) for rep in range(reps))
     end = timer()
     print(f"Elapsed time: ", timedelta(seconds=end-start))
 
     # Creates results folder if it does not exist
-    res_dir = f"~/Documents/{MODE}/shepherd-results"
+    cur_dir = os.path.dirname(os.path.realpath(__file__))
+    res_dir = f"{cur_dir}/results/{MODE}"
     if not os.path.exists(res_dir):
         os.makedirs(res_dir)
     
     # Create a file with a text list of results.
-    with open(f"{res_dir}/results-{datetime.now()}|{N_sheep}_sheep|{N_shepherd}_shepherds.txt", "w") as f:
+    with open(f"{res_dir}/{datetime.now()}|{N_sheep}_sheep|{N_shepherd}_shepherds.txt", "w") as f:
         json.dump(results, f)
 
     # Prints out result summary.
