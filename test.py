@@ -33,7 +33,7 @@ Iterations = 200000
 L3 = np.sqrt(N_sheep / N_shepherd) * 5 # average flock radius per shepherd
 MODE = 4
 
-reps = 5000
+reps = 1000
 
 Num_nearst_neighbor = 5
 
@@ -107,7 +107,7 @@ if __name__ == '__main__':
 
             # Results
             "Final_tick": Final_tick,
-            "Success": np.all(agents[:, 21] == 1)
+            "Success": bool(np.all(agents[:, 21] == 1))
         }
 
         return results
@@ -124,7 +124,7 @@ if __name__ == '__main__':
         os.makedirs(res_dir)
     
     # Create a file with a text list of results.
-    with open(f"{res_dir}/{datetime.now()}|{N_sheep}_sheep|{N_shepherd}_shepherds.txt", "w") as f:
+    with open(f"{res_dir}/{datetime.datetime.now()}|{N_sheep}_sheep|{N_shepherd}_shepherds.txt", "w") as f:
         json.dump(results, f)
 
     # Prints out result summary.
@@ -138,8 +138,12 @@ if __name__ == '__main__':
     print(f"Maximum final tick: {np.max(final_ticks)}")
 
     # Creates a histogram of final ticks.
+    plt.figure()
+    plt.title(f"Final Tick Distribution: Mode {MODE}, {N_sheep} Sheep, {N_shepherd} Shepherds")
+    plt.xlabel("Final tick")
+    plt.ylabel("Number of samples")
     plt.hist(final_ticks, bins=20)
-    plt.show()
+    plt.savefig(f"{res_dir}/{datetime.datetime.now()}|{N_sheep}_sheep|{N_shepherd}_shepherds_hist.png")
 
     #However, depending on the specific formulation of the shepherding task and model parameters,
     # we also observed scenarios with an optimal number of shepherds where the guiding time becomes minimal. This appears to be related to possible obstruction of the shepherds by themselves.
