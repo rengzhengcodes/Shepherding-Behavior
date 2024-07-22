@@ -31,7 +31,7 @@ TICK = 1000
 Iterations = 200000
 
 L3 = np.sqrt(N_sheep / N_shepherd) * 5 # average flock radius per shepherd
-MODE = 4
+MODE = 3
 
 reps = 1000
 
@@ -128,6 +128,7 @@ if __name__ == '__main__':
         json.dump(results, f)
 
     # Prints out result summary.
+    successes = sum([result["Success"] for result in results])
     print(f"Success rate: {successes/reps}")
     
     # Retrieves all final ticks.
