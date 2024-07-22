@@ -31,7 +31,7 @@ TICK = 1000
 Iterations = 200000
 
 L3 = np.sqrt(N_sheep / N_shepherd) * 5 # average flock radius per shepherd
-MODE = 3
+MODE = 4
 
 reps = 1000
 
@@ -119,7 +119,7 @@ if __name__ == '__main__':
 
     # Creates results folder if it does not exist
     cur_dir = os.path.dirname(os.path.realpath(__file__))
-    res_dir = f"{cur_dir}/results/{MODE}"
+    res_dir = f"{cur_dir}/results/no_att/{MODE}"
     if not os.path.exists(res_dir):
         os.makedirs(res_dir)
     
