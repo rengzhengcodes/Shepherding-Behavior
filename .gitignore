@@ -10,6 +10,8 @@ venv/
 # Generated data files.
 data/
 images/
+results/
+*.log/
 
 # MacOS folder attributes file.
 .DS_Store
