@@ -13,5 +13,9 @@ images/
 results/
 *.log/
 
+# Compressed data files.
+*.7z
+*.zip
+
 # MacOS folder attributes file.
 .DS_Store
