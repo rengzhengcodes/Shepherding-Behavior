@@ -103,7 +103,8 @@ def run_target(rep):
 
         # Results
         "Final_tick": Final_tick,
-        "Success": bool(np.all(agents[:, 21] == 1))
+        "Success": bool(np.all(agents[:, 21] == 1)),
+        "Experiment_type": "Target"
     }
 
     return results
@@ -178,7 +179,8 @@ def run_morph(rep):
 
         # Results
         "Final_tick": Final_tick,
-        "Success": bool(np.all(agents[:, 21] == 1))
+        "Success": bool(np.all(agents[:, 21] == 1)),
+        "Experiment_type": "Morphology"
     }
 
     return results
@@ -195,7 +197,7 @@ if __name__ == '__main__':
 
     # Creates results folder if it does not exist
     cur_dir = os.path.dirname(os.path.realpath(__file__))
-    res_dir = f"{cur_dir}/results/test/{MODE}"
+    res_dir = f"{cur_dir}/results/morphology_attraction_naïve/{MODE}"
     if not os.path.exists(res_dir):
         os.makedirs(res_dir)
     
