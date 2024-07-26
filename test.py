@@ -146,8 +146,8 @@ def run_morph(rep):
         Data_shepherds[:, :, tick] = shepherd
         Max_agents_indexes[:, tick] = max_agents_indexes  # only two dimension
         # print(tick)
-        # stop program if all the sheep are in the "staying" mode;
-        if sum(agents[:, 21]) == N_sheep:   # finish
+        # stop program if all the sheep are within L2 of the center of mass.
+        if np.all(np.sqrt((agents[:, 0] - Target_place_x) ** 2 + (agents[:, 1 - Target_place_y]) ** 2) < L2):   # finish
             Final_tick = tick
             break
 
