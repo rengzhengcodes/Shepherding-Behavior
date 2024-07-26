@@ -147,7 +147,7 @@ def run_morph(rep):
         Max_agents_indexes[:, tick] = max_agents_indexes  # only two dimension
         # print(tick)
         # stop program if all the sheep are within L2 of the center of mass.
-        if np.all(np.sqrt((agents[:, 0] - Target_place_x) ** 2 + (agents[:, 1 - Target_place_y]) ** 2) < L2):   # finish
+        if np.all(np.sqrt((agents[:, 0] - Target_place_x) ** 2 + (agents[:, 1] - Target_place_y) ** 2) < L2):   # finish
             Final_tick = tick
             break
 
