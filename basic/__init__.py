@@ -1,2 +1,2 @@
-MORPHOLOGY = True
+MORPHOLOGY = False
 MODE = 4
