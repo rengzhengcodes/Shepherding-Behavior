@@ -33,7 +33,7 @@ Iterations = 200000
 L3 = np.sqrt(N_sheep / N_shepherd) * 5 # average flock radius per shepherd
 MODE = 4
 
-reps = 1000
+reps = 10
 
 Num_nearst_neighbor = 5
 
@@ -44,82 +44,155 @@ def seed_run(seed):
     np.random.seed(seed)
 
 
+def run_target(rep):
+    print("Starting repetition", rep)
+    seed_run(rep)
+    agents = initiate(N_sheep, N_shepherd, Space_x, Space_y, Target_size)
+    shepherd = initiate_shepherd(0, N_shepherd, L3)
+    # self-organized flocking
+    for tick in range(TICK):
+        agents_update, shepherd_update, max_agents_indexes = evolve(agents, shepherd, Target_place_x,
+                                                                    Target_place_y, Target_size, MODE=MODE)
+        agents = agents_update
+        shepherd = shepherd_update
+    # prepare the shepherd and record data
+    shepherd = initiate_shepherd(N_shepherd, N_sheep, L3)
+    Data_agents = np.zeros((agents.shape[0], agents.shape[1], Iterations), float)
+    Data_shepherds = np.zeros((shepherd.shape[0], shepherd.shape[1], Iterations), float)
+    Max_agents_indexes = np.zeros((N_shepherd, Iterations), int)
+    Final_tick = Iterations
+    # continue the sheep data with shepherd
+    for tick in range(Iterations):
+        # start evolve function
+        agents_update, shepherd_update, max_agents_indexes = evolve(agents, shepherd, Target_place_x, 
+                                                                    Target_place_y, Target_size, MODE=MODE)
+        # update data
+        agents = agents_update
+        shepherd = shepherd_update
+        # save data
+        Data_agents[:, :, tick] = agents
+        Data_shepherds[:, :, tick] = shepherd
+        Max_agents_indexes[:, tick] = max_agents_indexes  # only two dimension
+        # print(tick)
+        # stop program if all the sheep are in the "staying" mode;
+        if sum(agents[:, 21]) == N_sheep:   # finish
+            Final_tick = tick
+            break
+
+    # Output logging, print the final tick.
+    results = {
+        # Static parameters, for reference.
+        "Space_x": Space_x,
+        "Space_y": Space_y,
+        "Target_place_x": Target_place_x,
+        "Target_place_y": Target_place_y,
+        "Target_size": Target_size,
+
+        # Viewing parameters.
+        "Boundary_x": Boundary_x,
+        "Boundary_y": Boundary_y,
+        "TICK": TICK,
+        "Iterations": Iterations,
+
+        # Model parameters
+        "N_shepherd": N_shepherd,
+        "N_sheep": N_sheep,
+        "L3": L3,
+        "Repetition": rep,
+        "MODE": MODE,
+
+        # Results
+        "Final_tick": Final_tick,
+        "Success": bool(np.all(agents[:, 21] == 1))
+    }
+
+    return results
+
+
+def run_morph(rep):
+    print("Starting repetition", rep)
+    seed_run(rep)
+    agents = initiate(N_sheep, N_shepherd, Space_x, Space_y, Target_size)
+    shepherd = initiate_shepherd(0, N_shepherd, L3)
+    # self-organized flocking
+    for tick in range(TICK):
+        # Defines the target as the global center of mass.
+        Target_place_x = np.mean(agents[:, 0])
+        Target_place_y = np.mean(agents[:, 1])
+        agents_update, shepherd_update, max_agents_indexes = evolve(agents, shepherd, Target_place_x,
+                                                                    Target_place_y, Target_size, MODE=MODE)
+        agents = agents_update
+        shepherd = shepherd_update
+    # prepare the shepherd and record data
+    shepherd = initiate_shepherd(N_shepherd, N_sheep, L3)
+    Data_agents = np.zeros((agents.shape[0], agents.shape[1], Iterations), float)
+    Data_shepherds = np.zeros((shepherd.shape[0], shepherd.shape[1], Iterations), float)
+    Max_agents_indexes = np.zeros((N_shepherd, Iterations), int)
+    Final_tick = Iterations
+    # continue the sheep data with shepherd
+    for tick in range(Iterations):
+        # Defines the target as the global center of mass.
+        Target_place_x = np.mean(agents[:, 0])
+        Target_place_y = np.mean(agents[:, 1])
+        # start evolve function
+        #! @note L2 is defined in initiate_agent and copied here for brevity.
+        agents_update, shepherd_update, max_agents_indexes = evolve(agents, shepherd, Target_place_x, 
+                                                                    Target_place_y, L2 := 10*(np.sqrt(N_sheep))*2/3, MODE=MODE)
+        # update data
+        agents = agents_update
+        shepherd = shepherd_update
+        # save data
+        Data_agents[:, :, tick] = agents
+        Data_shepherds[:, :, tick] = shepherd
+        Max_agents_indexes[:, tick] = max_agents_indexes  # only two dimension
+        # print(tick)
+        # stop program if all the sheep are in the "staying" mode;
+        if sum(agents[:, 21]) == N_sheep:   # finish
+            Final_tick = tick
+            break
+
+    # Output logging, print the final tick.
+    results = {
+        # Static parameters, for reference.
+        "Space_x": Space_x,
+        "Space_y": Space_y,
+        "Target_place_x": Target_place_x,
+        "Target_place_y": Target_place_y,
+        "Target_size": Target_size,
+
+        # Viewing parameters.
+        "Boundary_x": Boundary_x,
+        "Boundary_y": Boundary_y,
+        "TICK": TICK,
+        "Iterations": Iterations,
+
+        # Model parameters
+        "N_shepherd": N_shepherd,
+        "N_sheep": N_sheep,
+        "L3": L3,
+        "Repetition": rep,
+        "MODE": MODE,
+
+        # Results
+        "Final_tick": Final_tick,
+        "Success": bool(np.all(agents[:, 21] == 1))
+    }
+
+    return results
+
+
 start = timer()
 if __name__ == '__main__':
     successes = 0
-
-    def run(rep):
-        print("Starting repetition", rep)
-        seed_run(rep)
-        agents = initiate(N_sheep, N_shepherd, Space_x, Space_y, Target_size)
-        shepherd = initiate_shepherd(0, N_shepherd, L3)
-        # self-organized flocking
-        for tick in range(TICK):
-            agents_update, shepherd_update, max_agents_indexes = evolve(agents, shepherd, Target_place_x,
-                                                                        Target_place_y, Target_size, MODE=MODE)
-            agents = agents_update
-            shepherd = shepherd_update
-        # prepare the shepherd and record data
-        shepherd = initiate_shepherd(N_shepherd, N_sheep, L3)
-        Data_agents = np.zeros((agents.shape[0], agents.shape[1], Iterations), float)
-        Data_shepherds = np.zeros((shepherd.shape[0], shepherd.shape[1], Iterations), float)
-        Max_agents_indexes = np.zeros((N_shepherd, Iterations), int)
-        Final_tick = Iterations
-        # continue the sheep data with shepherd
-        for tick in range(Iterations):
-            # start evolve function
-            agents_update, shepherd_update, max_agents_indexes = evolve(agents, shepherd, Target_place_x, 
-                                                                        Target_place_y, Target_size, MODE=MODE)
-            # update data
-            agents = agents_update
-            shepherd = shepherd_update
-            # save data
-            Data_agents[:, :, tick] = agents
-            Data_shepherds[:, :, tick] = shepherd
-            Max_agents_indexes[:, tick] = max_agents_indexes  # only two dimension
-            # print(tick)
-            # stop program if all the sheep are in the "staying" mode;
-            if sum(agents[:, 21]) == N_sheep:   # finish
-                Final_tick = tick
-                break
-
-        # Output logging, print the final tick.
-        results = {
-            # Static parameters, for reference.
-            "Space_x": Space_x,
-            "Space_y": Space_y,
-            "Target_place_x": Target_place_x,
-            "Target_place_y": Target_place_y,
-            "Target_size": Target_size,
-
-            # Viewing parameters.
-            "Boundary_x": Boundary_x,
-            "Boundary_y": Boundary_y,
-            "TICK": TICK,
-            "Iterations": Iterations,
-
-            # Model parameters
-            "N_shepherd": N_shepherd,
-            "N_sheep": N_sheep,
-            "L3": L3,
-            "Repetition": rep,
-            "MODE": MODE,
-
-            # Results
-            "Final_tick": Final_tick,
-            "Success": bool(np.all(agents[:, 21] == 1))
-        }
-
-        return results
     
     start = timer()
-    results = Parallel(n_jobs=THREADS)(delayed(run)(rep) for rep in range(reps))
+    results = Parallel(n_jobs=THREADS)(delayed(run_target)(rep) for rep in range(reps))
     end = timer()
     print(f"Elapsed time: ", timedelta(seconds=end-start))
 
     # Creates results folder if it does not exist
     cur_dir = os.path.dirname(os.path.realpath(__file__))
-    res_dir = f"{cur_dir}/results/no_att/{MODE}"
+    res_dir = f"{cur_dir}/results/test/{MODE}"
     if not os.path.exists(res_dir):
         os.makedirs(res_dir)
     
