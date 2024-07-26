@@ -150,6 +150,9 @@ def run_morph(rep):
         if np.all(np.sqrt((agents[:, 0] - Target_place_x) ** 2 + (agents[:, 1] - Target_place_y) ** 2) < L2):   # finish
             Final_tick = tick
             break
+        
+    # Draws the results.
+    # draw_dynamic(Final_tick, Data_agents, Data_shepherds, Boundary_x, Boundary_y, Target_place_x, Target_place_y, Target_size, L3, MODE=MODE)
 
     # Output logging, print the final tick.
     results = {

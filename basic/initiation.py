@@ -1,4 +1,4 @@
-
+from . import *
 import numba as nb
 import numpy as np
 
@@ -7,8 +7,8 @@ import numpy as np
 def initiate(N_sheep, N_shepherd, space_x, space_y, Target_size):
     
     swarm = np.zeros(shape=(N_sheep, 25), dtype='float64')
-    swarm[:, 0] = np.random.uniform(50, space_x, N_sheep)
-    swarm[:, 1] = np.random.uniform(50, space_y, N_sheep)
+    swarm[:, 0] = np.random.uniform(-space_x, space_x, N_sheep) if MORPHOLOGY else np.random.uniform(50, space_x, N_sheep)
+    swarm[:, 1] = np.random.uniform(-space_y, space_y, N_sheep) if MORPHOLOGY else np.random.uniform(50, space_y, N_sheep)
     swarm[:, 2] = np.random.uniform(-np.pi, np.pi, N_sheep)
     swarm[:, 3] = 10    # repulsion_distance 10  #12.5  #10 #7 #6.5 #7.5
     swarm[:, 4] = 0     # alignment_distance no use
