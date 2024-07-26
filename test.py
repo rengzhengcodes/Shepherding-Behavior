@@ -12,6 +12,8 @@ from basic.save_data import save_data, save_data_L3, save_all
 from basic.draw import draw_single, draw_dynamic, plot_snapshot
 from basic.create_network import create_metric_network, create_topological_network
 
+from basic import MODE, MORPHOLOGY
+
 THREADS = -1
 
 N_sheep = 300
@@ -31,8 +33,6 @@ TICK = 1000
 Iterations = 200000
 
 L3 = np.sqrt(N_sheep / N_shepherd) * 5 # average flock radius per shepherd
-MODE = 4
-
 reps = 10
 
 Num_nearst_neighbor = 5
@@ -186,7 +186,7 @@ if __name__ == '__main__':
     successes = 0
     
     start = timer()
-    results = Parallel(n_jobs=THREADS)(delayed(run_target)(rep) for rep in range(reps))
+    results = Parallel(n_jobs=THREADS)(delayed(run_morph if MORPHOLOGY else run_target)(rep) for rep in range(reps))
     end = timer()
     print(f"Elapsed time: ", timedelta(seconds=end-start))
 
@@ -197,7 +197,7 @@ if __name__ == '__main__':
         os.makedirs(res_dir)
     
     # Create a file with a text list of results.
-    with open(f"{res_dir}/{datetime.datetime.now()}|{N_sheep}_sheep|{N_shepherd}_shepherds.txt", "w") as f:
+    with open(f"{res_dir}/{(cur_time := datetime.datetime.now())}|{N_sheep}_sheep|{N_shepherd}_shepherds.txt", "w") as f:
         json.dump(results, f)
 
     # Prints out result summary.
@@ -217,7 +217,7 @@ if __name__ == '__main__':
     plt.xlabel("Final tick")
     plt.ylabel("Number of samples")
     plt.hist(final_ticks, bins=20)
-    plt.savefig(f"{res_dir}/{datetime.datetime.now()}|{N_sheep}_sheep|{N_shepherd}_shepherds_hist.png")
+    plt.savefig(f"{res_dir}/{cur_time}|{N_sheep}_sheep|{N_shepherd}_shepherds_hist.png")
 
     #However, depending on the specific formulation of the shepherding task and model parameters,
     # we also observed scenarios with an optimal number of shepherds where the guiding time becomes minimal. This appears to be related to possible obstruction of the shepherds by themselves.

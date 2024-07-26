@@ -1,4 +1,5 @@
-import struct
+from . import *
+
 import numba as nb
 import numpy as np
 import matplotlib.pyplot as plt
@@ -113,7 +114,7 @@ def update_agents_state(agents, target_x, target_y, target_size):
         agent_x = agents[agent_index][0]
         agent_y = agents[agent_index][1]
         distance, angle = Get_relative_distance_angle(target_x, target_y, agent_x, agent_y)
-        if distance < target_size:
+        if distance < target_size and not MORPHOLOGY:
             agents[agent_index][21] = 1.0  # agent state: 0 -> moving; 1 -> staying;
         else:
             agents[agent_index][21] = 0.0
