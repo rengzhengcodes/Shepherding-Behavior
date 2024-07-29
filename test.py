@@ -33,7 +33,8 @@ TICK = 1000
 Iterations = 200000
 
 L3 = np.sqrt(N_sheep / N_shepherd) * 5 # average flock radius per shepherd
-reps = 10
+reps = 1000
+seeds = range(reps)
 
 Num_nearst_neighbor = 5
 
@@ -194,7 +195,7 @@ if __name__ == '__main__':
     successes = 0
     
     start = timer()
-    results = Parallel(n_jobs=THREADS)(delayed(run_morph if MORPHOLOGY else run_target)(rep) for rep in range(reps))
+    results = Parallel(n_jobs=THREADS)(delayed(run_morph if MORPHOLOGY else run_target)(seed) for seed in seeds)
     end = timer()
     print(f"Elapsed time: ", timedelta(seconds=end-start))
 
