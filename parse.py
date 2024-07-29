@@ -24,5 +24,7 @@ percentiles = [25, 50, 75]
 reps_sorted = np.argsort(final_ticks)
 isolated_reps = [reps_sorted[int(len(reps_sorted) * percentile / 100)] for percentile in percentiles]
 isolated_reps += [reps_sorted[0], reps_sorted[-1]]
+# Converts all reps to integers.
+isolated_reps = [int(rep) for rep in isolated_reps]
 print(isolated_reps)
 print([final_ticks[rep] for rep in isolated_reps])
