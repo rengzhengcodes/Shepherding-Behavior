@@ -2,9 +2,10 @@
 import json
 import os
 import numpy as np
+from basic import MODE
 
 reps = 1000
-with open(f'{os.getcwd()}/results/morphology_attraction_naïve/2/2024-07-27 00:27:36.948050|300_sheep|3_shepherds.txt', "r") as f:
+with open(f'{os.getcwd()}/results/morphology_attraction_naïve/{MODE}/2024-07-27 00:27:36.948050|300_sheep|3_shepherds.txt', "r") as f:
     results = json.load(f)
 
 # Prints out result summary.
