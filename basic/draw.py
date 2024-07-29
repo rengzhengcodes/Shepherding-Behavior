@@ -157,7 +157,7 @@ def draw_dynamic(Iterations, Data_agents, Data_shepherds, Space_x, Space_y, Targ
     
     # If the folder does not exist, create it.
     if not os.path.exists(folder_path):
-        os.mkdir(folder_path)
+        os.makedirs(folder_path)
 
     file_list = os.listdir(folder_path)
     for file_name in file_list:
@@ -184,7 +184,7 @@ def plot_snapshot(Final_tick, swarm, shepherd, repetition, Boundary_x, Boundary_
     # create folder
     folder_path = os.getcwd() + "/snapshot"
     if not os.path.exists(folder_path):
-        os.mkdir(folder_path)
+        os.makedirs(folder_path)
     # create figure
     plt.figure(figsize=(8, 6), dpi=300)
     N_sheep = swarm.shape[0]
