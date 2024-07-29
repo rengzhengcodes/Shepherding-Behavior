@@ -5,7 +5,11 @@ import numpy as np
 from basic import MODE
 
 reps = 1000
-with open(f'{os.getcwd()}/results/morphology_attraction_naïve/{MODE}/2024-07-27 00:27:36.948050|300_sheep|3_shepherds.txt', "r") as f:
+# Gets folder
+folder = f"{os.getcwd()}/results/morphology_attraction_naïve/{MODE}"
+# Gets latest txt file in folder.
+filename = [file for file in os.listdir(folder) if file.endswith('.txt')][-1]
+with open(os.path.join(folder, filename), "r") as f:
     results = json.load(f)
 
 # Prints out result summary.
