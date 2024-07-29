@@ -14,7 +14,7 @@ from basic.create_network import create_metric_network, create_topological_netwo
 
 from basic import MODE, MORPHOLOGY
 
-THREADS = 2
+THREADS = -1
 
 N_sheep = 300
 N_shepherd = 3
