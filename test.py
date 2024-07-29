@@ -17,7 +17,7 @@ from basic import MODE, MORPHOLOGY
 THREADS = -1
 
 N_sheep = 300
-N_shepherd = 3
+N_shepherd = 6
 Space_x = 150
 Space_y = 150
 
