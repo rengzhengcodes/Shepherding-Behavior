@@ -154,6 +154,10 @@ def draw_dynamic(Iterations, Data_agents, Data_shepherds, Space_x, Space_y, Targ
 
     if folder_path is None:
         folder_path = f"{os.getcwd()}/images"
+    
+    # If the folder does not exist, create it.
+    if not os.path.exists(folder_path):
+        os.mkdir(folder_path)
 
     file_list = os.listdir(folder_path)
     for file_name in file_list:
