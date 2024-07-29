@@ -147,12 +147,14 @@ def draw_single(swarm, shepherd, Boundary_x, Boundary_y, Target_place_x, Target_
 
 
 def draw_dynamic(Iterations, Data_agents, Data_shepherds, Space_x, Space_y, Target_place_x, Target_place_y,
-                 Target_size, L3, MODE):
+                 Target_size, L3, MODE, folder_path=None, title=None):
     N_sheep = Data_agents[:, :, 0].shape[0]
     plt.figure(figsize=(8, 6), dpi=300)
     plt.ion()
-    folder_path = os.getcwd() + "/images/"
-    # print(folder_path)
+
+    if folder_path is None:
+        folder_path = f"{os.getcwd()}/images"
+
     file_list = os.listdir(folder_path)
     for file_name in file_list:
         file_path = os.path.join(folder_path, file_name)
@@ -166,14 +168,15 @@ def draw_dynamic(Iterations, Data_agents, Data_shepherds, Space_x, Space_y, Targ
         draw_single(Data_agents[:, :, index], Data_shepherds[:, :, index], Space_x, Space_y, Target_place_x,
                     Target_place_y, Target_size, MODE)
 
-        plt.title("N_sheep = " + str(N_sheep) + "_L3 = " + str(L3) + "_tick = " + str(index))
-        plt.savefig(folder_path + str(int(index / 100)) + ".png")
+        plt.title(f"N_sheep = {N_sheep} | L3 = {L3} | Tick = {index}")
+        plt.savefig(f"{folder_path}/{int(index / 100)}.png")
+
     plt.ioff()
     return
 
 
 def plot_snapshot(Final_tick, swarm, shepherd, repetition, Boundary_x, Boundary_y,
-                  Target_place_x, Target_place_y, Target_size):
+                  Target_place_x, Target_place_y, Target_size, title=None, filepath=None):
     # create folder
     folder_path = os.getcwd() + "/snapshot"
     if not os.path.exists(folder_path):
@@ -215,9 +218,13 @@ def plot_snapshot(Final_tick, swarm, shepherd, repetition, Boundary_x, Boundary_
     plt.xlim(xmin=-100, xmax=Boundary_x)
     plt.ylim(ymin=-100, ymax=Boundary_y)
 
-    plt.title("Ns = " + str(N_sheep) + "N = " + str(N_shepherd) + "tick =" + str(Final_tick))
-    plt.savefig(folder_path + "/" + "N_sheep=" + str(N_sheep) + "_N_shepherd=" + str(N_shepherd)
-                + "_repetition=" + str(repetition) + ".png")
+    if title is None:
+        title = f"Ns = {N_sheep} | N = {N_shepherd} | tick = {Final_tick} | R = {repetition}"
+    plt.title(title)
+
+    if filepath is None:
+        filepath = f'{folder_path}/N_sheep={N_sheep}_N_shepherd={N_shepherd}_repetition={repetition}.png'
+    plt.savefig(filepath)
 
     return
 
