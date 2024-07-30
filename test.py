@@ -15,6 +15,7 @@ from basic.create_network import create_metric_network, create_topological_netwo
 from basic import MODE, MORPHOLOGY
 
 THREADS = -1
+DRAW = False
 
 N_sheep = 300
 N_shepherd = 6
@@ -154,10 +155,11 @@ def run_morph(rep):
             break
         
     # Draws the results.
-    draw_dynamic(Final_tick, Data_agents, Data_shepherds, 
-                 Boundary_x, Boundary_y, 
-                 Target_place_x, Target_place_y, Target_size, 
-                 L3, MODE=MODE, folder_path=f"results/morphology_attraction_naïve/{MODE}/repetition_{rep}")
+    if DRAW:
+        draw_dynamic(Final_tick, Data_agents, Data_shepherds, 
+                    Boundary_x, Boundary_y, 
+                    Target_place_x, Target_place_y, Target_size, 
+                    L3, MODE=MODE, folder_path=f"results/morphology_attraction_naïve/{MODE}/repetition_{rep}")
 
     # Output logging, print the final tick.
     results = {
