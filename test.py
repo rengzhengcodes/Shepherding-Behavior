@@ -200,35 +200,37 @@ if __name__ == '__main__':
     results = Parallel(n_jobs=THREADS)(delayed(run_morph if MORPHOLOGY else run_target)(seed) for seed in seeds)
     end = timer()
     print(f"Elapsed time: ", timedelta(seconds=end-start))
-
-    # Creates results folder if it does not exist
-    cur_dir = os.path.dirname(os.path.realpath(__file__))
-    res_dir = f"{cur_dir}/results/morphology_attraction_naïve/{MODE}"
-    if not os.path.exists(res_dir):
-        os.makedirs(res_dir)
     
-    # Create a file with a text list of results.
-    with open(f"{res_dir}/{(cur_time := datetime.datetime.now())}|{N_sheep}_sheep|{N_shepherd}_shepherds.txt", "w") as f:
-        json.dump(results, f)
+    # Saves stats if we're not making figures.
+    if not DRAW:
+        # Creates results folder if it does not exist
+        cur_dir = os.path.dirname(os.path.realpath(__file__))
+        res_dir = f"{cur_dir}/results/morphology_attraction_naïve/{MODE}"
+        if not os.path.exists(res_dir):
+            os.makedirs(res_dir)
 
-    # Prints out result summary.
-    successes = sum([result["Success"] for result in results])
-    print(f"Success rate: {successes/reps}")
-    
-    # Retrieves all final ticks.
-    final_ticks = [result["Final_tick"] for result in results]
-    print(f"Average final tick: {np.mean(final_ticks)}")
-    print(f"Standard deviation: {np.std(final_ticks)}")
-    print(f"Minimum final tick: {np.min(final_ticks)}")
-    print(f"Maximum final tick: {np.max(final_ticks)}")
+        # Create a file with a text list of results
+        with open(f"{res_dir}/{(cur_time := datetime.datetime.now())}|{N_sheep}_sheep|{N_shepherd}_shepherds.txt", "w") as f:
+            json.dump(results, f)
 
-    # Creates a histogram of final ticks.
-    plt.figure()
-    plt.title(f"Final Tick Distribution: Mode {MODE}, {N_sheep} Sheep, {N_shepherd} Shepherds")
-    plt.xlabel("Final tick")
-    plt.ylabel("Number of samples")
-    plt.hist(final_ticks, bins=20)
-    plt.savefig(f"{res_dir}/{cur_time}|{N_sheep}_sheep|{N_shepherd}_shepherds_hist.png")
+        # Prints out result summary.
+        successes = sum([result["Success"] for result in results])
+        print(f"Success rate: {successes/reps}")
+        
+        # Retrieves all final ticks.
+        final_ticks = [result["Final_tick"] for result in results]
+        print(f"Average final tick: {np.mean(final_ticks)}")
+        print(f"Standard deviation: {np.std(final_ticks)}")
+        print(f"Minimum final tick: {np.min(final_ticks)}")
+        print(f"Maximum final tick: {np.max(final_ticks)}")
+
+        # Creates a histogram of final ticks.
+        plt.figure()
+        plt.title(f"Final Tick Distribution: Mode {MODE}, {N_sheep} Sheep, {N_shepherd} Shepherds")
+        plt.xlabel("Final tick")
+        plt.ylabel("Number of samples")
+        plt.hist(final_ticks, bins=20)
+        plt.savefig(f"{res_dir}/{cur_time}|{N_sheep}_sheep|{N_shepherd}_shepherds_hist.png")
 
     #However, depending on the specific formulation of the shepherding task and model parameters,
     # we also observed scenarios with an optimal number of shepherds where the guiding time becomes minimal. This appears to be related to possible obstruction of the shepherds by themselves.
