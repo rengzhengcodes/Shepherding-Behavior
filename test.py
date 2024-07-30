@@ -1,4 +1,4 @@
-import os, json, random, sys
+import os, json, random, subprocess, sys
 from joblib import Parallel, delayed
 from timeit import default_timer as timer
 import datetime
@@ -156,10 +156,22 @@ def run_morph(rep):
         
     # Draws the results.
     if DRAW:
+        folder_path = f"results/morphology_attraction_naïve/{MODE}/repetition_{rep}"
         draw_dynamic(Final_tick, Data_agents, Data_shepherds, 
                     Boundary_x, Boundary_y, 
                     Target_place_x, Target_place_y, Target_size, 
-                    L3, MODE=MODE, folder_path=f"results/morphology_attraction_naïve/{MODE}/repetition_{rep}")
+                    L3, MODE=MODE, folder_path=folder_path)
+        # Runs the ffmpeg command to create a video.
+        # ffmpeg -framerate 10 -start_number 0 -i %d.png -c:v libx264 -r 30 -pix_fmt yuv420p output.mp4
+        subprocess.run(["ffmpeg", "-framerate", "10", 
+                        "-start_number", "0", "-i", 
+                        f"{folder_path}/%d.png", "-c:v", "libx264", 
+                        "-r", "30", "-pix_fmt", "yuv420p", 
+                        f"{folder_path}/MODE_{MODE}|Rep_{rep}|Final_{Final_tick}.mp4"])
+        # Deletes all the images.
+        for img in os.listdir(folder_path):
+            if img.endswith(".png"):
+                os.remove(img)
 
     # Output logging, print the final tick.
     results = {

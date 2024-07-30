@@ -1,2 +1,2 @@
 MORPHOLOGY = True
-MODE = 2
+MODE = 0
