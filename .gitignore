@@ -15,6 +15,7 @@ results/
 
 # Compressed data files.
 *.7z
+*.tar.gz
 *.zip
 
 # MacOS folder attributes file.
