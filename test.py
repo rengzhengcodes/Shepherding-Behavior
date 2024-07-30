@@ -1,4 +1,4 @@
-import os, json, random, subprocess, sys
+import os, json, random, shutil, subprocess, sys
 from joblib import Parallel, delayed
 from timeit import default_timer as timer
 import datetime
@@ -169,7 +169,7 @@ def run_morph(rep):
                         "-c:v", "libx264", "-r", "30", "-pix_fmt", "yuv420p", 
                         f"{folder_path}/MODE_{MODE}|Rep_{rep}|Final_{Final_tick}.mp4"])
         # Deletes all the images.
-        os.removedirs(f"{folder_path}/repetition_{rep}")
+        shutil.rmtree(f"{folder_path}/repetition_{rep}")
 
     # Output logging, print the final tick.
     results = {
