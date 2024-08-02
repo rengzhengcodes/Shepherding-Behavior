@@ -1,5 +1,5 @@
 import numpy as np
-from basic.initiation import initiate, initiate_shepherd
+from basic.initiation import initiate, initiate_shepherds
 import os, sys
 import h5py
 from timeit import default_timer as timer
@@ -40,7 +40,7 @@ from basic.create_network import create_metric_network, create_topological_netwo
 # print(a[:, :, 12000])
 
 # agents = initiate(10, 100, 100, 50)
-# shepherds = initiate_shepherd(2, 10)
+# shepherds = initiate_shepherds(2, 10)
 # try to create network
 # topological_network = create_topological_network(agents, 5)
 # metric_network = create_metric_network(agents, agents[0][5], np.pi)  # Fov not used
