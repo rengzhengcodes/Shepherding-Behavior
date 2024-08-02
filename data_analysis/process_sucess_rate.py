@@ -78,7 +78,7 @@ def success_rate_plot(data, N_sheep, n_shepherd):
     # plt.axis("square")
     return
 
-def Get_dict_of_data(N_sheep):
+def get_dict_of_data(N_sheep):
     directory = os.getcwd() + "/../Data"
     files = os.listdir(directory)
     dic = defaultdict(list)
@@ -103,7 +103,7 @@ def Get_dict_of_data(N_sheep):
 def plot_time_shepherd(list_of_sheep_number):
     plt.figure(figsize=(8, 6), dpi=300)
     for N_sheep in list_of_sheep_number:
-        dic = Get_dict_of_data(N_sheep)
+        dic = get_dict_of_data(N_sheep)
         data = list(dic.values())
         repetition = len(data[0])
         print("N_sheep=:", N_sheep, "repetition=:", repetition)
@@ -118,7 +118,7 @@ def plot_time_shepherd(list_of_sheep_number):
 
 
 ###############################################################################################
-def Get_dict_of_data_with_L3(N_sheep, l3):
+def get_dict_of_data_with_L3(N_sheep, l3):
     directory = os.getcwd() + "/../Data_using_vision"  # +"/../Data"
     files = os.listdir(directory)
     dic = defaultdict(list)
@@ -144,7 +144,7 @@ def plot_time_shepherd_force(list_of_sheep_number, list_of_force):
         # plt.figure(figsize=(8, 6), dpi=300)
         plt.figure()
         for N_sheep in list_of_sheep_number:
-            dic = Get_dict_of_data_with_L3(N_sheep, l3)
+            dic = get_dict_of_data_with_L3(N_sheep, l3)
             data = list(dic.values())
             repetition = len(data[0])
             print("L3:", l3, "N_sheep:", N_sheep, repetition)
@@ -166,7 +166,7 @@ def plot_sr_shepherd_force(list_of_sheep_number, list_of_force, n_shepherd):
         # plt.figure(figsize=(4, 4), dpi=300)
         plt.figure()
         for N_sheep in list_of_sheep_number:
-            dic = Get_dict_of_data_with_L3(N_sheep, l3)
+            dic = get_dict_of_data_with_L3(N_sheep, l3)
             data = list(dic.values())
             repetition = len(data[0])
             # print("L3:", l3, "N_sheep:", N_sheep, repetition)
@@ -183,7 +183,7 @@ def plot_sr_shepherd_force(list_of_sheep_number, list_of_force, n_shepherd):
     return
 
 #########################################################################################
-def Get_dict_of_data_force(N_sheep, N_shepherd, list_of_force):
+def get_dict_of_data_force(N_sheep, N_shepherd, list_of_force):
     directory = os.getcwd() + "/../Data"
     files = os.listdir(directory)
     dic = defaultdict(list)
@@ -211,7 +211,7 @@ def plot_success_rate_with_force(N_sheep, List_of_N_shepherd, List_of_force):
     plt.figure(figsize=(8, 6), dpi=300)
     n = len(List_of_force)
     for N_shepherd in List_of_N_shepherd:
-        dic = Get_dict_of_data_force(N_sheep, N_shepherd, List_of_force)
+        dic = get_dict_of_data_force(N_sheep, N_shepherd, List_of_force)
         data = list(dic.values())
         repetition = len(data[0])
         print("N_sheep=", N_sheep, "N_shepherd=", N_shepherd, "repetition=", repetition)
@@ -238,7 +238,7 @@ def plot_success_rate_with_force_fix_shepherd(List_of_N_sheep, N_shepherd, List_
     plt.figure(figsize=(8, 6), dpi=300)
     n = len(List_of_force)
     for N_sheep in list_of_sheep_number:
-        dic = Get_dict_of_data_force(N_sheep, N_shepherd, List_of_force)
+        dic = get_dict_of_data_force(N_sheep, N_shepherd, List_of_force)
         data = list(dic.values())
         repetition = len(data[0])
         print("N_sheep=", N_sheep, "N_shepherd=", N_shepherd, "repetition=", repetition)
@@ -267,7 +267,7 @@ def plot_time_force(N_sheep, List_of_N_shepherd, List_of_force):
     plt.figure(figsize=(8, 6), dpi=300)
     n = len(List_of_force)
     for N_shepherd in List_of_N_shepherd:
-        dic = Get_dict_of_data_force(N_sheep, N_shepherd, List_of_force)
+        dic = get_dict_of_data_force(N_sheep, N_shepherd, List_of_force)
         data = list(dic.values())
         repetition = len(data[0])
         print("N_sheep=", N_sheep, "N_shepherd=", N_shepherd, "repetition=", repetition)
@@ -289,7 +289,7 @@ def plot_time_force(N_sheep, List_of_N_shepherd, List_of_force):
 
 ######################################################################################################
 
-def Get_dict_of_data_force_2(N_sheep, N_shepherd, list_of_force):
+def get_dict_of_data_force_2(N_sheep, N_shepherd, list_of_force):
     if N_sheep == 400:
         directory = os.getcwd() + "/../Data_N_sheep=400/N_sheep=400_N_shepherd=5"
     else:
@@ -318,7 +318,7 @@ def plot_time_force_2(N_sheep, List_of_N_shepherd, List_of_force):
     plt.figure(figsize=(8, 6), dpi=300)
     n = len(List_of_force)
     for N_shepherd in List_of_N_shepherd:
-        dic = Get_dict_of_data_force_2(N_sheep, N_shepherd, List_of_force)
+        dic = get_dict_of_data_force_2(N_sheep, N_shepherd, List_of_force)
         data = list(dic.values())
         repetition = len(data[0])
         print("N_sheep=", N_sheep, "N_shepherd=", N_shepherd, "repetition=", repetition)
@@ -343,7 +343,7 @@ def plot_success_rate_force_2(N_sheep, List_of_N_shepherd, List_of_force):
     plt.figure(figsize=(8, 6), dpi=300)
     n = len(List_of_force)
     for N_shepherd in List_of_N_shepherd:
-        dic = Get_dict_of_data_force_2(N_sheep, N_shepherd, List_of_force)
+        dic = get_dict_of_data_force_2(N_sheep, N_shepherd, List_of_force)
         data = list(dic.values())
         repetition = len(data[0])
         print("N_sheep=", N_sheep, "N_shepherd=", N_shepherd, "repetition=", repetition)
@@ -376,7 +376,7 @@ def sucess_rate_plot(mean_success_rate, N_sheep):
 
 
 def get_success_rate(N_sheep):
-    dic = Get_dict_of_data(N_sheep)
+    dic = get_dict_of_data(N_sheep)
     data = list(dic.values())
     Data = np.array(data, dtype=float)
     Data = 1 / (Data * 0.01)

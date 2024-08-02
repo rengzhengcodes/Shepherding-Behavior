@@ -22,7 +22,7 @@ def read_hdf5_data(file_path):
     return agents_pos, agents_state, shepherd_pos, shepherd_state
 
 
-def Get_final_tick(file_name):
+def get_final_tick(file_name):
     file_name_string = os.path.splitext(file_name)[0].split("_")
     for item in file_name_string:
         if "tick" in item:
@@ -70,7 +70,7 @@ def calculate_drive_matrix(List_of_L3, N_sheep, List_of_N_shepherd, Directory):
                         # print(file)
                         file_path = data_folder + file
                         agents_pos, agents_state, shepherd_pos, shepherd_state = read_hdf5_data(file_path)
-                        Iterations = Get_final_tick(file)
+                        Iterations = get_final_tick(file)
                         # print("Iterations:", Iterations)
                         if Iterations != 200000:
                             value = get_drive_mode_ratio(shepherd_state, Iterations)
@@ -125,7 +125,7 @@ def calculate_multi_difference(List_of_L3, N_sheep, List_of_N_shepherd, Director
                         # print(file)
                         file_path = data_folder + file
                         agents_pos, agents_state, shepherd_pos, shepherd_state = read_hdf5_data(file_path)
-                        Iterations = Get_final_tick(file)
+                        Iterations = get_final_tick(file)
                         # print("Iterations:", Iterations)
                         if Iterations != 200000:
                             # value1 = calculate_pairwise_differ_states(shepherd_state, Iterations)
@@ -208,7 +208,7 @@ def calculate_time_in_different_modes(list_of_L3, list_of_N_sheep, list_of_N_she
                             # print(file)
                             file_path = data_folder + file
                             agents_pos, agents_state, shepherd_pos, shepherd_state = read_hdf5_data(file_path)
-                            Iterations = Get_final_tick(file)
+                            Iterations = get_final_tick(file)
                             # print("Iterations:", Iterations)
                             drive_ratio.append(np.sum(shepherd_state) / Iterations)
                             collect_ratio.append(1 - np.sum(shepherd_state) / Iterations)
