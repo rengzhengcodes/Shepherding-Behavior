@@ -72,7 +72,7 @@ def run_target(rep):
     # self-organized flocking
     for tick in range(TICK):
         agents_update, shepherd_update, max_agents_indexes = evolve(
-            agents, shepherd, TARGET_X, TARGET_Y, TARGET_SIZE, MODE=MODE
+            agents, shepherd, TARGET_X, TARGET_Y, TARGET_SIZE
         )
         agents = agents_update
         shepherd = shepherd_update
@@ -86,7 +86,7 @@ def run_target(rep):
     for tick in range(ITERATIONS):
         # start evolve function
         agents_update, shepherd_update, max_agents_indexes = evolve(
-            agents, shepherd, TARGET_X, TARGET_Y, TARGET_SIZE, MODE=MODE
+            agents, shepherd, TARGET_X, TARGET_Y, TARGET_SIZE
         )
         # update data
         agents = agents_update
@@ -145,7 +145,7 @@ def run_morph(rep):
         center_x: float = np.mean(agents[:, 0])
         center_y: float = np.mean(agents[:, 1])
         agents, shepherds, max_agents_indexes = evolve(
-            agents, shepherds, center_x, center_y, TARGET_SIZE, MODE=MODE
+            agents, shepherds, center_x, center_y, TARGET_SIZE
         )
     # prepare the shepherds and record data
     shepherds = initiate_shepherds(N_SHEPHERD, N_SHEEP, L3)
@@ -167,8 +167,7 @@ def run_morph(rep):
             shepherds,
             center_x,
             center_y,
-            l2 := 10 * (np.sqrt(N_SHEEP)) * 2 / 3,
-            MODE=MODE,
+            l2 := 10 * (np.sqrt(N_SHEEP)) * 2 / 3
         )
         # save data
         data_agents[:, :, tick] = agents
