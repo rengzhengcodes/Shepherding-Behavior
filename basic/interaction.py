@@ -5,7 +5,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 from scipy.spatial import ConvexHull
-from basic.vision_functions import drive_the_herd_using_vision, collect_the_herd_using_vision
+from basic.vision_functions import (
+    drive_the_herd_using_vision,
+    collect_the_herd_using_vision,
+)
+
 
 @nb.jit(nopython=True)
 def transform_angle(theta):  # [-pi, pi]
@@ -39,7 +43,9 @@ def Get_attraction_force(agents):
         x_i = agents[agent_index][0]
         y_i = agents[agent_index][1]
         for neighbor_index in range(agents.shape[0]):
-            if agent_index != neighbor_index:  # and (map_att[agent_index, neighbor_index] == 1)
+            if (
+                agent_index != neighbor_index
+            ):  # and (map_att[agent_index, neighbor_index] == 1)
                 x_j = agents[neighbor_index][0]
                 y_j = agents[neighbor_index][1]
                 distance = np.sqrt((x_i - x_j) ** 2 + (y_i - y_j) ** 2)
@@ -97,10 +103,14 @@ def Get_shepherd_force(agents, shepherd):
         for shepherd_index in range(shepherd.shape[0]):
             shepherd_x = shepherd[shepherd_index][0]
             shepherd_y = shepherd[shepherd_index][1]
-            distance = np.sqrt((agent_x - shepherd_x) ** 2 + (agent_y - shepherd_y) ** 2)
+            distance = np.sqrt(
+                (agent_x - shepherd_x) ** 2 + (agent_y - shepherd_y) ** 2
+            )
             if distance <= safe_distance and distance != 0.0:
                 num_shepherd = num_shepherd + 1
-                r_x = r_x + (agent_x - shepherd_x) / distance  # unit vector  ?? check distance == 0 ?
+                r_x = (
+                    r_x + (agent_x - shepherd_x) / distance
+                )  # unit vector  ?? check distance == 0 ?
                 r_y = r_y + (agent_y - shepherd_y) / distance  # unit vector
         num_shepherd_avoid[agent_index] = num_shepherd
         f_shepherd_force_x[agent_index] = r_x
@@ -113,7 +123,9 @@ def update_agents_state(agents, target_x, target_y, target_size):
     for agent_index in range(agents.shape[0]):
         agent_x = agents[agent_index][0]
         agent_y = agents[agent_index][1]
-        distance, angle = Get_relative_distance_angle(target_x, target_y, agent_x, agent_y)
+        distance, angle = Get_relative_distance_angle(
+            target_x, target_y, agent_x, agent_y
+        )
         if distance < target_size and not MORPHOLOGY:
             agents[agent_index][21] = 1.0  # agent state: 0 -> moving; 1 -> staying;
         else:
@@ -137,7 +149,9 @@ def update(agents, shepherd, target_x, target_y):
     # calculate agent-agent attraction force
     num_att, f_attraction_x, f_attraction_y = Get_attraction_force(agents)
     # calculate agent-shepherd repulsion force
-    num_shepherd_avoid, f_shepherd_force_x, f_shepherd_force_y = Get_shepherd_force(agents, shepherd)
+    num_shepherd_avoid, f_shepherd_force_x, f_shepherd_force_y = Get_shepherd_force(
+        agents, shepherd
+    )
     Target_size = 100
 
     for agent_index in range(agents.shape[0]):
@@ -145,42 +159,63 @@ def update(agents, shepherd, target_x, target_y):
             f_x = f_avoid_x[agent_index] * K_repulsion_agent
             f_y = f_avoid_y[agent_index] * K_repulsion_agent
         else:
-            f_x = f_attraction_x[agent_index] * K_attraction_agent + f_shepherd_force_x[
-                agent_index] * K_repulsion_shepherd
-            f_y = f_attraction_y[agent_index] * K_attraction_agent + f_shepherd_force_y[
-                agent_index] * K_repulsion_shepherd
+            f_x = (
+                f_attraction_x[agent_index] * K_attraction_agent
+                + f_shepherd_force_x[agent_index] * K_repulsion_shepherd
+            )
+            f_y = (
+                f_attraction_y[agent_index] * K_attraction_agent
+                + f_shepherd_force_y[agent_index] * K_repulsion_shepherd
+            )
 
-        if agents[agent_index][21] == 1 and num_avoid[agent_index] == 0:  # staying state and no repulsion
+        if (
+            agents[agent_index][21] == 1 and num_avoid[agent_index] == 0
+        ):  # staying state and no repulsion
             v0 = 0.5
-            distance_agent_target, angle_agent_target = Get_relative_distance_angle(target_x,
-                                                                                    target_y,
-                                                                                    agents[agent_index][0],
-                                                                                    agents[agent_index][1])
+            distance_agent_target, angle_agent_target = Get_relative_distance_angle(
+                target_x, target_y, agents[agent_index][0], agents[agent_index][1]
+            )
             # if abs(Target_size - distance_agent_target) < 20:  # near the wall
             f_x = np.cos(angle_agent_target) * distance_agent_target * 0.1
             f_y = np.sin(angle_agent_target) * distance_agent_target * 0.1
 
-        v_dot = f_x * np.cos(agents[agent_index][2]) + f_y * np.sin(agents[agent_index][2])
-        w_dot = (-f_x * np.sin(agents[agent_index][2]) + f_y * np.cos(agents[agent_index][2])) * (1 / v0)  # inertia
+        v_dot = f_x * np.cos(agents[agent_index][2]) + f_y * np.sin(
+            agents[agent_index][2]
+        )
+        w_dot = (
+            -f_x * np.sin(agents[agent_index][2]) + f_y * np.cos(agents[agent_index][2])
+        ) * (
+            1 / v0
+        )  # inertia
 
         if w_dot > max_turning_angle:
             w_dot = max_turning_angle
         if w_dot <= -max_turning_angle:
             w_dot = -max_turning_angle
 
-        Dr = np.random.normal(0, 1) * np.sqrt(2 * K_Dr) / (tick_time ** 0.5)
+        Dr = np.random.normal(0, 1) * np.sqrt(2 * K_Dr) / (tick_time**0.5)
 
-        agents[agent_index][0] = (agents[agent_index][0] + (v0 + v_dot) * np.cos(agents[agent_index][2]) * tick_time)
-        agents[agent_index][1] = (agents[agent_index][1] + (v0 + v_dot) * np.sin(agents[agent_index][2]) * tick_time)
-        agents[agent_index][2] = transform_angle(agents[agent_index][2] + (w_dot + Dr) * tick_time)
+        agents[agent_index][0] = (
+            agents[agent_index][0]
+            + (v0 + v_dot) * np.cos(agents[agent_index][2]) * tick_time
+        )
+        agents[agent_index][1] = (
+            agents[agent_index][1]
+            + (v0 + v_dot) * np.sin(agents[agent_index][2]) * tick_time
+        )
+        agents[agent_index][2] = transform_angle(
+            agents[agent_index][2] + (w_dot + Dr) * tick_time
+        )
     return agents
 
 
 @nb.jit(nopython=True)
-def Get_relative_distance_angle(vector_head_x, vector_head_y, vector_end_x, vector_end_y):
+def Get_relative_distance_angle(
+    vector_head_x, vector_head_y, vector_end_x, vector_end_y
+):
     r_x = vector_head_x - vector_end_x
     r_y = vector_head_y - vector_end_y
-    r_length = np.sqrt(r_x ** 2 + r_y ** 2)
+    r_length = np.sqrt(r_x**2 + r_y**2)
     r_angle = np.arctan2(r_y, r_x)  # range[-pi, pi]
     return r_length, r_angle
 
@@ -192,36 +227,52 @@ def Get_furthest_agent(agents, shepherd_x, shepherd_y, target_place_x, target_pl
     distance_herd_agents = np.zeros(agents.shape[0])
     dirt_angles_of_target_to_agent = np.zeros(agents.shape[0])
 
-    r_target, angle_target_herd = Get_relative_distance_angle(target_place_x, target_place_y, shepherd_x, shepherd_y)
+    r_target, angle_target_herd = Get_relative_distance_angle(
+        target_place_x, target_place_y, shepherd_x, shepherd_y
+    )
     for agent_index in range(num_agents):
         # the furthest agent should only in the moving state;
         if agents[agent_index][21] == 0:
             agent_x = agents[agent_index][0]
             agent_y = agents[agent_index][1]
-            r_agent_herd, angle_agent_herd = Get_relative_distance_angle(agent_x, agent_y, shepherd_x, shepherd_y)
+            r_agent_herd, angle_agent_herd = Get_relative_distance_angle(
+                agent_x, agent_y, shepherd_x, shepherd_y
+            )
             angle_herd_agents[agent_index] = angle_agent_herd  # [-pi, pi]
-            dirt_angle_from_target_to_herd = transform_angle(angle_target_herd - angle_agent_herd)  # [-pi, pi]
+            dirt_angle_from_target_to_herd = transform_angle(
+                angle_target_herd - angle_agent_herd
+            )  # [-pi, pi]
             # angle between two vector: [-np.pi, np.pi] negative: the agent its on the left side of the target
             dirt_angles_of_target_to_agent[agent_index] = dirt_angle_from_target_to_herd
             distance_herd_agents[agent_index] = r_agent_herd
 
     # max_agent_index = int(np.argmax(np.absolute(angle_herd_agents)))  # +: clockwise, -: anti-clockwise
-    max_agent_index = int(np.argmax(np.absolute(dirt_angles_of_target_to_agent)))  # +: clockwise, -: anti-clockwise
+    max_agent_index = int(
+        np.argmax(np.absolute(dirt_angles_of_target_to_agent))
+    )  # +: clockwise, -: anti-clockwise
     max_angle_target_to_agent = dirt_angles_of_target_to_agent[max_agent_index]
-    return max_agent_index, distance_herd_agents[max_agent_index], max_angle_target_to_agent
+    return (
+        max_agent_index,
+        distance_herd_agents[max_agent_index],
+        max_angle_target_to_agent,
+    )
 
 
 @nb.jit(nopython=True)
-def collect_furthest_agent(agent_x, agent_y, shepherd_x, shepherd_y, target_place_x, target_place_y, l0):
+def collect_furthest_agent(
+    agent_x, agent_y, shepherd_x, shepherd_y, target_place_x, target_place_y, l0
+):
     # get the angle from agent to target first;
-    distance_agent_target, angle_agent_target = Get_relative_distance_angle(agent_x, agent_y, target_place_x,
-                                                                            target_place_y)
+    distance_agent_target, angle_agent_target = Get_relative_distance_angle(
+        agent_x, agent_y, target_place_x, target_place_y
+    )
     # keep l0 distance from the collect agent;
     collect_point_x = agent_x + l0 * np.cos(angle_agent_target)
     collect_point_y = agent_y + l0 * np.sin(angle_agent_target)
     # attracted by the collect point;
-    distance_cp_herd, angle_cp_herd = Get_relative_distance_angle(collect_point_x, collect_point_y, shepherd_x,
-                                                                  shepherd_y)
+    distance_cp_herd, angle_cp_herd = Get_relative_distance_angle(
+        collect_point_x, collect_point_y, shepherd_x, shepherd_y
+    )
     # print("distance_cp_herd:", distance_cp_herd)
     # attraction force is linear with the distance between the herd and the collect point;
     force_x = distance_cp_herd * np.cos(angle_cp_herd)  #
@@ -247,7 +298,9 @@ def calculate_mass_center(agents):
 
 
 @nb.jit(nopython=True)
-def drive_the_herd_using_convex_hull(agents, shepherd_x, shepherd_y, target_place_x, target_place_y):
+def drive_the_herd_using_convex_hull(
+    agents, shepherd_x, shepherd_y, target_place_x, target_place_y
+):
     # Gets the precalculated convex hull of the flock.
     hull = np.where(agents[:, 22] != 0)[0]
 
@@ -256,28 +309,32 @@ def drive_the_herd_using_convex_hull(agents, shepherd_x, shepherd_y, target_plac
     center_of_hull_y = np.mean(agents[hull, 1])
 
     # calculate the distance, angle between the center of the mass and the shepherd;
-    distance_mass_target, angle_mass_target = Get_relative_distance_angle(center_of_hull_x, center_of_hull_y,
-                                                                          target_place_x, target_place_y)
+    distance_mass_target, angle_mass_target = Get_relative_distance_angle(
+        center_of_hull_x, center_of_hull_y, target_place_x, target_place_y
+    )
 
     # update the safe drive distance to the center according to the CURRENT num of moving agents,
     # initial parameter of shepherd swarm[:,5];
     num_agents_moving = agents[agents[:, 21] == 0].shape[0]
     if num_agents_moving >= 10:
-        l1_new = (2 / 3) * np.sqrt(num_agents_moving) * 10   #7.5
+        l1_new = (2 / 3) * np.sqrt(num_agents_moving) * 10  # 7.5
     else:
         l1_new = 15
-    
+
     # L1: drive point: from shepherd to mass center
     # angle_mass_target: from the target place to the mass
     drive_point_x = center_of_hull_x + l1_new * np.cos(angle_mass_target)
     drive_point_y = center_of_hull_y + l1_new * np.sin(angle_mass_target)
 
     # the shepherd should be attracted by the drive point
-    distance_drive_herd, angle_drive_herd = Get_relative_distance_angle(drive_point_x, drive_point_y,
-                                                                        shepherd_x, shepherd_y)
+    distance_drive_herd, angle_drive_herd = Get_relative_distance_angle(
+        drive_point_x, drive_point_y, shepherd_x, shepherd_y
+    )
 
     # the drive force is linear to the distance between the shepherd and the drive point;
-    force_x = distance_drive_herd * np.cos(angle_drive_herd)  # angle_drive_herd: from shepherd to drive point;
+    force_x = distance_drive_herd * np.cos(
+        angle_drive_herd
+    )  # angle_drive_herd: from shepherd to drive point;
     force_y = distance_drive_herd * np.sin(angle_drive_herd)  #
     # !!! Attention: the vector (force_x, force_y) is not unit;
 
@@ -285,16 +342,22 @@ def drive_the_herd_using_convex_hull(agents, shepherd_x, shepherd_y, target_plac
 
 
 @nb.jit(nopython=True)
-def drive_the_herd_using_visible_convex_hull(agents, shepherd_x, shepherd_y, shepherd_index, target_place_x, target_place_y):
+def drive_the_herd_using_visible_convex_hull(
+    agents, shepherd_x, shepherd_y, shepherd_index, target_place_x, target_place_y
+):
     # Calculate the convex hull of the flock not staying.
     roaming_agents = agents[agents[:, 21] == 0]
-    sheperd_and_sheep_coordinates = np.concatenate((np.array([[shepherd_x, shepherd_y]]), roaming_agents[:, :2]))
-    
-    with nb.objmode(visible_hull='int64[:]'):
+    sheperd_and_sheep_coordinates = np.concatenate(
+        (np.array([[shepherd_x, shepherd_y]]), roaming_agents[:, :2])
+    )
+
+    with nb.objmode(visible_hull="int64[:]"):
         if roaming_agents.shape[0] <= 2:
             visible_hull = np.where(agents[:, 21] == 0)[0]
-        else: 
-            visible_hull = ConvexHull(sheperd_and_sheep_coordinates, qhull_options="QG0")
+        else:
+            visible_hull = ConvexHull(
+                sheperd_and_sheep_coordinates, qhull_options="QG0"
+            )
             # Takes the visible simplices (edges)/
             visible_hull = visible_hull.simplices[visible_hull.good]
             # Accounts for the shepherd inserted into the sheep swarm skewing indices.
@@ -303,10 +366,19 @@ def drive_the_herd_using_visible_convex_hull(agents, shepherd_x, shepherd_y, she
             # If there is no visible hull, e.g., if the shepherd is inside, the shepherd
             # assumes the nearest sheep as the center of mass.
             if visible_hull.shape[0] == 0:
-                visible_hull = np.array([np.argmin(np.sqrt((roaming_agents[:, 0] - shepherd_x) ** 2 + (roaming_agents[:, 1] - shepherd_y) ** 2))])
+                visible_hull = np.array(
+                    [
+                        np.argmin(
+                            np.sqrt(
+                                (roaming_agents[:, 0] - shepherd_x) ** 2
+                                + (roaming_agents[:, 1] - shepherd_y) ** 2
+                            )
+                        )
+                    ]
+                )
 
             # Converts visible_hull back to the original indices.
-            visible_hull = np.where(agents[:, 21] == 0)[0][visible_hull]        
+            visible_hull = np.where(agents[:, 21] == 0)[0][visible_hull]
 
     # Set hull and visibility status.
     agents[visible_hull, 22] = np.arange(1, visible_hull.shape[0] + 1)
@@ -314,48 +386,62 @@ def drive_the_herd_using_visible_convex_hull(agents, shepherd_x, shepherd_y, she
     # https://stackoverflow.com/a/40249859
     # unstable if float dtype ever changes in the array.
     with nb.objmode():
-        agents[visible_hull, 23] = (agents[visible_hull, 23].view('uint64') | (0b01 << shepherd_index)).view('float64')
+        agents[visible_hull, 23] = (
+            agents[visible_hull, 23].view("uint64") | (0b01 << shepherd_index)
+        ).view("float64")
 
     # Gets center of mass estimate as average of the visible convex hull vertices.
     center_of_hull_x = np.mean(agents[visible_hull, 0])
     center_of_hull_y = np.mean(agents[visible_hull, 1])
 
     # calculate the distance, angle between the center of the mass and the shepherd;
-    distance_mass_target, angle_mass_target = Get_relative_distance_angle(center_of_hull_x, center_of_hull_y,
-                                                                          target_place_x, target_place_y)
+    distance_mass_target, angle_mass_target = Get_relative_distance_angle(
+        center_of_hull_x, center_of_hull_y, target_place_x, target_place_y
+    )
 
     # update the safe drive distance to the center according to the CURRENT num of moving agents,
     # initial parameter of shepherd swarm[:,5];
     num_agents_moving = agents[agents[:, 21] == 0].shape[0]
     if num_agents_moving >= 10:
-        l1_new = (2 / 3) * np.sqrt(num_agents_moving) * 2   #7.5
+        l1_new = (2 / 3) * np.sqrt(num_agents_moving) * 2  # 7.5
     else:
         l1_new = 15
-    
+
     # L1: drive point: from shepherd to mass center
     # angle_mass_target: from the target place to the mass
     drive_point_x = center_of_hull_x + l1_new * np.cos(angle_mass_target)
     drive_point_y = center_of_hull_y + l1_new * np.sin(angle_mass_target)
 
     # the shepherd should be attracted by the drive point
-    distance_drive_herd, angle_drive_herd = Get_relative_distance_angle(drive_point_x, drive_point_y,
-                                                                        shepherd_x, shepherd_y)
+    distance_drive_herd, angle_drive_herd = Get_relative_distance_angle(
+        drive_point_x, drive_point_y, shepherd_x, shepherd_y
+    )
 
     # the drive force is linear to the distance between the shepherd and the drive point;
-    force_x = distance_drive_herd * np.cos(angle_drive_herd)  # angle_drive_herd: from shepherd to drive point;
+    force_x = distance_drive_herd * np.cos(
+        angle_drive_herd
+    )  # angle_drive_herd: from shepherd to drive point;
     force_y = distance_drive_herd * np.sin(angle_drive_herd)  #
     # !!! Attention: the vector (force_x, force_y) is not unit;
 
-    return drive_point_x, drive_point_y, force_x, force_y, center_of_hull_x, center_of_hull_y, visible_hull
+    return (
+        drive_point_x,
+        drive_point_y,
+        force_x,
+        force_y,
+        center_of_hull_x,
+        center_of_hull_y,
+        visible_hull,
+    )
 
 
 @nb.jit(nopython=True)
 def identify_flocks(agents, flock_distance):
     # Calculates the flocks using full DFS.
-    i = 0   # Flock number
-    agents[agents[:, 21] == 1, 24] = -1.0             # Clears flock membership.
-    agents[agents[:, 21] == 0, 24] = 0.0              # Clears flock membership.
-    remaining_agents = np.where(agents[:, 21] == 0)[0]# Tracks agents remaining.
+    i = 0  # Flock number
+    agents[agents[:, 21] == 1, 24] = -1.0  # Clears flock membership.
+    agents[agents[:, 21] == 0, 24] = 0.0  # Clears flock membership.
+    remaining_agents = np.where(agents[:, 21] == 0)[0]  # Tracks agents remaining.
 
     while remaining_agents.shape[0] > 0:
         # Increments counter.
@@ -370,20 +456,26 @@ def identify_flocks(agents, flock_distance):
         while stack:
             current = stack.pop()
             for agent in remaining_agents:
-                if (agents[agent, 24] == 0
-                    and (np.sqrt((agents[current, 0] - agents[agent, 0]) ** 2 + 
-                                 (agents[current, 1] - agents[agent, 1]) ** 2) <= flock_distance)):
+                if agents[agent, 24] == 0 and (
+                    np.sqrt(
+                        (agents[current, 0] - agents[agent, 0]) ** 2
+                        + (agents[current, 1] - agents[agent, 1]) ** 2
+                    )
+                    <= flock_distance
+                ):
                     agents[agent, 24] = i
                     stack.append(agent)
-        
+
         # Updates the remaining agents.
         remaining_agents = np.where(agents[:, 24] == 0)[0]
 
 
 @nb.jit(nopython=True)
-def drive_the_herd_using_subflock_convex_hulls(agents, shepherd_x, shepherd_y, shepherd_index, target_place_x, target_place_y):
+def drive_the_herd_using_subflock_convex_hulls(
+    agents, shepherd_x, shepherd_y, shepherd_index, target_place_x, target_place_y
+):
     # Goes through every flock and calculates the visible hull agents.
-    visible_hulls_section = np.zeros(0, dtype='int64')
+    visible_hulls_section = np.zeros(0, dtype="int64")
     # Calculates the number of flocks.
     num_flocks = np.max(agents[:, 24])
     # Does compute of visible hulls for each flock and chooses the one to attend to.
@@ -392,69 +484,100 @@ def drive_the_herd_using_subflock_convex_hulls(agents, shepherd_x, shepherd_y, s
         # Gets the flock.
         flock = agents[agents[:, 24] == flock_index]
         # Gets the visible convex hull.
-        _, _, _, _, _, _, visible_flock_hull = drive_the_herd_using_visible_convex_hull(flock, shepherd_x, shepherd_y, shepherd_index, target_place_x, target_place_y)
+        _, _, _, _, _, _, visible_flock_hull = drive_the_herd_using_visible_convex_hull(
+            flock,
+            shepherd_x,
+            shepherd_y,
+            shepherd_index,
+            target_place_x,
+            target_place_y,
+        )
         # Corrects the indices.
-        visible_flock_hull = np.where(agents[:, 24] == flock_index)[0][visible_flock_hull]
+        visible_flock_hull = np.where(agents[:, 24] == flock_index)[0][
+            visible_flock_hull
+        ]
         # Calculates the minimal distance to a point in the hull.
-        min_distance = np.min(np.sqrt((agents[visible_flock_hull, 0] - shepherd_x) ** 2 + (agents[visible_flock_hull, 1] - shepherd_y) ** 2))
+        min_distance = np.min(
+            np.sqrt(
+                (agents[visible_flock_hull, 0] - shepherd_x) ** 2
+                + (agents[visible_flock_hull, 1] - shepherd_y) ** 2
+            )
+        )
         # If it trumps the previous minimal distance, updates the visible hull.
         if min_distance < closest_distance:
             closest_distance = min_distance
             visible_hulls_section = visible_flock_hull
-    
+
     # Set hull and visibility status.
     agents[visible_hulls_section, 22] = np.arange(1, visible_hulls_section.shape[0] + 1)
-    
+
     # Very suspicious little endian coding that should be rewritten using the following numpy trick:
     # https://stackoverflow.com/a/40249859
     # unstable if float dtype ever changes in the array.
     with nb.objmode():
-        agents[visible_hulls_section, 23] = (agents[visible_hulls_section, 23].view('uint64') | (0b01 << shepherd_index)).view('float64')
+        agents[visible_hulls_section, 23] = (
+            agents[visible_hulls_section, 23].view("uint64") | (0b01 << shepherd_index)
+        ).view("float64")
 
     # Calculates the center of mass of the shepherd flock.
     center_of_hull_x = np.mean(agents[visible_hulls_section, 0])
     center_of_hull_y = np.mean(agents[visible_hulls_section, 1])
 
     # calculate the distance, angle between the center of the mass and the shepherd;
-    distance_mass_target, angle_mass_target = Get_relative_distance_angle(center_of_hull_x, center_of_hull_y,
-                                                                          target_place_x, target_place_y)
+    distance_mass_target, angle_mass_target = Get_relative_distance_angle(
+        center_of_hull_x, center_of_hull_y, target_place_x, target_place_y
+    )
 
     # update the safe drive distance to the center according to the CURRENT num of moving agents,
     # initial parameter of shepherd swarm[:,5];
     num_agents_moving = visible_hulls_section.shape[0]
     if num_agents_moving >= 10:
-        l1_new = (2 / 3) * np.sqrt(num_agents_moving) * 2   #7.5
+        l1_new = (2 / 3) * np.sqrt(num_agents_moving) * 2  # 7.5
     else:
         l1_new = 15
-    
+
     # L1: drive point: from shepherd to mass center
     # angle_mass_target: from the target place to the mass
     drive_point_x = center_of_hull_x + l1_new * np.cos(angle_mass_target)
     drive_point_y = center_of_hull_y + l1_new * np.sin(angle_mass_target)
 
     # the shepherd should be attracted by the drive point
-    distance_drive_herd, angle_drive_herd = Get_relative_distance_angle(drive_point_x, drive_point_y,
-                                                                        shepherd_x, shepherd_y)
+    distance_drive_herd, angle_drive_herd = Get_relative_distance_angle(
+        drive_point_x, drive_point_y, shepherd_x, shepherd_y
+    )
 
     # the drive force is linear to the distance between the shepherd and the drive point;
-    force_x = distance_drive_herd * np.cos(angle_drive_herd)  # angle_drive_herd: from shepherd to drive point;
+    force_x = distance_drive_herd * np.cos(
+        angle_drive_herd
+    )  # angle_drive_herd: from shepherd to drive point;
     force_y = distance_drive_herd * np.sin(angle_drive_herd)  #
     # !!! Attention: the vector (force_x, force_y) is not unit;
 
-    return drive_point_x, drive_point_y, force_x, force_y, center_of_hull_x, center_of_hull_y, visible_hulls_section
+    return (
+        drive_point_x,
+        drive_point_y,
+        force_x,
+        force_y,
+        center_of_hull_x,
+        center_of_hull_y,
+        visible_hulls_section,
+    )
 
 
 @nb.jit(nopython=True)
-def drive_the_herd(agents, shepherd_x, shepherd_y, target_place_x, target_place_y):#
+def drive_the_herd(agents, shepherd_x, shepherd_y, target_place_x, target_place_y):  #
     # get the center of only moving mass, not concluding the staying mass;
-    num_agents_moving, center_of_mass_x, center_of_mass_y = calculate_mass_center(agents)
+    num_agents_moving, center_of_mass_x, center_of_mass_y = calculate_mass_center(
+        agents
+    )
     # calculate the distance, angle between the center of the mass and the shepherd;
-    distance_mass_target, angle_mass_target = Get_relative_distance_angle(center_of_mass_x, center_of_mass_y,
-                                                                          target_place_x, target_place_y)
+    distance_mass_target, angle_mass_target = Get_relative_distance_angle(
+        center_of_mass_x, center_of_mass_y, target_place_x, target_place_y
+    )
     # update the safe drive distance to the center according to the CURRENT num of moving agents,
     # initial parameter of shepherd swarm[:,5];
     if num_agents_moving >= 10:
-        l1_new = (2 / 3) * np.sqrt(num_agents_moving) * 10   #7.5
+        l1_new = (2 / 3) * np.sqrt(num_agents_moving) * 10  # 7.5
     else:
         l1_new = 15
     # L1: drive point: from shepherd to mass center
@@ -462,11 +585,14 @@ def drive_the_herd(agents, shepherd_x, shepherd_y, target_place_x, target_place_
     drive_point_x = center_of_mass_x + l1_new * np.cos(angle_mass_target)
     drive_point_y = center_of_mass_y + l1_new * np.sin(angle_mass_target)
     # the shepherd should be attracted by the drive point
-    distance_drive_herd, angle_drive_herd = Get_relative_distance_angle(drive_point_x, drive_point_y,
-                                                                        shepherd_x, shepherd_y)
+    distance_drive_herd, angle_drive_herd = Get_relative_distance_angle(
+        drive_point_x, drive_point_y, shepherd_x, shepherd_y
+    )
     # print("distance_drive_herd", distance_drive_herd)
     # the drive force is linear to the distance between the shepherd and the drive point;
-    force_x = distance_drive_herd * np.cos(angle_drive_herd)  # angle_drive_herd: from shepherd to drive point;
+    force_x = distance_drive_herd * np.cos(
+        angle_drive_herd
+    )  # angle_drive_herd: from shepherd to drive point;
     force_y = distance_drive_herd * np.sin(angle_drive_herd)  #
     # !!! Attention: the vector (force_x, force_y) is not unit;
 
@@ -497,8 +623,12 @@ def keep_distance_from_other_shepherd(shepherd):
             r_x = r_x / neighbor_num
             r_y = r_y / neighbor_num
             angle = math.atan2(r_y, r_x)
-            angle_other_shepherd[shepherd_index] = reflect_angle(angle)  # Angle of the repulsion vector
-            distance_other_shepherd[shepherd_index] = np.sqrt(r_x ** 2 + r_y ** 2)  # Distance of the repulsion vector
+            angle_other_shepherd[shepherd_index] = reflect_angle(
+                angle
+            )  # Angle of the repulsion vector
+            distance_other_shepherd[shepherd_index] = np.sqrt(
+                r_x**2 + r_y**2
+            )  # Distance of the repulsion vector
     return distance_other_shepherd, angle_other_shepherd
 
 
@@ -515,7 +645,7 @@ def herd(agents, shepherd, target_place_x, target_place_y, MODE):
     tick_time = shepherd[0][10]
     max_turning_rate = shepherd[0][11]
     Angle_Threshold_Collection = shepherd[0][17]  # HALF FOV threshold for collect mode;
-    K_attraction_target = 0.01 #shepherd[0][18]  # K_attraction_target   0.01
+    K_attraction_target = 0.01  # shepherd[0][18]  # K_attraction_target   0.01
 
     match MODE:
         case 0 | 1:
@@ -567,15 +697,19 @@ def herd(agents, shepherd, target_place_x, target_place_y, MODE):
         case _:
             raise NotImplementedError("Mode {MODE} does not have pre-processing implemented.")
 
-   # d_furthest = shepherd[0][12]    # L2
+    # d_furthest = shepherd[0][12]    # L2
     if num_agents_moving >= 50:
-        d_furthest = 10 * (np.sqrt(num_agents_moving)) * 2/3   #7.5 *
+        d_furthest = 10 * (np.sqrt(num_agents_moving)) * 2 / 3  # 7.5 *
         # Although it could be an issue when the agent number = 1, d_furthest = 5
     else:
-        d_furthest = 50  ## 35 ## related to l1, and was also used in drive the herd function
+        d_furthest = (
+            50  ## 35 ## related to l1, and was also used in drive the herd function
+        )
 
     # avoid the other shepherd first!
-    distance_other_shepherd, angle_other_shepherd = keep_distance_from_other_shepherd(shepherd)
+    distance_other_shepherd, angle_other_shepherd = keep_distance_from_other_shepherd(
+        shepherd
+    )
 
     for shepherd_index in range(shepherd.shape[0]):
         shepherd_x = shepherd[shepherd_index][0]
@@ -583,8 +717,12 @@ def herd(agents, shepherd, target_place_x, target_place_y, MODE):
         shepherd_angle = shepherd[shepherd_index][2]
 
         # repulsion force from other shepherd
-        f_x_other_shepherd = distance_other_shepherd[shepherd_index] * np.cos(angle_other_shepherd[shepherd_index])
-        f_y_other_shepherd = distance_other_shepherd[shepherd_index] * np.sin(angle_other_shepherd[shepherd_index])
+        f_x_other_shepherd = distance_other_shepherd[shepherd_index] * np.cos(
+            angle_other_shepherd[shepherd_index]
+        )
+        f_y_other_shepherd = distance_other_shepherd[shepherd_index] * np.sin(
+            angle_other_shepherd[shepherd_index]
+        )
 
         # drive_mode: attract by the mass center and the target, repulsion from other shepherd;
         if shepherd[shepherd_index][13] == 1.0:
@@ -625,14 +763,16 @@ def herd(agents, shepherd, target_place_x, target_place_y, MODE):
                     raise NotImplementedError("Mode {MODE} does not have drive mode implemented.")
 
             # calculate the attraction force from the target;
-            distance_shepherd_target, angle_shepherd_target = Get_relative_distance_angle(target_place_x,
-                                                                                          target_place_y,
-                                                                                          shepherd_x, shepherd_y)
+            distance_shepherd_target, angle_shepherd_target = (
+                Get_relative_distance_angle(
+                    target_place_x, target_place_y, shepherd_x, shepherd_y
+                )
+            )
             # f_att_target_x = np.cos(angle_shepherd_target) * distance_shepherd_target * K_attraction_target
             # f_att_target_y = np.sin(angle_shepherd_target) * distance_shepherd_target * K_attraction_target
 
-            F_x = drive_force_x + f_x_other_shepherd  #+ f_att_target_x
-            F_y = drive_force_y + f_y_other_shepherd  #+ f_att_target_y
+            F_x = drive_force_x + f_x_other_shepherd  # + f_att_target_x
+            F_y = drive_force_y + f_y_other_shepherd  # + f_att_target_y
             # print("f_x_other_shepherd:", f_x_other_shepherd)
 
             shepherd[shepherd_index][14] = drive_point_x
@@ -747,8 +887,9 @@ def herd(agents, shepherd, target_place_x, target_place_y, MODE):
             shepherd[shepherd_index][14] = collect_point_x  # collect_x
             shepherd[shepherd_index][15] = collect_point_y  # collect_y
 
-            distance_agent_mass, angle_agent_mass = Get_relative_distance_angle(collect_point_x, collect_point_y,
-                                                                                center_of_mass_x, center_of_mass_y)
+            distance_agent_mass, angle_agent_mass = Get_relative_distance_angle(
+                collect_point_x, collect_point_y, center_of_mass_x, center_of_mass_y
+            )
             # !!! switch to the drive mode:
             match MODE:
                 case 1:
@@ -765,14 +906,25 @@ def herd(agents, shepherd, target_place_x, target_place_y, MODE):
                     raise NotImplementedError("Mode {MODE} does not have a way to exit collect mode.")
 
         # calculate the linear speed and angular speed;
-        v_dot = F_x * np.cos(shepherd_angle) + F_y * np.sin(shepherd_angle)  # heading_direction_acceleration
-        w_dot = -F_x * np.sin(shepherd_angle) + F_y * np.cos(shepherd_angle)  # angular_acceleration
+        v_dot = F_x * np.cos(shepherd_angle) + F_y * np.sin(
+            shepherd_angle
+        )  # heading_direction_acceleration
+        w_dot = -F_x * np.sin(shepherd_angle) + F_y * np.cos(
+            shepherd_angle
+        )  # angular_acceleration
         # alpha: acceleration rate; beta: turning rate;
-        noise = np.sqrt(2 * Dr) / (tick_time ** 0.5) * np.random.normal(0, 1)  # (mean, std_deviation) Dr = 0.1
-        shepherd[shepherd_index][0] = shepherd_x + ((v0 + v_dot * alpha) * np.cos(shepherd_angle)) * tick_time
-        shepherd[shepherd_index][1] = shepherd_y + ((v0 + v_dot * alpha) * np.sin(shepherd_angle)) * tick_time
+        noise = (
+            np.sqrt(2 * Dr) / (tick_time**0.5) * np.random.normal(0, 1)
+        )  # (mean, std_deviation) Dr = 0.1
+        shepherd[shepherd_index][0] = (
+            shepherd_x + ((v0 + v_dot * alpha) * np.cos(shepherd_angle)) * tick_time
+        )
+        shepherd[shepherd_index][1] = (
+            shepherd_y + ((v0 + v_dot * alpha) * np.sin(shepherd_angle)) * tick_time
+        )
         shepherd[shepherd_index][2] = reflect_angle(
-            shepherd_angle + (w_dot / v0 * beta + noise) * tick_time)  # [-2pi, 2pi]
+            shepherd_angle + (w_dot / v0 * beta + noise) * tick_time
+        )  # [-2pi, 2pi]
 
     return shepherd, max_agents_indexes
 
@@ -802,8 +954,12 @@ def evolve(agents, shepherd, Target_place_x, Target_place_y, Target_size, MODE):
     # agent-agent, agent-shepherd interaction;
     agents_update = update(agents, shepherd, Target_place_x, Target_place_y)
     # shepherd switch between collect and drive mode;
-    shepherd_update, max_agents_indexes = herd(agents, shepherd, Target_place_x, Target_place_y, MODE)
+    shepherd_update, max_agents_indexes = herd(
+        agents, shepherd, Target_place_x, Target_place_y, MODE
+    )
     # update agents state
-    agents_update = update_agents_state(agents_update, Target_place_x, Target_place_y, Target_size)
+    agents_update = update_agents_state(
+        agents_update, Target_place_x, Target_place_y, Target_size
+    )
 
     return agents_update, shepherd_update, max_agents_indexes
