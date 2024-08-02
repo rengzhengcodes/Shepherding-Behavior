@@ -1039,13 +1039,13 @@ def make_periodic_boundary(agents, space_x, space_y):
 
 
 @nb.jit(nopython=True)
-def evolve(agents, shepherd, Target_place_x, Target_place_y, Target_size, MODE):
+def evolve(agents, shepherd, Target_place_x, Target_place_y, Target_size):
     # network_matrix = create_metric_network((agents, R, Fov))
     # agent-agent, agent-shepherd interaction;
     agents_update = update(agents, shepherd, Target_place_x, Target_place_y)
     # shepherd switch between collect and drive mode;
     shepherd_update, max_agents_indexes = herd(
-        agents, shepherd, Target_place_x, Target_place_y, MODE
+        agents, shepherd, Target_place_x, Target_place_y
     )
     # update agents state
     agents_update = update_agents_state(
