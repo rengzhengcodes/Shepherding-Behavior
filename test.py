@@ -133,6 +133,7 @@ def run_morph(rep):
     Max_agents_indexes = np.zeros((N_shepherd, Iterations), int)
     Final_tick = Iterations
     # continue the sheep data with shepherd
+    success: bool = False
     for tick in range(Iterations):
         # Defines the target as the global center of mass.
         Target_place_x = np.mean(agents[:, 0])
