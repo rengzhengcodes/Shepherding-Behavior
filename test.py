@@ -71,7 +71,7 @@ def run_target(rep):
     shepherd = initiate_shepherds(0, N_SHEPHERD, L3)
     # self-organized flocking
     for tick in range(TICK):
-        agents_update, shepherd_update, max_agents_indexes = evolve(
+        agents_update, shepherd_update, max_agents_indices = evolve(
             agents, shepherd, TARGET_X, TARGET_Y, TARGET_SIZE
         )
         agents = agents_update
@@ -80,12 +80,12 @@ def run_target(rep):
     shepherd = initiate_shepherds(N_SHEPHERD, N_SHEEP, L3)
     data_agents = np.zeros((agents.shape[0], agents.shape[1], ITERATIONS), float)
     data_shepherds = np.zeros((shepherd.shape[0], shepherd.shape[1], ITERATIONS), float)
-    max_agents_indexes = np.zeros((N_SHEPHERD, ITERATIONS), int)
+    data_max_agents_indices = np.zeros((N_SHEPHERD, ITERATIONS), int)
     final_tick = ITERATIONS
     # continue the sheep data with shepherd
     for tick in range(ITERATIONS):
         # start evolve function
-        agents_update, shepherd_update, max_agents_indexes = evolve(
+        agents_update, shepherd_update, max_agents_indices = evolve(
             agents, shepherd, TARGET_X, TARGET_Y, TARGET_SIZE
         )
         # update data
@@ -94,7 +94,7 @@ def run_target(rep):
         # save data
         data_agents[:, :, tick] = agents
         data_shepherds[:, :, tick] = shepherd
-        max_agents_indexes[:, tick] = max_agents_indexes  # only two dimension
+        data_max_agents_indices[:, tick] = max_agents_indices  # only two dimension
         # print(tick)
         # stop program if all the sheep are in the "staying" mode;
         if sum(agents[:, 21]) == N_SHEEP:  # finish
@@ -142,10 +142,9 @@ def run_morph(rep):
     # self-organized flocking
     for tick in range(TICK):
         # Defines the target as the global center of mass.
-        center_x: float = np.mean(agents[:, 0])
-        center_y: float = np.mean(agents[:, 1])
-        agents, shepherds, max_agents_indexes = evolve(
-            agents, shepherds, center_x, center_y, TARGET_SIZE
+        center: tuple[float, float] = (np.mean(agents[:, 0]), np.mean(agents[:, 1]))
+        agents, shepherds, max_agents_indices = evolve(
+            agents, shepherds, *center, TARGET_SIZE
         )
     # prepare the shepherds and record data
     shepherds = initiate_shepherds(N_SHEPHERD, N_SHEEP, L3)
@@ -153,30 +152,25 @@ def run_morph(rep):
     data_shepherds = np.zeros(
         (shepherds.shape[0], shepherds.shape[1], ITERATIONS), float
     )
-    max_agents_indexes = np.zeros((N_SHEPHERD, ITERATIONS), int)
+    data_max_agents_indices = np.zeros((N_SHEPHERD, ITERATIONS), int)
     final_tick = ITERATIONS
     # continue the sheep data with shepherds
     for tick in range(ITERATIONS):
         # Defines the target as the global center of mass.
-        center_x = np.mean(agents[:, 0])
-        center_y = np.mean(agents[:, 1])
+        center: tuple[float, float] = (np.mean(agents[:, 0]), np.mean(agents[:, 1]))
         # start evolve function
         #! @note L2 is defined in initiate_agent and copied here for brevity.
-        agents, shepherds, max_agents_indexes = evolve(
-            agents,
-            shepherds,
-            center_x,
-            center_y,
-            l2 := 10 * (np.sqrt(N_SHEEP)) * 2 / 3
+        agents, shepherds, max_agents_indices = evolve(
+            agents, shepherds, *center, l2 := 10 * (np.sqrt(N_SHEEP)) * 2 / 3
         )
         # save data
         data_agents[:, :, tick] = agents
         data_shepherds[:, :, tick] = shepherds
-        max_agents_indexes[:, tick] = max_agents_indexes  # only two dimension
+        data_max_agents_indices[:, tick] = max_agents_indices  # only two dimension
         # print(tick)
         # stop program if all the sheep are within L2 of the center of mass.
         if np.all(
-            np.sqrt((agents[:, 0] - center_x) ** 2 + (agents[:, 1] - center_y) ** 2)
+            np.sqrt((agents[:, 0] - center[0]) ** 2 + (agents[:, 1] - center[1]) ** 2)
             < l2
         ):  # finish
             final_tick = tick
@@ -192,8 +186,7 @@ def run_morph(rep):
             data_shepherds,
             BOUNDARY_X,
             BOUNDARY_Y,
-            center_x,
-            center_y,
+            *center,
             TARGET_SIZE,
             L3,
             MODE=MODE,
@@ -229,8 +222,8 @@ def run_morph(rep):
         # Static parameters, for reference.
         "SPACE_X": SPACE_X,
         "SPACE_Y": SPACE_Y,
-        "center_x": center_x,
-        "center_y": center_y,
+        "center_x": center[0],
+        "center_y": center[1],
         "TARGET_SIZE": TARGET_SIZE,
         # Viewing parameters.
         "BOUNDARY_X": BOUNDARY_X,
