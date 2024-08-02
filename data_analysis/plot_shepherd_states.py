@@ -84,7 +84,7 @@ def read_hdf5_data(path):
     return agents_pos, agents_state, shepherd_pos, shepherd_state
 
 
-def Get_final_tick(file_name):
+def get_final_tick(file_name):
     file_name_string = os.path.splitext(file_name)[0].split("_")
     for item in file_name_string:
         if "tick" in item:
@@ -104,7 +104,7 @@ file_name = "N_sheep=300_N_shepherd=3_L3=20_Final_tick=105701_Repetition=18" + "
 path = directory + file_name
 agents_pos, agents_state, shepherd_pos, shepherd_state = read_hdf5_data(path)
 N_sheep = agents_pos.shape[0]
-Iterations = Get_final_tick(file_name)
+Iterations = get_final_tick(file_name)
 plot_multi_states(shepherd_state, N_sheep, Iterations)
 
 
@@ -130,7 +130,7 @@ def calculate_time_in_different_modes(N_shepherd):
                     print(file)
                     path = directory + file
                     agents_pos, agents_state, shepherd_pos, shepherd_state = read_hdf5_data(path)
-                    Iterations = Get_final_tick(file)
+                    Iterations = get_final_tick(file)
                     # plot_multi_states(shepherd_state, sheep_index, Iterations)
                     # print("Iterations:", Iterations)
                     drive_ratio.append(np.sum(shepherd_state) / Iterations)
@@ -192,7 +192,7 @@ def calculate_multi_difference(N_sheep, L3):
                     # print(file)
                     path = directory + file
                     agents_pos, agents_state, shepherd_pos, shepherd_state = read_hdf5_data(path)
-                    Iterations = Get_final_tick(file)
+                    Iterations = get_final_tick(file)
                     # print("Iterations:", Iterations)
                     # value = calculate_differ_states(shepherd_state, Iterations) / Iterations    # ratio over running time
                     value = calculate_pairwise_differ_states(shepherd_state, Iterations) / Iterations

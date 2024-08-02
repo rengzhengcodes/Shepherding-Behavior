@@ -142,7 +142,7 @@ def read_hdf5_data(file_path):
     return agents_pos, agents_state, shepherd_pos, shepherd_state
 
 
-def Get_final_tick(file_name):
+def get_final_tick(file_name):
     file_name_string = os.path.splitext(file_name)[0].split("_")
     for item in file_name_string:
         if "tick" in item:
@@ -186,7 +186,7 @@ n_sheep = 200
 
 path = directory + "N_sheep=" + str(n_sheep) + "/" + file_name
 agents_pos, agents_state, shepherd_pos, shepherd_state = read_hdf5_data(path)
-Final_tick = Get_final_tick(file_name)
+Final_tick = get_final_tick(file_name)
 n_sheep = 200
 repetition = 22
 repetition = 3
@@ -201,7 +201,7 @@ print("Draw Fertig!")
 # file_name = "N_sheep=10_N_shepherd=2_L3=0_Final_tick=1000_Repetition=3" + ".hdf5"
 # path = directory + file_name
 # agents_pos, agents_state, shepherd_pos, shepherd_state = read_hdf5_data(path)
-# Final_tick = Get_final_tick(file_name)
+# Final_tick = get_final_tick(file_name)
 # print(Final_tick)
 # Interval = 100
 # repetition = 3
