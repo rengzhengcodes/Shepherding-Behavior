@@ -150,7 +150,9 @@ def run_morph(rep):
     # prepare the shepherds and record data
     shepherds = initiate_shepherds(N_SHEPHERD, N_SHEEP, L3)
     data_agents = np.zeros((agents.shape[0], agents.shape[1], ITERATIONS), float)
-    data_shepherds = np.zeros((shepherds.shape[0], shepherds.shape[1], ITERATIONS), float)
+    data_shepherds = np.zeros(
+        (shepherds.shape[0], shepherds.shape[1], ITERATIONS), float
+    )
     max_agents_indexes = np.zeros((N_SHEPHERD, ITERATIONS), int)
     final_tick = ITERATIONS
     # continue the sheep data with shepherds
@@ -165,7 +167,7 @@ def run_morph(rep):
             shepherds,
             center_x,
             center_y,
-            L2 := 10 * (np.sqrt(N_SHEEP)) * 2 / 3,
+            l2 := 10 * (np.sqrt(N_SHEEP)) * 2 / 3,
             MODE=MODE,
         )
         # save data
@@ -176,7 +178,7 @@ def run_morph(rep):
         # stop program if all the sheep are within L2 of the center of mass.
         if np.all(
             np.sqrt((agents[:, 0] - center_x) ** 2 + (agents[:, 1] - center_y) ** 2)
-            < L2
+            < l2
         ):  # finish
             final_tick = tick
             success = True
