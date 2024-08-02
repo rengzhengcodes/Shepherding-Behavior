@@ -7,8 +7,7 @@ from basic.vision_functions import (
     drive_the_herd_using_vision,
     collect_the_herd_using_vision,
 )
-
-from . import MORPHOLOGY
+from . import MODE, MORPHOLOGY
 
 
 @nb.jit(nopython=True)
@@ -188,10 +187,8 @@ def update(agents, shepherd, target_x, target_y):
             1 / v0
         )  # inertia
 
-        if w_dot > max_turning_angle:
-            w_dot = max_turning_angle
-        if w_dot <= -max_turning_angle:
-            w_dot = -max_turning_angle
+        w_dot = min(w_dot, max_turning_angle)
+        w_dot = max(w_dot, -max_turning_angle)
 
         Dr = np.random.normal(0, 1) * np.sqrt(2 * K_Dr) / (tick_time**0.5)
 
@@ -633,7 +630,7 @@ def keep_distance_from_other_shepherd(shepherd):
 
 
 @nb.jit(nopython=True)
-def herd(agents, shepherd, target_place_x, target_place_y, MODE):
+def herd(agents, shepherd, target_place_x, target_place_y):
     max_agents_indexes = np.zeros(shepherd.shape[0])  # record the furthest agent index
     l0 = shepherd[0][3]
     # k = shepherd[0][4]
