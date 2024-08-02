@@ -2,7 +2,11 @@
 Runs simulation parameters for the shepherding model being tested.
 """
 
-import os, json, random, shutil, subprocess
+import json
+import os
+import random
+import shutil
+import subprocess
 import datetime
 from datetime import timedelta
 from timeit import default_timer as timer
@@ -11,7 +15,7 @@ from joblib import Parallel, delayed
 import numba as nb
 import numpy as np
 import matplotlib.pyplot as plt
-from basic.initiation import initiate, initiate_shepherd
+from basic.initiation import initiate, initiate_shepherds
 from basic.interaction import evolve
 from basic.draw import draw_dynamic
 
@@ -25,12 +29,12 @@ N_SHEPHERD = 6
 SPACE_X = 150
 SPACE_Y = 150
 
-TARGET_PLACE_X = 400
-TARGET_PLACE_Y = 400
+TARGET_X = 400
+TARGET_Y = 400
 TARGET_SIZE = 125  # radius
 
-BOUNDARY_X = TARGET_PLACE_X + TARGET_SIZE + 300
-BOUNDARY_Y = TARGET_PLACE_Y + TARGET_SIZE + 300
+BOUNDARY_X = TARGET_X + TARGET_SIZE + 300
+BOUNDARY_Y = TARGET_Y + TARGET_SIZE + 300
 
 
 TICK = 1000
@@ -64,16 +68,16 @@ def run_target(rep):
     print("Starting repetition", rep)
     seed_run(rep)
     agents = initiate(N_SHEEP, N_SHEPHERD, SPACE_X, SPACE_Y, TARGET_SIZE)
-    shepherd = initiate_shepherd(0, N_SHEPHERD, L3)
+    shepherd = initiate_shepherds(0, N_SHEPHERD, L3)
     # self-organized flocking
     for tick in range(TICK):
         agents_update, shepherd_update, max_agents_indexes = evolve(
-            agents, shepherd, TARGET_PLACE_X, TARGET_PLACE_Y, TARGET_SIZE, MODE=MODE
+            agents, shepherd, TARGET_X, TARGET_Y, TARGET_SIZE, MODE=MODE
         )
         agents = agents_update
         shepherd = shepherd_update
     # prepare the shepherd and record data
-    shepherd = initiate_shepherd(N_SHEPHERD, N_SHEEP, L3)
+    shepherd = initiate_shepherds(N_SHEPHERD, N_SHEEP, L3)
     data_agents = np.zeros((agents.shape[0], agents.shape[1], ITERATIONS), float)
     data_shepherds = np.zeros((shepherd.shape[0], shepherd.shape[1], ITERATIONS), float)
     max_agents_indexes = np.zeros((N_SHEPHERD, ITERATIONS), int)
@@ -82,7 +86,7 @@ def run_target(rep):
     for tick in range(ITERATIONS):
         # start evolve function
         agents_update, shepherd_update, max_agents_indexes = evolve(
-            agents, shepherd, TARGET_PLACE_X, TARGET_PLACE_Y, TARGET_SIZE, MODE=MODE
+            agents, shepherd, TARGET_X, TARGET_Y, TARGET_SIZE, MODE=MODE
         )
         # update data
         agents = agents_update
@@ -102,8 +106,8 @@ def run_target(rep):
         # Static parameters, for reference.
         "SPACE_X": SPACE_X,
         "SPACE_Y": SPACE_Y,
-        "TARGET_PLACE_X": TARGET_PLACE_X,
-        "TARGET_PLACE_Y": TARGET_PLACE_Y,
+        "TARGET_X": TARGET_X,
+        "TARGET_Y": TARGET_Y,
         "TARGET_SIZE": TARGET_SIZE,
         # Viewing parameters.
         "BOUNDARY_X": BOUNDARY_X,
@@ -134,52 +138,44 @@ def run_morph(rep):
     print("Starting repetition", rep)
     seed_run(rep)
     agents = initiate(N_SHEEP, N_SHEPHERD, SPACE_X, SPACE_Y, TARGET_SIZE)
-    shepherd = initiate_shepherd(0, N_SHEPHERD, L3)
+    shepherds = initiate_shepherds(0, N_SHEPHERD, L3)
     # self-organized flocking
     for tick in range(TICK):
         # Defines the target as the global center of mass.
-        TARGET_PLACE_X = np.mean(agents[:, 0])
-        TARGET_PLACE_Y = np.mean(agents[:, 1])
-        agents_update, shepherd_update, max_agents_indexes = evolve(
-            agents, shepherd, TARGET_PLACE_X, TARGET_PLACE_Y, TARGET_SIZE, MODE=MODE
+        center_x: float = np.mean(agents[:, 0])
+        center_y: float = np.mean(agents[:, 1])
+        agents, shepherds, max_agents_indexes = evolve(
+            agents, shepherds, center_x, center_y, TARGET_SIZE, MODE=MODE
         )
-        agents = agents_update
-        shepherd = shepherd_update
-    # prepare the shepherd and record data
-    shepherd = initiate_shepherd(N_SHEPHERD, N_SHEEP, L3)
+    # prepare the shepherds and record data
+    shepherds = initiate_shepherds(N_SHEPHERD, N_SHEEP, L3)
     data_agents = np.zeros((agents.shape[0], agents.shape[1], ITERATIONS), float)
-    data_shepherds = np.zeros((shepherd.shape[0], shepherd.shape[1], ITERATIONS), float)
+    data_shepherds = np.zeros((shepherds.shape[0], shepherds.shape[1], ITERATIONS), float)
     max_agents_indexes = np.zeros((N_SHEPHERD, ITERATIONS), int)
     final_tick = ITERATIONS
-    # continue the sheep data with shepherd
+    # continue the sheep data with shepherds
     for tick in range(ITERATIONS):
         # Defines the target as the global center of mass.
-        TARGET_PLACE_X = np.mean(agents[:, 0])
-        TARGET_PLACE_Y = np.mean(agents[:, 1])
+        center_x = np.mean(agents[:, 0])
+        center_y = np.mean(agents[:, 1])
         # start evolve function
         #! @note L2 is defined in initiate_agent and copied here for brevity.
-        agents_update, shepherd_update, max_agents_indexes = evolve(
+        agents, shepherds, max_agents_indexes = evolve(
             agents,
-            shepherd,
-            TARGET_PLACE_X,
-            TARGET_PLACE_Y,
+            shepherds,
+            center_x,
+            center_y,
             L2 := 10 * (np.sqrt(N_SHEEP)) * 2 / 3,
             MODE=MODE,
         )
-        # update data
-        agents = agents_update
-        shepherd = shepherd_update
         # save data
         data_agents[:, :, tick] = agents
-        data_shepherds[:, :, tick] = shepherd
+        data_shepherds[:, :, tick] = shepherds
         max_agents_indexes[:, tick] = max_agents_indexes  # only two dimension
         # print(tick)
         # stop program if all the sheep are within L2 of the center of mass.
         if np.all(
-            np.sqrt(
-                (agents[:, 0] - TARGET_PLACE_X) ** 2
-                + (agents[:, 1] - TARGET_PLACE_Y) ** 2
-            )
+            np.sqrt((agents[:, 0] - center_x) ** 2 + (agents[:, 1] - center_y) ** 2)
             < L2
         ):  # finish
             final_tick = tick
@@ -195,8 +191,8 @@ def run_morph(rep):
             data_shepherds,
             BOUNDARY_X,
             BOUNDARY_Y,
-            TARGET_PLACE_X,
-            TARGET_PLACE_Y,
+            center_x,
+            center_y,
             TARGET_SIZE,
             L3,
             MODE=MODE,
@@ -221,7 +217,8 @@ def run_morph(rep):
                 "-pix_fmt",
                 "yuv420p",
                 f"{folder_path}/MODE_{MODE}|Rep_{rep}|final_{final_tick}.mp4",
-            ]
+            ],
+            check=True,
         )
         # Deletes all the images.
         shutil.rmtree(f"{folder_path}/repetition_{rep}")
@@ -231,8 +228,8 @@ def run_morph(rep):
         # Static parameters, for reference.
         "SPACE_X": SPACE_X,
         "SPACE_Y": SPACE_Y,
-        "TARGET_PLACE_X": TARGET_PLACE_X,
-        "TARGET_PLACE_Y": TARGET_PLACE_Y,
+        "center_x": center_x,
+        "center_y": center_y,
         "TARGET_SIZE": TARGET_SIZE,
         # Viewing parameters.
         "BOUNDARY_X": BOUNDARY_X,
@@ -254,10 +251,9 @@ def run_morph(rep):
     return results
 
 
-start = timer()
 if __name__ == "__main__":
     start = timer()
-    results = Parallel(n_jobs=THREADS)(
+    sims: dict = Parallel(n_jobs=THREADS)(
         delayed(run_morph if MORPHOLOGY else run_target)(seed) for seed in seeds
     )
     end = timer()
@@ -276,15 +272,16 @@ if __name__ == "__main__":
             f"{res_dir}/{(cur_time := datetime.datetime.now())}"
             + f"|{N_SHEEP}_sheep|{N_SHEPHERD}_shepherds.txt",
             "w",
+            encoding="utf-8",
         ) as f:
-            json.dump(results, f)
+            json.dump(sims, f)
 
         # Prints out result summary.
-        successes = sum([result["Success"] for result in results])
+        successes = sum(result["Success"] for result in sims)
         print(f"Success rate: {successes/REPS}")
 
         # Retrieves all final ticks.
-        final_ticks = [result["final_tick"] for result in results]
+        final_ticks = [result["final_tick"] for result in sims]
         print(f"Average final tick: {np.mean(final_ticks)}")
         print(f"Standard deviation: {np.std(final_ticks)}")
         print(f"Minimum final tick: {np.min(final_ticks)}")

@@ -4,7 +4,7 @@ from datetime import timedelta
 import numba as nb
 import numpy as np
 import matplotlib.pyplot as plt
-from basic.initiation import initiate, initiate_shepherd
+from basic.initiation import initiate, initiate_shepherds
 from basic.interaction import evolve, make_periodic_boundary
 from basic.save_data import save_data, save_data_L3
 from basic.draw import draw_single, draw_dynamic, plot_snapshot
@@ -46,7 +46,7 @@ if __name__ == '__main__':
     #     for N_shepherd in range(4, 6, 1):
     #         for Repetition in range(1, 26, 1):
     agents = initiate(N_sheep, Space_x, Space_y, Target_size)
-    shepherd = initiate_shepherd(0, N_sheep, L3)
+    shepherd = initiate_shepherds(0, N_sheep, L3)
     # self-organized flocking
     for tick in range(TICK):
         agents_update, shepherd_update, max_agents_indexes = evolve(agents, shepherd, Target_place_x,
@@ -54,7 +54,7 @@ if __name__ == '__main__':
         agents = agents_update
         shepherd = shepherd_update
     # prepare the shepherd and record data
-    shepherd = initiate_shepherd(N_shepherd, N_sheep, L3)
+    shepherd = initiate_shepherds(N_shepherd, N_sheep, L3)
     Data_agents = np.zeros((agents.shape[0], agents.shape[1], Iterations), float)
     Data_shepherds = np.zeros((shepherd.shape[0], shepherd.shape[1], Iterations), float)
     Max_agents_indexes = np.zeros((N_shepherd, Iterations), int)
