@@ -155,6 +155,7 @@ def run_morph(rep):
     data_max_agents_indices = np.zeros((N_SHEPHERD, ITERATIONS), int)
     final_tick = ITERATIONS
     # continue the sheep data with shepherds
+    success: bool = False   # whether the simulation was successful
     for tick in range(ITERATIONS):
         # Defines the target as the global center of mass.
         center: tuple[float, float] = (np.mean(agents[:, 0]), np.mean(agents[:, 1]))
