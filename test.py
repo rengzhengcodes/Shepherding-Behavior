@@ -140,6 +140,16 @@ def run_morph(rep):
         Target_place_y = np.mean(agents[:, 1])
         # start evolve function
         #! @note L2 is defined in initiate_agent and copied here for brevity.
+        if agents is None:
+            print("Agents is None")
+        if shepherd is None:
+            print("Shepherd is None")
+        if Target_place_x is None:
+            print("Target_place_x is None")
+        if Target_place_y is None:
+            print("Target_place_y is None")
+        if L2 is None:
+            print("L2 is None")
         agents_update, shepherd_update, max_agents_indexes = evolve(agents, shepherd, Target_place_x, 
                                                                     Target_place_y, L2 := 10*(np.sqrt(N_sheep))*2/3, MODE=MODE)
         # update data
