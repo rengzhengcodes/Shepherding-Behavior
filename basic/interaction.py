@@ -16,6 +16,13 @@ from . import MODE, MORPHOLOGY
 
 @nb.jit(nopython=True)
 def transform_angle(theta):  # [-pi, pi]
+    """
+    Limits the angle to the range [-pi, pi].
+    Args:
+        @param theta: The angle to be transformed.
+    Returns:
+        The transformed angle.
+    """
     # new_theta = (theta + np.pi) % (2. * np.pi)
     # new_theta -= np.pi
     while theta >= np.pi:
@@ -27,6 +34,13 @@ def transform_angle(theta):  # [-pi, pi]
 
 @nb.jit(nopython=True)
 def reflect_angle(angle):  # [-2pi, 2pi]
+    """
+    Reflects the angle.
+    Args:
+        @param angle: The angle to be reflected.
+    Returns:
+        The reflected angle.
+    """
     while angle >= 2 * np.pi:
         angle = angle - 2 * np.pi
     while angle <= 0:
@@ -35,7 +49,16 @@ def reflect_angle(angle):  # [-2pi, 2pi]
 
 
 @nb.jit(nopython=True)
-def get_attraction_force(agents):
+def get_attraction_force(agents: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Calculates the attraction force between agents.
+    Args:
+        @param agents: The agents to calculate the attraction forces between.
+    Returns:
+        num_att: The number of agents attracted to the agent.
+        f_attraction_x: The x-component of the attraction force.
+        f_attraction_y: The y-component of the attraction force.
+    """
     num_att = np.zeros(agents.shape[0])
     f_attraction_x = np.zeros(agents.shape[0])
     f_attraction_y = np.zeros(agents.shape[0])
@@ -64,7 +87,16 @@ def get_attraction_force(agents):
 
 
 @nb.jit(nopython=True)
-def get_repulsion_force(agents):
+def get_repulsion_force(agents: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Calculates the repulsion force between agents.
+    Args:
+        @param agents: The agents to calculate the repulsion forces between.
+    Returns:
+        num_avoid: The number of agents repelled by the agent.
+        f_avoid_x: The x-component of the repulsion force.
+        f_avoid_y: The y-component of the repulsion force
+    """
     num_avoid = np.zeros(agents.shape[0])
     f_avoid_x = np.zeros(agents.shape[0])
     f_avoid_y = np.zeros(agents.shape[0])
@@ -92,6 +124,16 @@ def get_repulsion_force(agents):
 
 @nb.jit(nopython=True)
 def get_shepherd_force(agents, shepherd):
+    """
+    Calculates the repulsion force between agents and shepherds.
+    Args:
+        @param agents: The agents to calculate the repulsion force for.
+        @param shepherd: The shepherds repulsing.
+    Returns:
+        num_shepherd_avoid: The number of shepherds repelling the agent.
+        f_shepherd_force_x: The x-component of the repulsion force.
+        f_shepherd_force_y: The y-component of the repulsion force.
+    """
     num_shepherd_avoid = np.zeros(agents.shape[0])
     f_shepherd_force_x = np.zeros(agents.shape[0])
     f_shepherd_force_y = np.zeros(agents.shape[0])
@@ -140,10 +182,10 @@ def update_agents_state(agents, target_x, target_y, target_size):
 def update(agents, shepherd, target_x, target_y):
     # get variables
     v0 = agents[0][6]
-    K_repulsion_agent = agents[0][10]  # K_repulsion_agent
-    K_attraction_agent = agents[0][11]  # K_attraction_agent
-    K_repulsion_shepherd = agents[0][12]  # K_repulsion_shepherd
-    K_Dr = agents[0][13]  # noise_strength
+    k_repulsion_agent = agents[0][10]  # k_repulsion_agent
+    k_attraction_agent = agents[0][11]  # k_attraction_agent
+    k_repulsion_shepherd = agents[0][12]  # k_repulsion_shepherd
+    k_Dr = agents[0][13]  # noise_strength
     tick_time = agents[0][14]  # tick_time
     max_turning_angle = agents[0][18]  # np.pi*2/3
 
@@ -158,16 +200,16 @@ def update(agents, shepherd, target_x, target_y):
 
     for agent_index in range(agents.shape[0]):
         if num_avoid[agent_index] != 0:  # first priority!!!
-            f_x = f_avoid_x[agent_index] * K_repulsion_agent
-            f_y = f_avoid_y[agent_index] * K_repulsion_agent
+            f_x = f_avoid_x[agent_index] * k_repulsion_agent
+            f_y = f_avoid_y[agent_index] * k_repulsion_agent
         else:
             f_x = (
-                f_attraction_x[agent_index] * K_attraction_agent
-                + f_shepherd_force_x[agent_index] * K_repulsion_shepherd
+                f_attraction_x[agent_index] * k_attraction_agent
+                + f_shepherd_force_x[agent_index] * k_repulsion_shepherd
             )
             f_y = (
-                f_attraction_y[agent_index] * K_attraction_agent
-                + f_shepherd_force_y[agent_index] * K_repulsion_shepherd
+                f_attraction_y[agent_index] * k_attraction_agent
+                + f_shepherd_force_y[agent_index] * k_repulsion_shepherd
             )
 
         if (
@@ -190,7 +232,7 @@ def update(agents, shepherd, target_x, target_y):
         w_dot = min(w_dot, max_turning_angle)
         w_dot = max(w_dot, -max_turning_angle)
 
-        Dr = np.random.normal(0, 1) * np.sqrt(2 * K_Dr) / (tick_time**0.5)
+        Dr = np.random.normal(0, 1) * np.sqrt(2 * k_Dr) / (tick_time**0.5)
 
         agents[agent_index][0] = (
             agents[agent_index][0]
@@ -663,7 +705,7 @@ def herd(agents, shepherd, target_x, target_y):
     # max_turning_rate = shepherd[0][11]
     # HALF FOV threshold for collect mode;
     Angle_Threshold_Collection = shepherd[0][17]
-    # K_attraction_target = 0.01  # shepherd[0][18]  # K_attraction_target
+    # k_attraction_target = 0.01  # shepherd[0][18]  # k_attraction_target
     # 0.01
 
     match MODE:
@@ -1024,7 +1066,7 @@ def herd(agents, shepherd, target_x, target_y):
             shepherd[shepherd_index][14] = collect_point_x  # collect_x
             shepherd[shepherd_index][15] = collect_point_y  # collect_y
 
-            distance_agent_mass, angle_agent_mass = get_relative_distance_angle(
+            distance_agent_mass, _ = get_relative_distance_angle(
                 collect_point_x, collect_point_y, center_of_mass_x, center_of_mass_y)
             # !!! switch to the drive mode:
             match MODE:
