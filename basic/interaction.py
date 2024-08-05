@@ -283,7 +283,7 @@ def get_furthest_agent(agents, shepherd_x, shepherd_y, target_x, target_y):
     distance_herd_agents = np.zeros(agents.shape[0])
     dirt_angles_of_target_to_agent = np.zeros(agents.shape[0])
 
-    r_target, angle_target_herd = get_relative_distance_angle(
+    _, angle_target_herd = get_relative_distance_angle(
         target_x, target_y, shepherd_x, shepherd_y
     )
     for agent_index in range(num_agents):
@@ -1107,12 +1107,13 @@ def make_periodic_boundary(agents, space_x, space_y):
 
 @nb.jit(nopython=True)
 def evolve(agents, shepherd, target_x, target_y, target_size):
+    target = (target_x, target_y)
     # network_matrix = create_metric_network((agents, R, Fov))
     # agent-agent, agent-shepherd interaction;
-    agents_update = update(agents, shepherd, target_x, target_y)
+    agents_update = update(agents, shepherd, *target)
     # shepherd switch between collect and drive mode;
-    shepherd_update, max_agents_indexes = herd(agents, shepherd, target_x, target_y)
+    shepherd_update, max_agents_indexes = herd(agents, shepherd, target)
     # update agents state
-    agents_update = update_agents_state(agents_update, target_x, target_y, target_size)
+    agents_update = update_agents_state(agents_update, *target, target_size)
 
     return agents_update, shepherd_update, max_agents_indexes
