@@ -148,6 +148,11 @@ def run_morph(rep):
             print("Target_place_x is None")
         if Target_place_y is None:
             print("Target_place_y is None")
+        if 10*(np.sqrt(N_sheep))*2/3 is None:
+            print("L2 is None")
+        if MODE is None:
+            print("MODE is None")
+        
         agents_update, shepherd_update, max_agents_indexes = evolve(agents, shepherd, Target_place_x, 
                                                                     Target_place_y, L2 := 10*(np.sqrt(N_sheep))*2/3, MODE=MODE)
         # update data
