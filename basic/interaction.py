@@ -517,52 +517,55 @@ def herd(agents, shepherd, target_place_x, target_place_y, MODE):
     Angle_Threshold_Collection = shepherd[0][17]  # HALF FOV threshold for collect mode;
     K_attraction_target = 0.01 #shepherd[0][18]  # K_attraction_target   0.01
 
-    if MODE == 0:
-        # first get the position of the center of the mass
-        num_agents_moving, center_of_mass_x, center_of_mass_y = calculate_mass_center(agents)
-    elif MODE == 2:
-        # Reset hull status.
-        agents[:, 22] = 0
-        # Finds the convex hull of the flock.
-        with nb.objmode(hull='int64[:]'):
-            if agents[agents[:, 21] == 0].shape[0] <= 2:
-                hull = np.where(agents[:, 21] == 0)[0]
-            else: 
-                hull = ConvexHull(agents[agents[:, 21] == 0, :2]).vertices
-                # Returns it back to the original indices.
-                hull = np.where(agents[:, 21] == 0)[0][hull]
+    match MODE:
+        case 0 | 1:
+            # first get the position of the center of the mass
+            num_agents_moving, center_of_mass_x, center_of_mass_y = calculate_mass_center(agents)
+        case 2:
+            # Reset hull status.
+            agents[:, 22] = 0
+            # Finds the convex hull of the flock.
+            with nb.objmode(hull='int64[:]'):
+                if agents[agents[:, 21] == 0].shape[0] <= 2:
+                    hull = np.where(agents[:, 21] == 0)[0]
+                else: 
+                    hull = ConvexHull(agents[agents[:, 21] == 0, :2]).vertices
+                    # Returns it back to the original indices.
+                    hull = np.where(agents[:, 21] == 0)[0][hull]
 
-        # Sets the hull items in their CCW order.    
-        agents[hull, 22] = np.arange(1, hull.shape[0] + 1)
+            # Sets the hull items in their CCW order.    
+            agents[hull, 22] = np.arange(1, hull.shape[0] + 1)
 
-        # Finds the center of the hull.
-        num_agents_moving, center_of_hull_x, center_of_hull_y = np.count_nonzero(agents[:, 21] == 0), np.mean(agents[hull, 0]), np.mean(agents[hull, 1])
-        # Proxy for code concision later.
-        center_of_mass_x, center_of_mass_y = center_of_hull_x, center_of_hull_y
-    elif MODE == 3:
-        # Reset hull status.
-        agents[:, 22] = 0
-        # Resets who is visible to the shepherd, must be done outside of loop
-        # or else each shepherd erases information for all other shepherds in this
-        # call of herd.
-        agents[:, 23] = 0.0
-        # Sets center of mass values for error handling.
-        center_of_mass_x, center_of_mass_y = None, None
-        # Sets the number of moving agents.
-        num_agents_moving = np.count_nonzero(agents[:, 21] == 0)
-    elif MODE == 4:
-        # Reset hull status.
-        agents[:, 22] = 0
-        # Resets who is visible to the shepherd, must be done outside of loop
-        # or else each shepherd erases information for all other shepherds in this
-        # call of herd.
-        agents[:, 23] = 0.0
-        # Sets center of mass values for error handling.
-        center_of_mass_x, center_of_mass_y = None, None
-        # Sets the number of moving agents.
-        num_agents_moving = np.count_nonzero(agents[:, 21] == 0)
-        # Resets the flock membership.
-        identify_flocks(agents, max(agents[0][3], agents[0][5]))
+            # Finds the center of the hull.
+            num_agents_moving, center_of_hull_x, center_of_hull_y = np.count_nonzero(agents[:, 21] == 0), np.mean(agents[hull, 0]), np.mean(agents[hull, 1])
+            # Proxy for code concision later.
+            center_of_mass_x, center_of_mass_y = center_of_hull_x, center_of_hull_y
+        case 3:
+            # Reset hull status.
+            agents[:, 22] = 0
+            # Resets who is visible to the shepherd, must be done outside of loop
+            # or else each shepherd erases information for all other shepherds in this
+            # call of herd.
+            agents[:, 23] = 0.0
+            # Sets center of mass values for error handling.
+            center_of_mass_x, center_of_mass_y = None, None
+            # Sets the number of moving agents.
+            num_agents_moving = np.count_nonzero(agents[:, 21] == 0)
+        case 4:
+            # Reset hull status.
+            agents[:, 22] = 0
+            # Resets who is visible to the shepherd, must be done outside of loop
+            # or else each shepherd erases information for all other shepherds in this
+            # call of herd.
+            agents[:, 23] = 0.0
+            # Sets center of mass values for error handling.
+            center_of_mass_x, center_of_mass_y = None, None
+            # Sets the number of moving agents.
+            num_agents_moving = np.count_nonzero(agents[:, 21] == 0)
+            # Resets the flock membership.
+            identify_flocks(agents, max(agents[0][3], agents[0][5]))
+        case _:
+            raise NotImplementedError("Mode {MODE} does not have pre-processing implemented.")
 
    # d_furthest = shepherd[0][12]    # L2
     if num_agents_moving >= 50:
@@ -586,37 +589,40 @@ def herd(agents, shepherd, target_place_x, target_place_y, MODE):
         # drive_mode: attract by the mass center and the target, repulsion from other shepherd;
         if shepherd[shepherd_index][13] == 1.0:
             current_drive_agent_id = int(shepherd[shepherd_index][20])
-            if MODE == 0:
-                # find the drive point and calculate the force attraction from the drive point; drive_point_x,
-                drive_point_x, drive_point_y, drive_force_x, drive_force_y = drive_the_herd(agents, shepherd_x, shepherd_y,
-                                                                                target_place_x, target_place_y)
-            elif MODE == 1:
-                # using vision
-                drive_point_x, drive_point_y, drive_force_x, drive_force_y, drive_agent_id = drive_the_herd_using_vision(
-                    agents, shepherd_x, shepherd_y, target_place_x, target_place_y)
-                shepherd[shepherd_index][20] = drive_agent_id
-            elif MODE == 2:
-                # using convex hull
-                (drive_point_x, drive_point_y, 
-                 drive_force_x, drive_force_y) = drive_the_herd_using_convex_hull(agents, 
-                                                                                 shepherd_x, shepherd_y,
-                                                                                 target_place_x, target_place_y)
-            elif MODE == 3:
-                # using visible convex hull
-                (drive_point_x, drive_point_y,
-                 drive_force_x, drive_force_y, 
-                 center_of_hull_x, center_of_hull_y, visible_hull) = drive_the_herd_using_visible_convex_hull(agents, 
-                                                                                            shepherd_x, shepherd_y, shepherd_index,
-                                                                                            target_place_x, target_place_y)
-                center_of_mass_x, center_of_mass_y = center_of_hull_x, center_of_hull_y
-            elif MODE == 4:
-                # using subflock convex hulls
-                (drive_point_x, drive_point_y,
-                 drive_force_x, drive_force_y, 
-                 center_of_hull_x, center_of_hull_y, visible_hulls_section) = drive_the_herd_using_subflock_convex_hulls(agents, 
-                                                                                            shepherd_x, shepherd_y, shepherd_index,
-                                                                                            target_place_x, target_place_y)
-                center_of_mass_x, center_of_mass_y = center_of_hull_x, center_of_hull_y
+            match MODE:
+                case 0:
+                    # find the drive point and calculate the force attraction from the drive point; drive_point_x,
+                    drive_point_x, drive_point_y, drive_force_x, drive_force_y = drive_the_herd(agents, shepherd_x, shepherd_y,
+                                                                                    target_place_x, target_place_y)
+                case 1:
+                    # using vision
+                    drive_point_x, drive_point_y, drive_force_x, drive_force_y, drive_agent_id = drive_the_herd_using_vision(
+                        agents, shepherd_x, shepherd_y, target_place_x, target_place_y)
+                    shepherd[shepherd_index][20] = drive_agent_id
+                case 2:
+                    # using convex hull
+                    (drive_point_x, drive_point_y, 
+                    drive_force_x, drive_force_y) = drive_the_herd_using_convex_hull(agents, 
+                                                                                    shepherd_x, shepherd_y,
+                                                                                    target_place_x, target_place_y)
+                case 3:
+                    # using visible convex hull
+                    (drive_point_x, drive_point_y,
+                    drive_force_x, drive_force_y, 
+                    center_of_hull_x, center_of_hull_y, visible_hull) = drive_the_herd_using_visible_convex_hull(agents, 
+                                                                                                shepherd_x, shepherd_y, shepherd_index,
+                                                                                                target_place_x, target_place_y)
+                    center_of_mass_x, center_of_mass_y = center_of_hull_x, center_of_hull_y
+                case 4:
+                    # using subflock convex hulls
+                    (drive_point_x, drive_point_y,
+                    drive_force_x, drive_force_y, 
+                    center_of_hull_x, center_of_hull_y, visible_hulls_section) = drive_the_herd_using_subflock_convex_hulls(agents, 
+                                                                                                shepherd_x, shepherd_y, shepherd_index,
+                                                                                                target_place_x, target_place_y)
+                    center_of_mass_x, center_of_mass_y = center_of_hull_x, center_of_hull_y
+                case _:
+                    raise NotImplementedError("Mode {MODE} does not have drive mode implemented.")
 
             # calculate the attraction force from the target;
             distance_shepherd_target, angle_shepherd_target = Get_relative_distance_angle(target_place_x,
@@ -687,7 +693,10 @@ def herd(agents, shepherd, target_place_x, target_place_y, MODE):
             if MODE == 1:
                 # attract by the furthest agent out of FOV;
                 # using target place: x/y;
-                collect_point_x, collect_point_y, force_x, force_y = collect_furthest_agent(agent_x, agent_y, shepherd_x, shepherd_y, target_place_x, target_place_y, l0)
+                collect_point_x, collect_point_y, force_x, force_y = collect_furthest_agent(agent_x, agent_y,
+                                                                                            shepherd_x, shepherd_y,
+                                                                                            target_place_x, target_place_y,
+                                                                                            l0)
             elif MODE == 3:
                 # using visible convex hull
                 _, _, _, _, center_of_hull_x, center_of_hull_y, visible_hull = drive_the_herd_using_visible_convex_hull(agents, 

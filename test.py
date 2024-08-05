@@ -14,7 +14,7 @@ from basic.create_network import create_metric_network, create_topological_netwo
 
 from basic import MODE, MORPHOLOGY
 
-THREADS = -1
+THREADS = 1
 DRAW = False
 
 N_sheep = 300
@@ -141,11 +141,11 @@ def run_morph(rep):
         # start evolve function
         #! @note L2 is defined in initiate_agent and copied here for brevity.
         L2 = 10*(np.sqrt(N_sheep))*2/3
-        agents_update, shepherd_update, max_agents_indexes = evolve(agents, shepherd, Target_place_x, 
-                                                                    Target_place_y, L2, MODE=MODE)
-        # update data
-        agents = agents_update
-        shepherd = shepherd_update
+        agents, shepherd, max_agents_indexes = evolve(
+                                                    agents, shepherd, 
+                                                    Target_place_x, Target_place_y, 
+                                                    L2, MODE=MODE
+                                                )
         # save data
         Data_agents[:, :, tick] = agents
         Data_shepherds[:, :, tick] = shepherd
