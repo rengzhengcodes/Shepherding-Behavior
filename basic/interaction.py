@@ -808,7 +808,7 @@ def herd(
     )
 
     for shepherd_index in range(shepherd.shape[0]):
-        shepherd_pos = shepherd[shepherd_index][0:2]
+        shepherd_pos = tuple(shepherd[shepherd_index][0:2])
         shepherd_angle = shepherd[shepherd_index][2]
 
         # repulsion force from other shepherd
@@ -962,7 +962,7 @@ def herd(
             # collect mode: attract by the furthest agent and repulsion from other shepherd;
             # get the info of the furthest agent;
             collect_agent_id = shepherd[shepherd_index][16]
-            agent_pos = agents[int(collect_agent_id)][0:2]
+            agent_pos = tuple(agents[int(collect_agent_id)][0:2])
 
             match MODE:
                 case 1:
