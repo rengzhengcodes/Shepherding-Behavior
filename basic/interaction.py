@@ -642,41 +642,49 @@ def herd(agents, shepherd, target_place_x, target_place_y, MODE):
             # check the current furthest agent which triggers the switch of collect mode;
             # if not VISION_HERD:
             # get the info of the furthest agent;
-            if MODE == 3:
-                max_agent_index, r_agent, max_angle_target_to_agent = Get_furthest_agent(agents[visible_hull], shepherd_x, shepherd_y,
-                                                                                         target_place_x, target_place_y)
-                # Converts max agent index in visible hull to the original index.
-                max_agent_index = visible_hull[max_agent_index]
-            elif MODE == 4:
-                max_agent_index, r_agent, max_angle_target_to_agent = Get_furthest_agent(agents[visible_hulls_section], shepherd_x, shepherd_y,
-                                                                                         target_place_x, target_place_y)
-                # Converts max agent index in visible hull to the original index.
-                max_agent_index = visible_hulls_section[max_agent_index]
-            else:
-                max_agent_index, r_agent, max_angle_target_to_agent = Get_furthest_agent(agents, shepherd_x, shepherd_y,
-                                                                                     target_place_x, target_place_y)
+            match MODE:
+                case 0 | 1 | 2:
+                    # Case 2 degenerates to this due to furthest agents needing to be an extreme point.
+                    max_agent_index, r_agent, max_angle_target_to_agent = Get_furthest_agent(agents, shepherd_x, shepherd_y,
+                                                                                        target_place_x, target_place_y)
 
-            if MODE == 1:
-                # max_angle_target_to_agent +: clockwise, -: anti-clockwise; threshold = np.pi/3
-                if (np.absolute(max_angle_target_to_agent) > Angle_Threshold_Collection) and (agents[max_agent_index][21] == 0.0):
-                    # collect_mode = true
-                    shepherd[shepherd_index][13] = 0.0
-                    # lock the ID of the furthest agent for the collect mode;
-                    shepherd[shepherd_index][16] = int(max_agent_index)
-            else:
-                agent_x = agents[int(max_agent_index)][0]
-                agent_y = agents[int(max_agent_index)][1]
-                max_agents_indexes[shepherd_index] = int(max_agent_index)
-                distance_agent_mass, angle_agent_mass = Get_relative_distance_angle(agent_x, agent_y,
-                                                                                    center_of_mass_x,
-                                                                                    center_of_mass_y)
-                # switch to the collect mode if the furthest agent are far enough from the center,
-                # and moving outside the target circle;
-                if (distance_agent_mass > d_furthest) and (agents[max_agent_index][21] == 0.0):
-                    # collect_mode = true
-                    shepherd[shepherd_index][13] = 0.0
-                    # lock the ID of the furthest agent for the collect mode;
-                    shepherd[shepherd_index][16] = int(max_agent_index)
+                case 3:
+                    max_agent_index, r_agent, max_angle_target_to_agent = Get_furthest_agent(agents[visible_hull], shepherd_x, shepherd_y,
+                                                                                            target_place_x, target_place_y)
+                    # Converts max agent index in visible hull to the original index.
+                    max_agent_index = visible_hull[max_agent_index]
+                case 4:
+                    max_agent_index, r_agent, max_angle_target_to_agent = Get_furthest_agent(agents[visible_hulls_section], shepherd_x, shepherd_y,
+                                                                                            target_place_x, target_place_y)
+                    # Converts max agent index in visible hull to the original index.
+                    max_agent_index = visible_hulls_section[max_agent_index]
+                case _:
+                    raise NotImplementedError("Mode {MODE} does not have furthest agent identification implemented.")
+
+            match MODE:
+                case 1:
+                    # max_angle_target_to_agent +: clockwise, -: anti-clockwise; threshold = np.pi/3
+                    if (np.absolute(max_angle_target_to_agent) > Angle_Threshold_Collection) and (agents[max_agent_index][21] == 0.0):
+                        # collect_mode = true
+                        shepherd[shepherd_index][13] = 0.0
+                        # lock the ID of the furthest agent for the collect mode;
+                        shepherd[shepherd_index][16] = int(max_agent_index)
+                case 0 | 2 | 3 | 4:
+                    agent_x = agents[int(max_agent_index)][0]
+                    agent_y = agents[int(max_agent_index)][1]
+                    max_agents_indexes[shepherd_index] = int(max_agent_index)
+                    distance_agent_mass, angle_agent_mass = Get_relative_distance_angle(agent_x, agent_y,
+                                                                                        center_of_mass_x,
+                                                                                        center_of_mass_y)
+                    # switch to the collect mode if the furthest agent are far enough from the center,
+                    # and moving outside the target circle;
+                    if (distance_agent_mass > d_furthest) and (agents[max_agent_index][21] == 0.0):
+                        # collect_mode = true
+                        shepherd[shepherd_index][13] = 0.0
+                        # lock the ID of the furthest agent for the collect mode;
+                        shepherd[shepherd_index][16] = int(max_agent_index)
+                case _:
+                    raise NotImplementedError("Mode {MODE} does not have collect agent identification implemented.")
 
             # if the drive agent is staying, then switch to collect mode:  ??? to be checked;
             if agents[current_drive_agent_id][21]:
@@ -690,43 +698,47 @@ def herd(agents, shepherd, target_place_x, target_place_y, MODE):
             collect_agent_id = shepherd[shepherd_index][16]
             agent_x = agents[int(collect_agent_id)][0]
             agent_y = agents[int(collect_agent_id)][1]
-            if MODE == 1:
-                # attract by the furthest agent out of FOV;
-                # using target place: x/y;
-                collect_point_x, collect_point_y, force_x, force_y = collect_furthest_agent(agent_x, agent_y,
-                                                                                            shepherd_x, shepherd_y,
-                                                                                            target_place_x, target_place_y,
-                                                                                            l0)
-            elif MODE == 3:
-                # using visible convex hull
-                _, _, _, _, center_of_hull_x, center_of_hull_y, visible_hull = drive_the_herd_using_visible_convex_hull(agents, 
-                                                                                                    shepherd_x, shepherd_y, shepherd_index,
-                                                                                                    target_place_x, target_place_y)
-                collect_point_x, collect_point_y, force_x, force_y = collect_furthest_agent(agent_x, agent_y, 
-                                                                                            shepherd_x, shepherd_y,
-                                                                                            target_place_x, target_place_y, 
-                                                                                            l0)
-                # Aliased for code concision.   
-                center_of_mass_x, center_of_mass_y = center_of_hull_x, center_of_hull_y
-            elif MODE == 4:
-                # using subflock convex hulls
-                _, _, _, _, center_of_hull_x, center_of_hull_y, visible_hulls_section = drive_the_herd_using_subflock_convex_hulls(agents, 
-                                                                                                    shepherd_x, shepherd_y, shepherd_index,
-                                                                                                    target_place_x, target_place_y)
-                collect_point_x, collect_point_y, force_x, force_y = collect_furthest_agent(agent_x, agent_y, 
-                                                                                            shepherd_x, shepherd_y, 
-                                                                                            target_place_x, target_place_y,
-                                                                                            l0)
-                # Aliased for code concision.   
-                center_of_mass_x, center_of_mass_y = center_of_hull_x, center_of_hull_y
-            else:
-                # attract by the furthest agent;
-                # using center of mas: x/y;
-                collect_point_x, collect_point_y, force_x, force_y = collect_furthest_agent(agent_x, agent_y,
-                                                                                            shepherd_x, shepherd_y,
-                                                                                            center_of_mass_x,
-                                                                                            center_of_mass_y,
-                                                                                            l0)
+
+            match MODE:
+                case 1:
+                    # attract by the furthest agent out of FOV;
+                    # using target place: x/y;
+                    collect_point_x, collect_point_y, force_x, force_y = collect_furthest_agent(agent_x, agent_y,
+                                                                                                shepherd_x, shepherd_y,
+                                                                                                target_place_x, target_place_y,
+                                                                                                l0)
+                case 3:
+                    # using visible convex hull
+                    _, _, _, _, center_of_hull_x, center_of_hull_y, visible_hull = drive_the_herd_using_visible_convex_hull(agents, 
+                                                                                                        shepherd_x, shepherd_y, shepherd_index,
+                                                                                                        target_place_x, target_place_y)
+                    collect_point_x, collect_point_y, force_x, force_y = collect_furthest_agent(agent_x, agent_y, 
+                                                                                                shepherd_x, shepherd_y,
+                                                                                                target_place_x, target_place_y, 
+                                                                                                l0)
+                    # Aliased for code concision.   
+                    center_of_mass_x, center_of_mass_y = center_of_hull_x, center_of_hull_y
+                case 4:
+                    # using subflock convex hulls
+                    _, _, _, _, center_of_hull_x, center_of_hull_y, visible_hulls_section = drive_the_herd_using_subflock_convex_hulls(agents, 
+                                                                                                        shepherd_x, shepherd_y, shepherd_index,
+                                                                                                        target_place_x, target_place_y)
+                    collect_point_x, collect_point_y, force_x, force_y = collect_furthest_agent(agent_x, agent_y, 
+                                                                                                shepherd_x, shepherd_y, 
+                                                                                                target_place_x, target_place_y,
+                                                                                                l0)
+                    # Aliased for code concision.   
+                    center_of_mass_x, center_of_mass_y = center_of_hull_x, center_of_hull_y
+                case 0 | 2:
+                    # attract by the furthest agent;
+                    # using center of mas: x/y;
+                    collect_point_x, collect_point_y, force_x, force_y = collect_furthest_agent(agent_x, agent_y,
+                                                                                                shepherd_x, shepherd_y,
+                                                                                                center_of_mass_x,
+                                                                                                center_of_mass_y,
+                                                                                                l0)
+                case _:
+                    raise NotImplementedError("Mode {MODE} does not have collect mode implemented.")
 
             # repulsion from other shepherd and attraction from the furthest agent;
             F_x = force_x + f_x_other_shepherd
@@ -738,16 +750,19 @@ def herd(agents, shepherd, target_place_x, target_place_y, MODE):
             distance_agent_mass, angle_agent_mass = Get_relative_distance_angle(collect_point_x, collect_point_y,
                                                                                 center_of_mass_x, center_of_mass_y)
             # !!! switch to the drive mode:
-            if MODE == 1:
-                # if the agent is closer enough to ANY AGENT in the GROUP or the agents are staying inside the circe;
-                # get the center of projection of the GROUP
-                angle_difference_agent_mass = collect_the_herd_using_vision(collect_agent_id, agents, shepherd_x, shepherd_y)
-                if (angle_difference_agent_mass <= np.pi/3) or (agents[int(shepherd[shepherd_index][16])][21] == 1.0):
-                    shepherd[shepherd_index][13] = 1.0  # drive_mode_true
-            else:
-                # if the agent is closer enough to the center or the agents are staying inside the circle;
-                if distance_agent_mass <= d_furthest or agents[int(shepherd[shepherd_index][16])][21] == 1.0:
-                    shepherd[shepherd_index][13] = 1.0  # drive_mode_true
+            match MODE:
+                case 1:
+                    # if the agent is closer enough to ANY AGENT in the GROUP or the agents are staying inside the circe;
+                    # get the center of projection of the GROUP
+                    angle_difference_agent_mass = collect_the_herd_using_vision(collect_agent_id, agents, shepherd_x, shepherd_y)
+                    if (angle_difference_agent_mass <= np.pi/3) or (agents[int(shepherd[shepherd_index][16])][21] == 1.0):
+                        shepherd[shepherd_index][13] = 1.0  # drive_mode_true
+                case 0 | 2 | 3 | 4:
+                    # if the agent is closer enough to the center or the agents are staying inside the circle;
+                    if distance_agent_mass <= d_furthest or agents[int(shepherd[shepherd_index][16])][21] == 1.0:
+                        shepherd[shepherd_index][13] = 1.0  # drive_mode_true
+                case _:
+                    raise NotImplementedError("Mode {MODE} does not have a way to exit collect mode.")
 
         # calculate the linear speed and angular speed;
         v_dot = F_x * np.cos(shepherd_angle) + F_y * np.sin(shepherd_angle)  # heading_direction_acceleration
