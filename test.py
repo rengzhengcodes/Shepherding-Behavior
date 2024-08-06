@@ -46,6 +46,10 @@ seeds = range(REPS)
 
 NUM_NEAREST_NEIGHBOR = 5
 
+# Defines where to save the results.
+cur_dir = os.path.dirname(os.path.realpath(__file__))
+res_dir = f"{cur_dir}/results/morphology_attraction_naïve/{MODE}"
+
 
 # Function seeds numpy rng in numba code.
 @nb.jit(nopython=True)
@@ -114,7 +118,7 @@ def run_mode(rep: int, evolver: callable, terminator: callable, summarizer: call
 
     # Draws the results.
     if DRAW:
-        folder_path = f"results/morphology_attraction_naïve/{MODE}"
+        folder_path = cur_dir
         draw_dynamic(
             final_tick,
             data_agents,
@@ -271,8 +275,6 @@ if __name__ == "__main__":
     # Saves stats if we're not making figures.
     if not DRAW:
         # Creates results folder if it does not exist
-        cur_dir = os.path.dirname(os.path.realpath(__file__))
-        res_dir = f"{cur_dir}/results/morphology_attraction_naïve/{MODE}"
         if not os.path.exists(res_dir):
             os.makedirs(res_dir)
 
