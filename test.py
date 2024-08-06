@@ -59,6 +59,95 @@ def seed_run(seed: int):
     np.random.seed(seed)
 
 
+def run_mode(rep: int, evolver: callable, terminator: callable, summarizer: callable):
+    """
+    Runs the morphology herding simulation.
+    Args:
+        @param rep: The repetition number, used as a seed.
+    """
+    print("Starting repetition", rep)
+    seed_run(rep)
+    agents = initiate(N_SHEEP, N_SHEPHERD, SPACE_X, SPACE_Y, TARGET_SIZE)
+    shepherds = initiate_shepherds(0, N_SHEPHERD, L3)
+    # self-organized flocking
+    for tick in range(TICK):
+        # Defines the target as the global center of mass.
+        agents, shepherds, max_agents_indices = evolver(agents, shepherds)
+    
+    # prepare the shepherds and record data
+    shepherds = initiate_shepherds(N_SHEPHERD, N_SHEEP, L3)
+    # Only record data per tick if we're drawing.
+    if DRAW:
+        data_agents: np.ndarray = np.zeros(
+            (agents.shape[0], agents.shape[1], ITERATIONS), float
+        )
+        data_shepherds: np.ndarray = np.zeros(
+            (shepherds.shape[0], shepherds.shape[1], ITERATIONS), float
+        )
+        data_max_agents_indices: np.ndarray = np.zeros((N_SHEPHERD, ITERATIONS), int)
+    final_tick: int = ITERATIONS
+    
+    # continue the sheep data with shepherds
+    success: bool = False  # whether the simulation was successful
+    for tick in range(ITERATIONS):
+        agents, shepherds, max_agents_indices = evolver(agents, shepherds)
+        # save data
+        if DRAW:
+            data_agents[:, :, tick] = agents
+            data_shepherds[:, :, tick] = shepherds
+            data_max_agents_indices[:, tick] = max_agents_indices  # only two dimension
+        # stop program if all the sheep are within L2 of the center of mass.
+        if terminator(agents, shepherds):  # finish
+            final_tick = tick
+            success = True
+            break
+
+    # Summarizes the results.
+    results = summarizer(agents, shepherds, final_tick, success)
+
+    # Draws the results.
+    if DRAW:
+        folder_path = f"results/morphology_attraction_naïve/{MODE}"
+        draw_dynamic(
+            final_tick,
+            data_agents,
+            data_shepherds,
+            results["BOUNDARY_X"],
+            results["BOUNDARY_Y"],
+            results["TARGET_X"],
+            results["TARGET_Y"],
+            results["TARGET_SIZE"],
+            results["L3"],
+            MODE=MODE,
+            folder_path=f"{folder_path}/repetition_{rep}",
+        )
+        # Runs the ffmpeg command to create a video.
+        # ffmpeg -framerate 10 -start_number 0 -i %d.png -c:v libx264 \
+        #        -r 30 -pix_fmt yuv420p output.mp4
+        subprocess.run(
+            [
+                "ffmpeg",
+                "-framerate",
+                "10",
+                "-start_number",
+                "0",
+                "-i",
+                f"{folder_path}/repetition_{rep}/%d.png",
+                "-c:v",
+                "libx264",
+                "-r",
+                "30",
+                "-pix_fmt",
+                "yuv420p",
+                f"{folder_path}/MODE_{MODE}|Rep_{rep}|final_{final_tick}.mp4",
+            ],
+            check=True,
+        )
+        # Deletes all the images.
+        shutil.rmtree(f"{folder_path}/repetition_{rep}")
+
+
+
 def run_target(rep: int):
     """
     Runs the point-to-point herding simulation.
@@ -147,93 +236,6 @@ def run_morph(rep):
 
 
     return run_mode(rep, evolver, successor, summarizer)
-
-def run_mode(rep: int, evolver: callable, terminator: callable, summarizer: callable):
-    """
-    Runs the morphology herding simulation.
-    Args:
-        @param rep: The repetition number, used as a seed.
-    """
-    print("Starting repetition", rep)
-    seed_run(rep)
-    agents = initiate(N_SHEEP, N_SHEPHERD, SPACE_X, SPACE_Y, TARGET_SIZE)
-    shepherds = initiate_shepherds(0, N_SHEPHERD, L3)
-    # self-organized flocking
-    for tick in range(TICK):
-        # Defines the target as the global center of mass.
-        agents, shepherds, max_agents_indices = evolver(agents, shepherds)
-    
-    # prepare the shepherds and record data
-    shepherds = initiate_shepherds(N_SHEPHERD, N_SHEEP, L3)
-    # Only record data per tick if we're drawing.
-    if DRAW:
-        data_agents: np.ndarray = np.zeros(
-            (agents.shape[0], agents.shape[1], ITERATIONS), float
-        )
-        data_shepherds: np.ndarray = np.zeros(
-            (shepherds.shape[0], shepherds.shape[1], ITERATIONS), float
-        )
-        data_max_agents_indices: np.ndarray = np.zeros((N_SHEPHERD, ITERATIONS), int)
-    final_tick: int = ITERATIONS
-    
-    # continue the sheep data with shepherds
-    success: bool = False  # whether the simulation was successful
-    for tick in range(ITERATIONS):
-        agents, shepherds, max_agents_indices = evolver(agents, shepherds)
-        # save data
-        if DRAW:
-            data_agents[:, :, tick] = agents
-            data_shepherds[:, :, tick] = shepherds
-            data_max_agents_indices[:, tick] = max_agents_indices  # only two dimension
-        # stop program if all the sheep are within L2 of the center of mass.
-        if terminator(agents, shepherds):  # finish
-            final_tick = tick
-            success = True
-            break
-
-    # Summarizes the results.
-    results = summarizer(agents, shepherds, final_tick, success)
-
-    # Draws the results.
-    if DRAW:
-        folder_path = f"results/morphology_attraction_naïve/{MODE}"
-        draw_dynamic(
-            final_tick,
-            data_agents,
-            data_shepherds,
-            results["BOUNDARY_X"],
-            results["BOUNDARY_Y"],
-            results["TARGET_X"],
-            results["TARGET_Y"],
-            results["TARGET_SIZE"],
-            results["L3"],
-            MODE=MODE,
-            folder_path=f"{folder_path}/repetition_{rep}",
-        )
-        # Runs the ffmpeg command to create a video.
-        # ffmpeg -framerate 10 -start_number 0 -i %d.png -c:v libx264 \
-        #        -r 30 -pix_fmt yuv420p output.mp4
-        subprocess.run(
-            [
-                "ffmpeg",
-                "-framerate",
-                "10",
-                "-start_number",
-                "0",
-                "-i",
-                f"{folder_path}/repetition_{rep}/%d.png",
-                "-c:v",
-                "libx264",
-                "-r",
-                "30",
-                "-pix_fmt",
-                "yuv420p",
-                f"{folder_path}/MODE_{MODE}|Rep_{rep}|final_{final_tick}.mp4",
-            ],
-            check=True,
-        )
-        # Deletes all the images.
-        shutil.rmtree(f"{folder_path}/repetition_{rep}")
 
 
 if __name__ == "__main__":
