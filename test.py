@@ -61,9 +61,15 @@ def seed_run(seed: int):
 
 def run_mode(rep: int, evolver: callable, terminator: callable, summarizer: callable):
     """
-    Runs the morphology herding simulation.
+    Generic function that can run some herding model given an evolver, terminator
+    and summarizer function.
     Args:
         @param rep: The repetition number, used as a seed.
+        @param evolver: The function that evolves the agents and shepherds.
+        @param terminator: The function that determines if the simulation is successful.
+        @param summarizer: The function that summarizes the results.
+    Returns:
+        A dictionary with the results of the simulation, produced by the summarizer.
     """
     print("Starting repetition", rep)
     seed_run(rep)
@@ -73,7 +79,7 @@ def run_mode(rep: int, evolver: callable, terminator: callable, summarizer: call
     for tick in range(TICK):
         # Defines the target as the global center of mass.
         agents, shepherds, max_agents_indices = evolver(agents, shepherds)
-    
+
     # prepare the shepherds and record data
     shepherds = initiate_shepherds(N_SHEPHERD, N_SHEEP, L3)
     # Only record data per tick if we're drawing.
@@ -86,7 +92,7 @@ def run_mode(rep: int, evolver: callable, terminator: callable, summarizer: call
         )
         data_max_agents_indices: np.ndarray = np.zeros((N_SHEPHERD, ITERATIONS), int)
     final_tick: int = ITERATIONS
-    
+
     # continue the sheep data with shepherds
     success: bool = False  # whether the simulation was successful
     for tick in range(ITERATIONS):
@@ -147,22 +153,23 @@ def run_mode(rep: int, evolver: callable, terminator: callable, summarizer: call
         shutil.rmtree(f"{folder_path}/repetition_{rep}")
 
 
-
 def run_target(rep: int):
     """
     Runs the point-to-point herding simulation.
     Args:
         @param rep: The repetition number, used as a seed.
     """
+
     def evolver(agents, shepherds, *args, **kwargs):
-        return evolve(
-            agents, shepherds, TARGET_X, TARGET_Y, TARGET_SIZE
-        )
+        del args, kwargs
+        return evolve(agents, shepherds, TARGET_X, TARGET_Y, TARGET_SIZE)
 
     def terminator(agents, shepherds, *args, **kwargs):
+        del shepherds, args, kwargs
         return np.all(agents[:, 21]) == N_SHEEP  # finish
 
     def summarizer(agents, shepherds, final_tick, success, *args, **kwargs):
+        del agents, shepherds, args, kwargs
         return {
             # Static parameters, for reference.
             "SPACE_X": SPACE_X,
@@ -186,32 +193,39 @@ def run_target(rep: int):
             "Success": success,
             "Experiment_type": "target",
         }
-    
+
     return run_mode(rep, evolver, terminator, summarizer)
 
 
 def run_morph(rep):
+    """
+    Runs the morphology herding simulation.
+    Args:
+        @param rep: The repetition number, used as a seed.
+    """
     # L2 is the distance from the center of mass that all sheep must be within.
     # Used as a termination condition for morphology herding as it is the point
     # where it is deemed okay to stop herding.
-    L2: float = 10 * (np.sqrt(N_SHEEP)) * 2 / 3
+    L2: float = 10 * (np.sqrt(N_SHEEP)) * 2 / 3  # pylint: disable=invalid-name
+
     def evolver(agents, shepherds, *args, **kwargs):
+        del args, kwargs
         center: tuple[float, float] = (np.mean(agents[:, 0]), np.mean(agents[:, 1]))
-        return evolve(
-            agents, shepherds, *center, L2
-        )
-    
+        return evolve(agents, shepherds, *center, L2)
+
     def successor(agents, shepherds, *args, **kwargs):
+        del shepherds, args, kwargs
         center: tuple[float, float] = (np.mean(agents[:, 0]), np.mean(agents[:, 1]))
         return np.all(
             np.sqrt((agents[:, 0] - center[0]) ** 2 + (agents[:, 1] - center[1]) ** 2)
             < L2
         )
-   
+
     def summarizer(agents, shepherds, final_tick, success, *args, **kwargs):
+        del agents, shepherds, args, kwargs
         center: tuple[float, float] = (np.mean(agents[:, 0]), np.mean(agents[:, 1]))
         return {
-        # Static parameters, for reference.
+            # Static parameters, for reference.
             "SPACE_X": SPACE_X,
             "SPACE_Y": SPACE_Y,
             "TARGET_X": center[0],
@@ -233,7 +247,6 @@ def run_morph(rep):
             "Success": success,
             "Experiment_type": "morphology",
         }
-
 
     return run_mode(rep, evolver, successor, summarizer)
 
