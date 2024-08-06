@@ -79,8 +79,12 @@ def run_target(rep: int):
     # Only initiates these super large arrays if we're drawing, since we don't need
     # states across all ticks otherwise.
     if DRAW:
-        data_agents: np.ndarray = np.zeros((agents.shape[0], agents.shape[1], ITERATIONS), float)
-        data_shepherds: np.ndarray = np.zeros((shepherd.shape[0], shepherd.shape[1], ITERATIONS), float)
+        data_agents: np.ndarray = np.zeros(
+            (agents.shape[0], agents.shape[1], ITERATIONS), float
+        )
+        data_shepherds: np.ndarray = np.zeros(
+            (shepherd.shape[0], shepherd.shape[1], ITERATIONS), float
+        )
         data_max_agents_indices: np.ndarray = np.zeros((N_SHEPHERD, ITERATIONS), int)
     final_tick: int = ITERATIONS
     # continue the sheep data with shepherd
@@ -148,7 +152,9 @@ def run_morph(rep):
     shepherds = initiate_shepherds(N_SHEPHERD, N_SHEEP, L3)
     # Only record data if we're drawing.
     if DRAW:
-        data_agents: np.ndarray = np.zeros((agents.shape[0], agents.shape[1], ITERATIONS), float)
+        data_agents: np.ndarray = np.zeros(
+            (agents.shape[0], agents.shape[1], ITERATIONS), float
+        )
         data_shepherds: np.ndarray = np.zeros(
             (shepherds.shape[0], shepherds.shape[1], ITERATIONS), float
         )
