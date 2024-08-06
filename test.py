@@ -65,73 +65,90 @@ def run_target(rep: int):
     Args:
         @param rep: The repetition number, used as a seed.
     """
-    print("Starting repetition", rep)
-    seed_run(rep)
-    agents: np.ndarray = initiate(N_SHEEP, N_SHEPHERD, SPACE_X, SPACE_Y, TARGET_SIZE)
-    shepherds: np.ndarray = initiate_shepherds(0, N_SHEPHERD, L3)
-    # self-organized flocking
-    for tick in range(TICK):
-        agents, shepherds, max_agents_indices = evolve(
+    def evolver(agents, shepherds, *args, **kwargs):
+        return evolve(
             agents, shepherds, TARGET_X, TARGET_Y, TARGET_SIZE
         )
-    # prepare the shepherd and record data
-    shepherds: np.ndarray = initiate_shepherds(N_SHEPHERD, N_SHEEP, L3)
-    # Only initiates these super large arrays if we're drawing, since we don't need
-    # states across all ticks otherwise.
-    if DRAW:
-        data_agents: np.ndarray = np.zeros(
-            (agents.shape[0], agents.shape[1], ITERATIONS), float
-        )
-        data_shepherds: np.ndarray = np.zeros(
-            (shepherd.shape[0], shepherd.shape[1], ITERATIONS), float
-        )
-        data_max_agents_indices: np.ndarray = np.zeros((N_SHEPHERD, ITERATIONS), int)
-    final_tick: int = ITERATIONS
-    # continue the sheep data with shepherd
-    for tick in range(ITERATIONS):
-        # start evolve function
-        agents, shepherd, max_agents_indices = evolve(
-            agents, shepherd, TARGET_X, TARGET_Y, TARGET_SIZE
-        )
-        # save data for drawing.
-        if DRAW:
-            data_agents[:, :, tick] = agents
-            data_shepherds[:, :, tick] = shepherd
-            data_max_agents_indices[:, tick] = max_agents_indices  # only two dimension
-        # stop program if all the sheep are in the "staying" mode;
-        if sum(agents[:, 21]) == N_SHEEP:  # finish
-            final_tick = tick
-            break
 
-    # Output logging, print the final tick.
-    results = {
-        # Static parameters, for reference.
-        "SPACE_X": SPACE_X,
-        "SPACE_Y": SPACE_Y,
-        "TARGET_X": TARGET_X,
-        "TARGET_Y": TARGET_Y,
-        "TARGET_SIZE": TARGET_SIZE,
-        # Viewing parameters.
-        "BOUNDARY_X": BOUNDARY_X,
-        "BOUNDARY_Y": BOUNDARY_Y,
-        "TICK": TICK,
-        "ITERATIONS": ITERATIONS,
-        # Model parameters
-        "N_SHEPHERD": N_SHEPHERD,
-        "N_SHEEP": N_SHEEP,
-        "L3": L3,
-        "Repetition": rep,
-        "MODE": MODE,
-        # Results
-        "final_tick": final_tick,
-        "Success": bool(np.all(agents[:, 21] == 1)),
-        "Experiment_type": "target",
-    }
+    def terminator(agents, shepherds, *args, **kwargs):
+        return np.all(agents[:, 21]) == N_SHEEP  # finish
 
-    return results
+    def summarizer(agents, shepherds, final_tick, success, *args, **kwargs):
+        return {
+            # Static parameters, for reference.
+            "SPACE_X": SPACE_X,
+            "SPACE_Y": SPACE_Y,
+            "TARGET_X": TARGET_X,
+            "TARGET_Y": TARGET_Y,
+            "TARGET_SIZE": TARGET_SIZE,
+            # Viewing parameters.
+            "BOUNDARY_X": BOUNDARY_X,
+            "BOUNDARY_Y": BOUNDARY_Y,
+            "TICK": TICK,
+            "ITERATIONS": ITERATIONS,
+            # Model parameters
+            "N_SHEPHERD": N_SHEPHERD,
+            "N_SHEEP": N_SHEEP,
+            "L3": L3,
+            "Repetition": rep,
+            "MODE": MODE,
+            # Results
+            "final_tick": final_tick,
+            "Success": success,
+            "Experiment_type": "target",
+        }
+    
+    return run_mode(rep, evolver, terminator, summarizer)
 
 
 def run_morph(rep):
+    # L2 is the distance from the center of mass that all sheep must be within.
+    # Used as a termination condition for morphology herding as it is the point
+    # where it is deemed okay to stop herding.
+    L2: float = 10 * (np.sqrt(N_SHEEP)) * 2 / 3
+    def evolver(agents, shepherds, *args, **kwargs):
+        center: tuple[float, float] = (np.mean(agents[:, 0]), np.mean(agents[:, 1]))
+        return evolve(
+            agents, shepherds, *center, L2
+        )
+    
+    def successor(agents, shepherds, *args, **kwargs):
+        center: tuple[float, float] = (np.mean(agents[:, 0]), np.mean(agents[:, 1]))
+        return np.all(
+            np.sqrt((agents[:, 0] - center[0]) ** 2 + (agents[:, 1] - center[1]) ** 2)
+            < L2
+        )
+   
+    def summarizer(agents, shepherds, final_tick, success, *args, **kwargs):
+        center: tuple[float, float] = (np.mean(agents[:, 0]), np.mean(agents[:, 1]))
+        return {
+        # Static parameters, for reference.
+            "SPACE_X": SPACE_X,
+            "SPACE_Y": SPACE_Y,
+            "TARGET_X": center[0],
+            "TARGET_Y": center[1],
+            "TARGET_SIZE": L2,
+            # Viewing parameters.
+            "BOUNDARY_X": BOUNDARY_X,
+            "BOUNDARY_Y": BOUNDARY_Y,
+            "TICK": TICK,
+            "ITERATIONS": ITERATIONS,
+            # Model parameters
+            "N_SHEPHERD": N_SHEPHERD,
+            "N_SHEEP": N_SHEEP,
+            "L3": L3,
+            "Repetition": rep,
+            "MODE": MODE,
+            # Results
+            "final_tick": final_tick,
+            "Success": success,
+            "Experiment_type": "morphology",
+        }
+
+
+    return run_mode(rep, evolver, successor, summarizer)
+
+def run_mode(rep: int, evolver: callable, terminator: callable, summarizer: callable):
     """
     Runs the morphology herding simulation.
     Args:
@@ -144,13 +161,11 @@ def run_morph(rep):
     # self-organized flocking
     for tick in range(TICK):
         # Defines the target as the global center of mass.
-        center: tuple[float, float] = (np.mean(agents[:, 0]), np.mean(agents[:, 1]))
-        agents, shepherds, max_agents_indices = evolve(
-            agents, shepherds, *center, TARGET_SIZE
-        )
+        agents, shepherds, max_agents_indices = evolver(agents, shepherds)
+    
     # prepare the shepherds and record data
     shepherds = initiate_shepherds(N_SHEPHERD, N_SHEEP, L3)
-    # Only record data if we're drawing.
+    # Only record data per tick if we're drawing.
     if DRAW:
         data_agents: np.ndarray = np.zeros(
             (agents.shape[0], agents.shape[1], ITERATIONS), float
@@ -160,29 +175,24 @@ def run_morph(rep):
         )
         data_max_agents_indices: np.ndarray = np.zeros((N_SHEPHERD, ITERATIONS), int)
     final_tick: int = ITERATIONS
+    
     # continue the sheep data with shepherds
     success: bool = False  # whether the simulation was successful
     for tick in range(ITERATIONS):
-        # Defines the target as the global center of mass.
-        center: tuple[float, float] = (np.mean(agents[:, 0]), np.mean(agents[:, 1]))
-        # start evolve function
-        #! @note L2 is defined in initiate_agent and copied here for brevity.
-        agents, shepherds, max_agents_indices = evolve(
-            agents, shepherds, *center, l2 := 10 * (np.sqrt(N_SHEEP)) * 2 / 3
-        )
+        agents, shepherds, max_agents_indices = evolver(agents, shepherds)
         # save data
         if DRAW:
             data_agents[:, :, tick] = agents
             data_shepherds[:, :, tick] = shepherds
             data_max_agents_indices[:, tick] = max_agents_indices  # only two dimension
         # stop program if all the sheep are within L2 of the center of mass.
-        if np.all(
-            np.sqrt((agents[:, 0] - center[0]) ** 2 + (agents[:, 1] - center[1]) ** 2)
-            < l2
-        ):  # finish
+        if terminator(agents, shepherds):  # finish
             final_tick = tick
             success = True
             break
+
+    # Summarizes the results.
+    results = summarizer(agents, shepherds, final_tick, success)
 
     # Draws the results.
     if DRAW:
@@ -191,11 +201,12 @@ def run_morph(rep):
             final_tick,
             data_agents,
             data_shepherds,
-            BOUNDARY_X,
-            BOUNDARY_Y,
-            *center,
-            TARGET_SIZE,
-            L3,
+            results["BOUNDARY_X"],
+            results["BOUNDARY_Y"],
+            results["TARGET_X"],
+            results["TARGET_Y"],
+            results["TARGET_SIZE"],
+            results["L3"],
             MODE=MODE,
             folder_path=f"{folder_path}/repetition_{rep}",
         )
@@ -223,33 +234,6 @@ def run_morph(rep):
         )
         # Deletes all the images.
         shutil.rmtree(f"{folder_path}/repetition_{rep}")
-
-    # Output logging, print the final tick.
-    results = {
-        # Static parameters, for reference.
-        "SPACE_X": SPACE_X,
-        "SPACE_Y": SPACE_Y,
-        "center_x": center[0],
-        "center_y": center[1],
-        "TARGET_SIZE": TARGET_SIZE,
-        # Viewing parameters.
-        "BOUNDARY_X": BOUNDARY_X,
-        "BOUNDARY_Y": BOUNDARY_Y,
-        "TICK": TICK,
-        "ITERATIONS": ITERATIONS,
-        # Model parameters
-        "N_SHEPHERD": N_SHEPHERD,
-        "N_SHEEP": N_SHEEP,
-        "L3": L3,
-        "Repetition": rep,
-        "MODE": MODE,
-        # Results
-        "final_tick": final_tick,
-        "Success": success,
-        "Experiment_type": "Morphology",
-    }
-
-    return results
 
 
 if __name__ == "__main__":
