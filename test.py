@@ -59,7 +59,7 @@ def seed_run(seed: int):
     np.random.seed(seed)
 
 
-def run_target(rep):
+def run_target(rep: int):
     """
     Runs the point-to-point herding simulation.
     Args:
@@ -67,35 +67,33 @@ def run_target(rep):
     """
     print("Starting repetition", rep)
     seed_run(rep)
-    agents = initiate(N_SHEEP, N_SHEPHERD, SPACE_X, SPACE_Y, TARGET_SIZE)
-    shepherd = initiate_shepherds(0, N_SHEPHERD, L3)
+    agents: np.ndarray = initiate(N_SHEEP, N_SHEPHERD, SPACE_X, SPACE_Y, TARGET_SIZE)
+    shepherds: np.ndarray = initiate_shepherds(0, N_SHEPHERD, L3)
     # self-organized flocking
     for tick in range(TICK):
-        agents_update, shepherd_update, max_agents_indices = evolve(
-            agents, shepherd, TARGET_X, TARGET_Y, TARGET_SIZE
+        agents, shepherds, max_agents_indices = evolve(
+            agents, shepherds, TARGET_X, TARGET_Y, TARGET_SIZE
         )
-        agents = agents_update
-        shepherd = shepherd_update
     # prepare the shepherd and record data
-    shepherd = initiate_shepherds(N_SHEPHERD, N_SHEEP, L3)
-    data_agents = np.zeros((agents.shape[0], agents.shape[1], ITERATIONS), float)
-    data_shepherds = np.zeros((shepherd.shape[0], shepherd.shape[1], ITERATIONS), float)
-    data_max_agents_indices = np.zeros((N_SHEPHERD, ITERATIONS), int)
-    final_tick = ITERATIONS
+    shepherds: np.ndarray = initiate_shepherds(N_SHEPHERD, N_SHEEP, L3)
+    # Only initiates these super large arrays if we're drawing, since we don't need
+    # states across all ticks otherwise.
+    if DRAW:
+        data_agents: np.ndarray = np.zeros((agents.shape[0], agents.shape[1], ITERATIONS), float)
+        data_shepherds: np.ndarray = np.zeros((shepherd.shape[0], shepherd.shape[1], ITERATIONS), float)
+        data_max_agents_indices: np.ndarray = np.zeros((N_SHEPHERD, ITERATIONS), int)
+    final_tick: int = ITERATIONS
     # continue the sheep data with shepherd
     for tick in range(ITERATIONS):
         # start evolve function
-        agents_update, shepherd_update, max_agents_indices = evolve(
+        agents, shepherd, max_agents_indices = evolve(
             agents, shepherd, TARGET_X, TARGET_Y, TARGET_SIZE
         )
-        # update data
-        agents = agents_update
-        shepherd = shepherd_update
-        # save data
-        data_agents[:, :, tick] = agents
-        data_shepherds[:, :, tick] = shepherd
-        data_max_agents_indices[:, tick] = max_agents_indices  # only two dimension
-        # print(tick)
+        # save data for drawing.
+        if DRAW:
+            data_agents[:, :, tick] = agents
+            data_shepherds[:, :, tick] = shepherd
+            data_max_agents_indices[:, tick] = max_agents_indices  # only two dimension
         # stop program if all the sheep are in the "staying" mode;
         if sum(agents[:, 21]) == N_SHEEP:  # finish
             final_tick = tick
@@ -148,12 +146,14 @@ def run_morph(rep):
         )
     # prepare the shepherds and record data
     shepherds = initiate_shepherds(N_SHEPHERD, N_SHEEP, L3)
-    data_agents = np.zeros((agents.shape[0], agents.shape[1], ITERATIONS), float)
-    data_shepherds = np.zeros(
-        (shepherds.shape[0], shepherds.shape[1], ITERATIONS), float
-    )
-    data_max_agents_indices = np.zeros((N_SHEPHERD, ITERATIONS), int)
-    final_tick = ITERATIONS
+    # Only record data if we're drawing.
+    if DRAW:
+        data_agents: np.ndarray = np.zeros((agents.shape[0], agents.shape[1], ITERATIONS), float)
+        data_shepherds: np.ndarray = np.zeros(
+            (shepherds.shape[0], shepherds.shape[1], ITERATIONS), float
+        )
+        data_max_agents_indices: np.ndarray = np.zeros((N_SHEPHERD, ITERATIONS), int)
+    final_tick: int = ITERATIONS
     # continue the sheep data with shepherds
     success: bool = False  # whether the simulation was successful
     for tick in range(ITERATIONS):
@@ -165,10 +165,10 @@ def run_morph(rep):
             agents, shepherds, *center, l2 := 10 * (np.sqrt(N_SHEEP)) * 2 / 3
         )
         # save data
-        data_agents[:, :, tick] = agents
-        data_shepherds[:, :, tick] = shepherds
-        data_max_agents_indices[:, tick] = max_agents_indices  # only two dimension
-        # print(tick)
+        if DRAW:
+            data_agents[:, :, tick] = agents
+            data_shepherds[:, :, tick] = shepherds
+            data_max_agents_indices[:, tick] = max_agents_indices  # only two dimension
         # stop program if all the sheep are within L2 of the center of mass.
         if np.all(
             np.sqrt((agents[:, 0] - center[0]) ** 2 + (agents[:, 1] - center[1]) ** 2)
