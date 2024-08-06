@@ -214,13 +214,11 @@ def run_morph(rep):
     # where it is deemed okay to stop herding.
     L2: float = 10 * (np.sqrt(N_SHEEP)) * 2 / 3  # pylint: disable=invalid-name
 
-    @nb.jit(nopython=True)
     def evolver(agents, shepherds, *args, **kwargs):
         del args, kwargs
         center: tuple[float, float] = (np.mean(agents[:, 0]), np.mean(agents[:, 1]))
         return evolve(agents, shepherds, *center, L2)
 
-    @nb.jit(nopython=True)
     def successor(agents, shepherds, *args, **kwargs):
         del shepherds, args, kwargs
         center: tuple[float, float] = (np.mean(agents[:, 0]), np.mean(agents[:, 1]))
@@ -229,7 +227,6 @@ def run_morph(rep):
             < L2
         )
 
-    @nb.jit(nopython=True)
     def summarizer(agents, shepherds, final_tick, success, *args, **kwargs):
         del agents, shepherds, args, kwargs
         center: tuple[float, float] = (np.mean(agents[:, 0]), np.mean(agents[:, 1]))
