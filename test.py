@@ -63,7 +63,6 @@ def seed_run(seed: int):
     np.random.seed(seed)
 
 
-@nb.jit(nopython=False)
 def run_mode(rep: int, evolver: callable, terminator: callable, summarizer: callable):
     """
     Generic function that can run some herding model given an evolver, terminator
@@ -167,17 +166,14 @@ def run_target(rep: int):
         @param rep: The repetition number, used as a seed.
     """
 
-    @nb.jit(nopython=True)
     def evolver(agents, shepherds, *args, **kwargs):
         del args, kwargs
         return evolve(agents, shepherds, TARGET_X, TARGET_Y, TARGET_SIZE)
 
-    @nb.jit(nopython=True)
     def terminator(agents, shepherds, *args, **kwargs):
         del shepherds, args, kwargs
-        return np.all(agents[:, 21]) == N_SHEEP  # finish
+        return np.all(agents[:, 21])
 
-    @nb.jit(nopython=True)
     def summarizer(agents, shepherds, final_tick, success, *args, **kwargs):
         del agents, shepherds, args, kwargs
         return {
