@@ -59,6 +59,7 @@ def seed_run(seed: int):
     np.random.seed(seed)
 
 
+@nb.jit(nopython=False)
 def run_mode(rep: int, evolver: callable, terminator: callable, summarizer: callable):
     """
     Generic function that can run some herding model given an evolver, terminator
@@ -152,6 +153,8 @@ def run_mode(rep: int, evolver: callable, terminator: callable, summarizer: call
         # Deletes all the images.
         shutil.rmtree(f"{folder_path}/repetition_{rep}")
 
+    return results
+
 
 def run_target(rep: int):
     """
@@ -160,14 +163,17 @@ def run_target(rep: int):
         @param rep: The repetition number, used as a seed.
     """
 
+    @nb.jit(nopython=True)
     def evolver(agents, shepherds, *args, **kwargs):
         del args, kwargs
         return evolve(agents, shepherds, TARGET_X, TARGET_Y, TARGET_SIZE)
 
+    @nb.jit(nopython=True)
     def terminator(agents, shepherds, *args, **kwargs):
         del shepherds, args, kwargs
         return np.all(agents[:, 21]) == N_SHEEP  # finish
 
+    @nb.jit(nopython=True)
     def summarizer(agents, shepherds, final_tick, success, *args, **kwargs):
         del agents, shepherds, args, kwargs
         return {
@@ -208,11 +214,13 @@ def run_morph(rep):
     # where it is deemed okay to stop herding.
     L2: float = 10 * (np.sqrt(N_SHEEP)) * 2 / 3  # pylint: disable=invalid-name
 
+    @nb.jit(nopython=True)
     def evolver(agents, shepherds, *args, **kwargs):
         del args, kwargs
         center: tuple[float, float] = (np.mean(agents[:, 0]), np.mean(agents[:, 1]))
         return evolve(agents, shepherds, *center, L2)
 
+    @nb.jit(nopython=True)
     def successor(agents, shepherds, *args, **kwargs):
         del shepherds, args, kwargs
         center: tuple[float, float] = (np.mean(agents[:, 0]), np.mean(agents[:, 1]))
@@ -221,6 +229,7 @@ def run_morph(rep):
             < L2
         )
 
+    @nb.jit(nopython=True)
     def summarizer(agents, shepherds, final_tick, success, *args, **kwargs):
         del agents, shepherds, args, kwargs
         center: tuple[float, float] = (np.mean(agents[:, 0]), np.mean(agents[:, 1]))
