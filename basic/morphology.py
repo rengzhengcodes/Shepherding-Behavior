@@ -789,7 +789,7 @@ def herd(
             identify_flocks(agents, max(agents[0][3], agents[0][5]))
         case _:
             raise NotImplementedError(
-                "Mode {MODE} does not have pre-processing implemented."
+                f"Mode {MODE} does not have pre-processing implemented."
             )
 
     # d_furthest = shepherd[0][12]    # L2
@@ -877,7 +877,7 @@ def herd(
                     center_of_mass_y = center_of_hull_y
                 case _:
                     raise NotImplementedError(
-                        "Mode {MODE} does not have drive mode implemented."
+                        f"Mode {MODE} does not have drive mode implemented."
                     )
 
             f_x = drive_force_x + f_x_other_shepherd  # + f_att_target_x
@@ -912,7 +912,7 @@ def herd(
                     max_agent_index = visible_hulls_section[max_agent_index]
                 case _:
                     raise NotImplementedError(
-                        "Mode {MODE} does not have furthest agent identification implemented."
+                        f"Mode {MODE} does not have furthest agent identification implemented."
                     )
 
             match MODE:
@@ -1057,7 +1057,7 @@ def herd(
                         shepherd[shepherd_index][13] = 1.0  # drive_mode_true
                 case _:
                     raise NotImplementedError(
-                        "Mode {MODE} does not have a way to exit collect mode."
+                        f"Mode {MODE} does not have a way to exit collect mode."
                     )
 
         # calculate the linear speed and angular speed;
