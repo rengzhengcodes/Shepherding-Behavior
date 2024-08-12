@@ -63,3 +63,14 @@ plt.xlabel("Final Tick")
 plt.ylabel("Frequency")
 plt.title("Final Tick Distribution for all Modes")
 plt.show()
+
+# plots a boxplot
+for i, (mode, final_ticks) in enumerate(mode_runs.items()):
+    c = plt.cm.tab10(i)
+    plt.boxplot(final_ticks, positions=[i], patch_artist=True, boxprops=dict(facecolor=c))
+    plt.scatter([i] * len(final_ticks), final_ticks, alpha=0.5, c=c)
+plt.xticks(list(mode_runs.keys()), [ALIAS[mode] for mode in mode_runs.keys()])
+plt.xlabel("Mode")
+plt.ylabel("Final Tick")
+plt.title("Final Tick Distribution for all Modes")
+plt.show()
