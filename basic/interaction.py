@@ -293,7 +293,7 @@ def update(agents, shepherd, target_x, target_y):
             f_x = np.cos(angle_agent_target) * distance_agent_target * 0.1
             f_y = np.sin(angle_agent_target) * distance_agent_target * 0.1
 
-        f_fence, _ = get_fence_force(agents, shepherd, TARGET, np.ndarray(TARGET[:2]))
+        f_fence, _ = get_fence_force(agents, shepherd, TARGET, np.array(TARGET[:2]))
         f_x += f_fence[agent_index][0]
         f_y += f_fence[agent_index][1]
 
