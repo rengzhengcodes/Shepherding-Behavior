@@ -1,3 +1,6 @@
+# Debug mode
+DEBUG = True
+
 # Experiment parameters.
 MORPHOLOGY = False
 MODE = 0

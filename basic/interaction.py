@@ -11,12 +11,12 @@ from basic.vision_functions import (
     drive_the_herd_using_vision,
     collect_the_herd_using_vision,
 )
-from . import MODE, MORPHOLOGY, TARGET, FENCE
+from . import MODE, MORPHOLOGY, TARGET, FENCE, DEBUG
 if FENCE:
     from . import FENCE_MIDDLE_ANGLE, GATE_ANGULAR_WIDTH
 
 
-@nb.jit(nopython=True)
+@nb.jit(nopython=not DEBUG)
 def transform_angle(theta):  # [-pi, pi]
     """
     Limits the angle to the range [-pi, pi].
@@ -34,7 +34,7 @@ def transform_angle(theta):  # [-pi, pi]
     return theta
 
 
-@nb.jit(nopython=True)
+@nb.jit(nopython=not DEBUG)
 def reflect_angle(angle):  # [-2pi, 2pi]
     """
     Reflects the angle.
@@ -50,7 +50,7 @@ def reflect_angle(angle):  # [-2pi, 2pi]
     return angle
 
 
-@nb.jit(nopython=True)
+@nb.jit(nopython=not DEBUG)
 def get_attraction_force(
     agents: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -90,7 +90,7 @@ def get_attraction_force(
     return num_att, f_attraction_x, f_attraction_y
 
 
-@nb.jit(nopython=True)
+@nb.jit(nopython=not DEBUG)
 def get_repulsion_force(
     agents: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -128,7 +128,7 @@ def get_repulsion_force(
     return num_avoid, f_avoid_x, f_avoid_y
 
 
-@nb.jit(nopython=True)
+@nb.jit(nopython=not DEBUG)
 def get_shepherd_force(agents, shepherd):
     """
     Calculates the repulsion force between agents and shepherds.
@@ -169,7 +169,7 @@ def get_shepherd_force(agents, shepherd):
     return num_shepherd_avoid, f_shepherd_force_x, f_shepherd_force_y
 
 
-@nb.jit(nopython=True)
+@nb.jit(nopython=not DEBUG)
 def get_fence_force(agents: np.ndarray, shepherds: np.ndarray, 
                     target: tuple[float, float, float], fence: np.ndarray[float, float]
                     ) -> tuple[np.ndarray[float, float], np.ndarray[float, float]]:
@@ -230,7 +230,7 @@ def get_fence_force(agents: np.ndarray, shepherds: np.ndarray,
     return f_fence_on_sheep, f_fence_on_shepherds
 
 
-@nb.jit(nopython=True)
+@nb.jit(nopython=not DEBUG)
 def update_agents_state(
     agents: np.ndarray, target_x: float, target_y: float, target_size: float
 ) -> np.ndarray:
@@ -256,7 +256,7 @@ def update_agents_state(
     return agents
 
 
-# @nb.jit(nopython=True)
+@nb.jit(nopython=not DEBUG)
 def update(agents, shepherd, target_x, target_y):
     # get variables
     v0 = agents[0][6]
@@ -333,7 +333,7 @@ def update(agents, shepherd, target_x, target_y):
     return agents
 
 
-@nb.jit(nopython=True)
+@nb.jit(nopython=not DEBUG)
 def get_relative_distance_angle(
     vector_head_x, vector_head_y, vector_end_x, vector_end_y
 ):
@@ -344,7 +344,7 @@ def get_relative_distance_angle(
     return r_length, r_angle
 
 
-@nb.jit(nopython=True)
+@nb.jit(nopython=not DEBUG)
 def get_furthest_agent(agents, shepherd_x, shepherd_y, target_x, target_y):
     num_agents = agents.shape[0]
     angle_herd_agents = np.zeros(agents.shape[0])
@@ -384,7 +384,7 @@ def get_furthest_agent(agents, shepherd_x, shepherd_y, target_x, target_y):
     )
 
 
-@nb.jit(nopython=True)
+@nb.jit(nopython=not DEBUG)
 def collect_furthest_agent(
     agent_x, agent_y, shepherd_x, shepherd_y, target_x, target_y, l0
 ):
@@ -407,7 +407,7 @@ def collect_furthest_agent(
     return collect_point_x, collect_point_y, force_x, force_y
 
 
-@nb.jit(nopython=True)
+@nb.jit(nopython=not DEBUG)
 def calculate_mass_center(agents):
     sum_x = 0
     sum_y = 0
@@ -424,7 +424,7 @@ def calculate_mass_center(agents):
     return n, sum_x, sum_y
 
 
-@nb.jit(nopython=True)
+@nb.jit(nopython=not DEBUG)
 def drive_the_herd_using_convex_hull(
     agents, shepherd_x, shepherd_y, target_x, target_y
 ):
@@ -470,7 +470,7 @@ def drive_the_herd_using_convex_hull(
     return drive_point_x, drive_point_y, force_x, force_y
 
 
-@nb.jit(nopython=True)
+@nb.jit(nopython=not DEBUG)
 def drive_the_herd_using_visible_convex_hull(
     agents, shepherd_x, shepherd_y, shepherd_index, target_x, target_y
 ):
@@ -568,7 +568,7 @@ def drive_the_herd_using_visible_convex_hull(
     )
 
 
-@nb.jit(nopython=True)
+@nb.jit(nopython=not DEBUG)
 def identify_flocks(agents, flock_distance):
     # Calculates the flocks using full DFS.
     i = 0  # Flock number
@@ -604,7 +604,7 @@ def identify_flocks(agents, flock_distance):
         remaining_agents = np.where(agents[:, 24] == 0)[0]
 
 
-@nb.jit(nopython=True)
+@nb.jit(nopython=not DEBUG)
 def drive_the_herd_using_subflock_convex_hulls(
     agents, shepherd_x, shepherd_y, shepherd_index, target_x, target_y
 ):
@@ -701,7 +701,7 @@ def drive_the_herd_using_subflock_convex_hulls(
     )
 
 
-@nb.jit(nopython=True)
+@nb.jit(nopython=not DEBUG)
 def drive_the_herd(agents, shepherd_x, shepherd_y, target_x, target_y):
     # get the center of only moving mass, not concluding the staying mass;
     num_agents_moving, center_of_mass_x, center_of_mass_y = calculate_mass_center(
@@ -738,7 +738,7 @@ def drive_the_herd(agents, shepherd_x, shepherd_y, target_x, target_y):
     return drive_point_x, drive_point_y, force_x, force_y
 
 
-@nb.jit(nopython=True)
+@nb.jit(nopython=not DEBUG)
 def keep_distance_from_other_shepherd(shepherd):
     angle_other_shepherd = np.zeros(shepherd.shape[0])
     distance_other_shepherd = np.zeros(shepherd.shape[0])
@@ -771,7 +771,7 @@ def keep_distance_from_other_shepherd(shepherd):
     return distance_other_shepherd, angle_other_shepherd
 
 
-@nb.jit(nopython=True)
+@nb.jit(nopython=not DEBUG)
 def herd(
     agents, shepherd, target: tuple[float, float]
 ) -> tuple[np.ndarray, np.ndarray]:
@@ -1182,7 +1182,7 @@ def make_periodic_boundary(agents, space_x, space_y):
     return agents
 
 
-# @nb.jit(nopython=True)
+@nb.jit(nopython=not DEBUG)
 def evolve(agents, shepherd, target_x, target_y, target_size):
     target = (target_x, target_y)
     # network_matrix = create_metric_network((agents, R, Fov))
