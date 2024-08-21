@@ -874,7 +874,7 @@ def herd(
         shepherd
     )
     # Gets force from the fence.
-    _, f_fence_shepherd = get_fence_force(agents, shepherd, TARGET, np.ndarray(TARGET[:2]))
+    _, f_fence_shepherd = get_fence_force(agents, shepherd, TARGET, np.array(TARGET[:2]))
 
     for shepherd_index in range(shepherd.shape[0]):
         shepherd_pos = (shepherd[shepherd_index][0], shepherd[shepherd_index][1])
