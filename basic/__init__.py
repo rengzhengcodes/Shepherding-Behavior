@@ -11,3 +11,6 @@ FENCE = True
 # In radians
 FENCE_MIDDLE_ANGLE = 0
 GATE_ANGULAR_WIDTH = 1
+
+# Cannot have a fence without a target.
+assert not FENCE or not MORPHOLOGY

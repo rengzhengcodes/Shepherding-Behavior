@@ -300,9 +300,10 @@ def update(agents, shepherd, target_x, target_y):
             f_x = np.cos(angle_agent_target) * distance_agent_target * 0.1
             f_y = np.sin(angle_agent_target) * distance_agent_target * 0.1
 
-        f_fence, _ = get_fence_force(agents, shepherd, TARGET, np.array(TARGET[:2]))
-        f_x += f_fence[agent_index][0]
-        f_y += f_fence[agent_index][1]
+        if FENCE:
+            f_fence, _ = get_fence_force(agents, shepherd, TARGET, np.array(TARGET[:2]))
+            f_x += f_fence[agent_index][0]
+            f_y += f_fence[agent_index][1]
 
         v_dot = f_x * np.cos(agents[agent_index][2]) + f_y * np.sin(
             agents[agent_index][2]
@@ -874,7 +875,8 @@ def herd(
         shepherd
     )
     # Gets force from the fence.
-    _, f_fence_shepherd = get_fence_force(agents, shepherd, TARGET, np.array(TARGET[:2]))
+    if FENCE:
+        _, f_fence_shepherd = get_fence_force(agents, shepherd, TARGET, np.array(TARGET[:2]))
 
     for shepherd_index in range(shepherd.shape[0]):
         shepherd_pos = (shepherd[shepherd_index][0], shepherd[shepherd_index][1])
@@ -949,8 +951,11 @@ def herd(
                         "Mode {MODE} does not have drive mode implemented."
                     )
 
-            f_x = drive_force_x + f_x_other_shepherd + f_fence_shepherd[shepherd_index, 0]
-            f_y = drive_force_y + f_y_other_shepherd + f_fence_shepherd[shepherd_index, 1]
+            f_x = drive_force_x + f_x_other_shepherd
+            f_y = drive_force_y + f_y_other_shepherd
+            if FENCE:
+                f_x += f_fence_shepherd[shepherd_index][0]
+                f_y += f_fence_shepherd[shepherd_index][1]
 
             shepherd[shepherd_index][14] = drive_point_x
             shepherd[shepherd_index][15] = drive_point_y
@@ -1095,8 +1100,11 @@ def herd(
 
             # repulsion from other shepherd and attraction from the furthest
             # agent;
-            f_x = force_x + f_x_other_shepherd + f_fence_shepherd[shepherd_index, 0]
-            f_y = force_y + f_y_other_shepherd + f_fence_shepherd[shepherd_index, 1]
+            f_x = force_x + f_x_other_shepherd
+            f_y = force_y + f_y_other_shepherd
+            if FENCE:
+                f_x += f_fence_shepherd[shepherd_index][0]
+                f_y += f_fence_shepherd[shepherd_index][1]
 
             shepherd[shepherd_index][14] = collect_point_x  # collect_x
             shepherd[shepherd_index][15] = collect_point_y  # collect_y
