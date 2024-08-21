@@ -1,6 +1,6 @@
 # Experiment parameters.
-MORPHOLOGY = True
-MODE = 1
+MORPHOLOGY = False
+MODE = 0
 
 # Target parameters.
 TARGET_X = 400

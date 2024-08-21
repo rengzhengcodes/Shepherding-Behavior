@@ -22,7 +22,7 @@ from basic.draw import draw_dynamic
 from basic import MODE, MORPHOLOGY, TARGET_X, TARGET_Y, TARGET_SIZE
 
 THREADS = -1
-DRAW = False
+DRAW = True
 
 N_SHEEP = 300
 N_SHEPHERD = 6
