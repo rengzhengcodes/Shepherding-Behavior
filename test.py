@@ -19,7 +19,7 @@ from basic.initiation import initiate, initiate_shepherds
 from basic.interaction import evolve
 from basic.draw import draw_dynamic
 
-from basic import MODE, MORPHOLOGY, TARGET_X, TARGET_Y, TARGET_SIZE
+from basic import MODE, MORPHOLOGY, TARGET_X, TARGET_Y, TARGET_SIZE, TARGET
 
 THREADS = -1
 DRAW = True
@@ -164,11 +164,11 @@ def run_target(rep: int):
 
     def evolver(agents, shepherds, *args, **kwargs):
         del args, kwargs
-        return evolve(agents, shepherds, TARGET_X, TARGET_Y, TARGET_SIZE)
+        return evolve(agents, shepherds, *TARGET[:2], TARGET_SIZE)
 
     def terminator(agents, shepherds, *args, **kwargs):
         del shepherds, args, kwargs
-        return np.all(agents[:, 21])
+        return np.all(agents[:, 21] == 1)
 
     def summarizer(agents, shepherds, final_tick, success, *args, **kwargs):
         del agents, shepherds, args, kwargs
