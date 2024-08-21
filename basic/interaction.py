@@ -207,6 +207,8 @@ def get_fence_force(agents: np.ndarray, shepherds: np.ndarray,
     ) # agents in the target or in the gate
     fence_range_agents: np.ndarray = agent_dist <= t_r + agents[:, 7]
     affected_agents: np.ndarray = np.logical_not(unaffected_agents) and fence_range_agents
+    # Casts the affected agents to a 2D array.
+    affected_agents: np.ndarray = np.expand_dims(affected_agents, axis=1)
     f_fence_on_sheep: np.ndarray = np.where(
         affected_agents, fence - agents[:, :2], np.zeros((agents.shape[0], 2))
     )
