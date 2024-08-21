@@ -203,7 +203,7 @@ def get_fence_force(agents: np.ndarray, shepherds: np.ndarray,
 
     # Calculates the repulsion force between the agents and the fence.
     unaffected_agents: np.ndarray = np.logical_or(agents[:, 21] == 1,
-        FENCE_MIDDLE_ANGLE - GATE_ANGULAR_WIDTH / 2 <= agent_angle <= FENCE_MIDDLE_ANGLE + GATE_ANGULAR_WIDTH / 2
+        FENCE_MIDDLE_ANGLE - GATE_ANGULAR_WIDTH / 2 <= agent_angle and agent_angle <= FENCE_MIDDLE_ANGLE + GATE_ANGULAR_WIDTH / 2
     ) # agents in the target or in the gate
     fence_range_agents: np.ndarray = agent_dist <= t_r + agents[:, 7]
     affected_agents: np.ndarray = np.logical_not(unaffected_agents) and fence_range_agents
@@ -215,7 +215,7 @@ def get_fence_force(agents: np.ndarray, shepherds: np.ndarray,
 
     # Calculates the repulsion force between the shepherds and the fence.
     unaffected_shepherds: np.ndarray = np.logical_not(
-        FENCE_MIDDLE_ANGLE - GATE_ANGULAR_WIDTH / 2 <= shepherd_angle <= FENCE_MIDDLE_ANGLE + GATE_ANGULAR_WIDTH / 2
+        FENCE_MIDDLE_ANGLE - GATE_ANGULAR_WIDTH / 2 <= shepherd_angle and shepherd_angle <= FENCE_MIDDLE_ANGLE + GATE_ANGULAR_WIDTH / 2
     )
     fence_range_shepherds: np.ndarray = shepherd_dist <= t_r + shepherds[:, 7]
     affected_shepherds: np.ndarray = np.logical_not(unaffected_shepherds) and fence_range_shepherds
