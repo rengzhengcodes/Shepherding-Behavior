@@ -206,7 +206,7 @@ def get_fence_force(agents, shepherds, target: tuple[float, float, float], fence
         elif (FENCE_MIDDLE_ANGLE - GATE_ANGULAR_WIDTH / 2) <= agent_angle[agent_index] <= (
               FENCE_MIDDLE_ANGLE + GATE_ANGULAR_WIDTH / 2):
             f_fence_on_sheep[agent_index, :] = 0
-        else agent_dist[agent_index] <= t_r + agents[agent_index][7]:  # R_repulsion
+        elif agent_dist[agent_index] <= t_r + agents[agent_index, 7]:  # R_repulsion
             f_fence_on_sheep[agent_index] = agents[agent_index, :2] - fence  # unit vector
 
     # Calculates the repulsion force between the shepherds and the fence.
