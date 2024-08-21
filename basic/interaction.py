@@ -1182,7 +1182,7 @@ def make_periodic_boundary(agents, space_x, space_y):
     return agents
 
 
-@nb.jit(nopython=True)
+# @nb.jit(nopython=True)
 def evolve(agents, shepherd, target_x, target_y, target_size):
     target = (target_x, target_y)
     # network_matrix = create_metric_network((agents, R, Fov))
