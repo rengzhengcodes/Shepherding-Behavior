@@ -256,7 +256,7 @@ def update_agents_state(
     return agents
 
 
-@nb.jit(nopython=True)
+# @nb.jit(nopython=True)
 def update(agents, shepherd, target_x, target_y):
     # get variables
     v0 = agents[0][6]
