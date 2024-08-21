@@ -198,7 +198,7 @@ def get_fence_force(agents, shepherds, target: tuple[float, float, float], fence
     shepherd_angle: np.ndarray = np.arctan2(t_x - shepherds[:, 1], t_y - shepherds[:, 0])
 
     # Calculates the repulsion force between the agents and the fence.
-    f_fence_on_sheep: np.ndarray = np.zeros(agents.shape[0] + (2,))
+    f_fence_on_sheep: np.ndarray = np.zeros((agents.shape[0], 2))
     for agent_index in range(agents.shape[0]):
         # if sheep is staying it should not be repelled by the fence.
         if agents[agent_index, 21] == 1:
