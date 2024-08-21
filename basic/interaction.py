@@ -202,17 +202,15 @@ def get_fence_force(agents: np.ndarray, shepherds: np.ndarray,
     shepherd_angle: np.ndarray = np.arctan2(t_x - shepherds[:, 1], t_y - shepherds[:, 0])
 
     # Calculates the repulsion force between the agents and the fence.
-    f_fence_on_sheep: np.ndarray = np.zeros((agents.shape[0], 2))
-    for agent_index in range(agents.shape[0]):
-        # If sheep is staying it should not be repelled by the fence.
-        # If sheep is entering the gate, it should not be repelled by the fence.
-        if agents[agent_index, 21] == 1 or (
-            FENCE_MIDDLE_ANGLE - GATE_ANGULAR_WIDTH / 2
-            ) <= agent_angle[agent_index] <= (
-            FENCE_MIDDLE_ANGLE + GATE_ANGULAR_WIDTH / 2):
-            f_fence_on_sheep[agent_index, :] = 0
-        elif agent_dist[agent_index] <= t_r + agents[agent_index, 7]:  # R_repulsion
-            f_fence_on_sheep[agent_index] = fence - agents[agent_index, :2] # unit vector
+    f_fence_on_sheep: np.ndarray = np.where(
+        not (
+            agents[:, 21] == 1 or (
+                FENCE_MIDDLE_ANGLE - GATE_ANGULAR_WIDTH / 2
+                ) <= agent_angle <= (
+                FENCE_MIDDLE_ANGLE + GATE_ANGULAR_WIDTH / 2)
+            ) and agent_dist <= t_r + agents[:, 7],
+        fence - agents[:, :2], 0
+    )
 
     # Calculates the repulsion force between the shepherds and the fence.
     f_fence_on_shepherds = np.where(
