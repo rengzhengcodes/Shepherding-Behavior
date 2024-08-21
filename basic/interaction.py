@@ -169,6 +169,7 @@ def get_shepherd_force(agents, shepherd):
     return num_shepherd_avoid, f_shepherd_force_x, f_shepherd_force_y
 
 
+@nb.jit(nopython=True)
 def get_fence_force(agents, shepherds, target: tuple[float, float, float], fence: tuple[float]):
     """
     We model a fence as an impassible barrier around the pen that the agents and

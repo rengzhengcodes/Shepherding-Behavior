@@ -2,7 +2,12 @@ import numba as nb
 import numpy as np
 from scipy.spatial import ConvexHull
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 import os, sys
+
+from basic import FENCE
+if FENCE:
+    from basic import FENCE_MIDDLE_ANGLE, GATE_ANGULAR_WIDTH
 
 # import shutil
 from turtle import *
@@ -142,6 +147,9 @@ def draw_single(swarm, shepherd, Boundary_x, Boundary_y, Target_place_x, Target_
     plt.gca().add_patch(target_circle)
     plt.xlim(xmin=-Boundary_x//4, xmax=Boundary_x)
     plt.ylim(ymin=-Boundary_y//4, ymax=Boundary_y)
+    # draw fence
+    if FENCE:
+        fence = patches.Arc((Target_place_x, Target_place_y), 2 * Target_size, 2 * Target_size, theta1=FENCE_MIDDLE_ANGLE - GATE_ANGULAR_WIDTH / 2, theta2=FENCE_MIDDLE_ANGLE + GATE_ANGULAR_WIDTH / 2, color='r', lw=2)
     # plt.axis('equal')
     # plt.axis('square')
 
