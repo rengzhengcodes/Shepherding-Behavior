@@ -16,7 +16,7 @@ ALIAS = {
 mode_runs = {}
 for MODE in [0, 2, 3, 4]:
     # Gets the folder of the latest results.
-    folder = f"{os.getcwd()}/results/p2p/{MODE}"
+    folder = f"{os.getcwd()}/results/morphology_attraction_naïve/{MODE}"
     # Gets latest txt file in folder.
     filename = [file for file in os.listdir(folder) if file.endswith('.txt')][-1]
     with open(os.path.join(folder, filename), "r") as f:
@@ -28,7 +28,10 @@ for MODE in [0, 2, 3, 4]:
     assert len(results) == 1000, "Not enough results."
 
     # Retrieves all final ticks.
-    final_ticks = [result["final_tick"] for result in results]
+    try:
+        final_ticks = [result["final_tick"] for result in results]
+    except KeyError:
+        final_ticks = [result["Final_tick"] for result in results]
     print(f"Average final tick: {np.mean(final_ticks)}")
     print(f'Median final tick: {np.median(final_ticks)}')
     print(f"Standard deviation: {np.std(final_ticks)}")

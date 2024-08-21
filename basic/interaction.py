@@ -6,12 +6,14 @@ import math
 
 import numba as nb
 import numpy as np
-from scipy.spatial import ConvexHull
+from scipy.spatial import ConvexHull, distance
 from basic.vision_functions import (
     drive_the_herd_using_vision,
     collect_the_herd_using_vision,
 )
-from . import MODE, MORPHOLOGY
+from . import MODE, MORPHOLOGY, TARGET, FENCE
+if FENCE:
+    from . import FENCE_MIDDLE_ANGLE, GATE_ANGULAR_WIDTH
 
 
 @nb.jit(nopython=True)
@@ -167,6 +169,57 @@ def get_shepherd_force(agents, shepherd):
     return num_shepherd_avoid, f_shepherd_force_x, f_shepherd_force_y
 
 
+def get_fence_force(agents, shepherds, target: tuple[float, float, float], fence: tuple[float]):
+    """
+    We model a fence as an impassible barrier around the pen that the agents and
+    shepherds cannot pass. We calculate the repulsion force between agents and
+    the fence, necessary for the agents to not pass through the fence.
+    Args:
+        @param agents: The agents to calculate the repulsion force for.
+        @param shepherd: The shepherds repulsing.
+
+    Returns:
+        f_fence_force_x: The x-component of the repulsion force.
+        f_fence_force_y: The y-component of the repulsion force.
+    """
+    t_x, t_y, t_r = target
+    # Calculates the distance between the agents and the fence.
+    agent_dist: np.ndarray = np.linalg.norm(
+        agents[:, :2] - np.array([fence]), axis=1
+    )
+    # Calculates the angle the agent is approaching the target, from the target's perspective.
+    agent_angle: np.ndarray = np.arctan2(t_x - agents[:, 1], t_y - agents[:, 0])
+    # Calculates the distance between the shepherds and the fence.
+    shepherd_dist: np.ndarray = distance.euclidean(
+        shepherds[:, :2], np.array([fence]), axis=1
+    )
+    # Calculates the angle the shepherd is approaching the target, from the target's perspective.
+    shepherd_angle: np.ndarray = np.arctan2(t_x - shepherds[:, 1], t_y - shepherds[:, 0])
+
+    # Calculates the repulsion force between the agents and the fence.
+    f_fence_on_sheep: np.ndarray = np.zeros(agents.shape[0] + (2,))
+    for agent_index in range(agents.shape[0]):
+        # if sheep is staying it should not be repelled by the fence.
+        if agents[agent_index, 21] == 1:
+            f_fence_on_sheep[agent_index, :] = 0
+        # If sheep is entering the gate, it should not be repelled by the fence.
+        elif (FENCE_MIDDLE_ANGLE - GATE_ANGULAR_WIDTH / 2) <= agent_angle[agent_index] <= (
+              FENCE_MIDDLE_ANGLE + GATE_ANGULAR_WIDTH / 2):
+            f_fence_on_sheep[agent_index, :] = 0
+        else agent_dist[agent_index] <= t_r + agents[agent_index][7]:  # R_repulsion
+            f_fence_on_sheep[agent_index] = agents[agent_index, :2] - fence  # unit vector
+
+    # Calculates the repulsion force between the shepherds and the fence.
+    f_fence_on_shepherds = np.where(
+        shepherd_dist <= t_r + shepherds[:, 7] and not (
+            FENCE_MIDDLE_ANGLE - GATE_ANGULAR_WIDTH / 2 <= shepherd_angle <= FENCE_MIDDLE_ANGLE + GATE_ANGULAR_WIDTH / 2
+        ), 
+        shepherds[:, :2] - fence, 
+        0)
+
+    return f_fence_on_sheep, f_fence_on_shepherds
+
+
 @nb.jit(nopython=True)
 def update_agents_state(
     agents: np.ndarray, target_x: float, target_y: float, target_size: float
@@ -236,6 +289,10 @@ def update(agents, shepherd, target_x, target_y):
             # wall
             f_x = np.cos(angle_agent_target) * distance_agent_target * 0.1
             f_y = np.sin(angle_agent_target) * distance_agent_target * 0.1
+
+        f_fence, _ = get_fence_force(agents, shepherd, TARGET, (0, 0))
+        f_x += f_fence[agent_index][0]
+        f_y += f_fence[agent_index][1]
 
         v_dot = f_x * np.cos(agents[agent_index][2]) + f_y * np.sin(
             agents[agent_index][2]
@@ -806,6 +863,8 @@ def herd(
     distance_other_shepherd, angle_other_shepherd = keep_distance_from_other_shepherd(
         shepherd
     )
+    # Gets force from the fence.
+    f_fence_agents, f_fence_shepherd = get_fence_force(agents, shepherd)
 
     for shepherd_index in range(shepherd.shape[0]):
         shepherd_pos = (shepherd[shepherd_index][0], shepherd[shepherd_index][1])
@@ -880,8 +939,8 @@ def herd(
                         "Mode {MODE} does not have drive mode implemented."
                     )
 
-            f_x = drive_force_x + f_x_other_shepherd  # + f_att_target_x
-            f_y = drive_force_y + f_y_other_shepherd  # + f_att_target_y
+            f_x = drive_force_x + f_x_other_shepherd + f_fence_shepherd[shepherd_index, 0]
+            f_y = drive_force_y + f_y_other_shepherd + f_fence_shepherd[shepherd_index, 1]
 
             shepherd[shepherd_index][14] = drive_point_x
             shepherd[shepherd_index][15] = drive_point_y
@@ -1026,8 +1085,8 @@ def herd(
 
             # repulsion from other shepherd and attraction from the furthest
             # agent;
-            f_x = force_x + f_x_other_shepherd
-            f_y = force_y + f_y_other_shepherd
+            f_x = force_x + f_x_other_shepherd + f_fence_shepherd[shepherd_index, 0]
+            f_y = force_y + f_y_other_shepherd + f_fence_shepherd[shepherd_index, 1]
 
             shepherd[shepherd_index][14] = collect_point_x  # collect_x
             shepherd[shepherd_index][15] = collect_point_y  # collect_y

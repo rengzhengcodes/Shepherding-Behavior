@@ -19,7 +19,7 @@ from basic.initiation import initiate, initiate_shepherds
 from basic.interaction import evolve
 from basic.draw import draw_dynamic
 
-from basic import MODE, MORPHOLOGY
+from basic import MODE, MORPHOLOGY, TARGET_X, TARGET_Y, TARGET_SIZE
 
 THREADS = -1
 DRAW = False
@@ -28,10 +28,6 @@ N_SHEEP = 300
 N_SHEPHERD = 6
 SPACE_X = 150
 SPACE_Y = 150
-
-TARGET_X = 400
-TARGET_Y = 400
-TARGET_SIZE = 125  # radius
 
 BOUNDARY_X = TARGET_X + TARGET_SIZE + 300
 BOUNDARY_Y = TARGET_Y + TARGET_SIZE + 300
