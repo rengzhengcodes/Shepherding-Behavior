@@ -170,7 +170,9 @@ def get_shepherd_force(agents, shepherd):
 
 
 @nb.jit(nopython=True)
-def get_fence_force(agents, shepherds, target: tuple[float, float, float], fence: np.ndarray[float, float]):
+def get_fence_force(agents: np.ndarray, shepherds: np.ndarray, 
+                    target: tuple[float, float, float], fence: np.ndarray[float, float]
+                    ) -> tuple[np.ndarray[float, float], np.ndarray[float, float]]:
     """
     We model a fence as an impassible barrier around the pen that the agents and
     shepherds cannot pass. We calculate the repulsion force between agents and
@@ -202,15 +204,15 @@ def get_fence_force(agents, shepherds, target: tuple[float, float, float], fence
     # Calculates the repulsion force between the agents and the fence.
     f_fence_on_sheep: np.ndarray = np.zeros((agents.shape[0], 2))
     for agent_index in range(agents.shape[0]):
-        # if sheep is staying it should not be repelled by the fence.
-        if agents[agent_index, 21] == 1:
-            f_fence_on_sheep[agent_index, :] = 0
+        # If sheep is staying it should not be repelled by the fence.
         # If sheep is entering the gate, it should not be repelled by the fence.
-        elif (FENCE_MIDDLE_ANGLE - GATE_ANGULAR_WIDTH / 2) <= agent_angle[agent_index] <= (
-              FENCE_MIDDLE_ANGLE + GATE_ANGULAR_WIDTH / 2):
+        if agents[agent_index, 21] == 1 or (
+            FENCE_MIDDLE_ANGLE - GATE_ANGULAR_WIDTH / 2
+            ) <= agent_angle[agent_index] <= (
+            FENCE_MIDDLE_ANGLE + GATE_ANGULAR_WIDTH / 2):
             f_fence_on_sheep[agent_index, :] = 0
         elif agent_dist[agent_index] <= t_r + agents[agent_index, 7]:  # R_repulsion
-            f_fence_on_sheep[agent_index] = agents[agent_index, :2] - fence  # unit vector
+            f_fence_on_sheep[agent_index] = fence - agents[agent_index, :2] # unit vector
 
     # Calculates the repulsion force between the shepherds and the fence.
     f_fence_on_shepherds = np.where(
