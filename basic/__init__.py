@@ -1,6 +1,9 @@
 # Debug mode
 DEBUG = True
 
+from numba import jit, config
+config.DISABLE_JIT = DEBUG
+
 # Experiment parameters.
 MORPHOLOGY = False
 MODE = 0
