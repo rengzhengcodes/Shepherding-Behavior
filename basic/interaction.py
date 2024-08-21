@@ -170,7 +170,7 @@ def get_shepherd_force(agents, shepherd):
 
 
 @nb.jit(nopython=True)
-def get_fence_force(agents, shepherds, target: tuple[float, float, float], fence: tuple[float]):
+def get_fence_force(agents, shepherds, target: tuple[float, float, float], fence: np.ndarray[float, float]):
     """
     We model a fence as an impassible barrier around the pen that the agents and
     shepherds cannot pass. We calculate the repulsion force between agents and
@@ -178,6 +178,8 @@ def get_fence_force(agents, shepherds, target: tuple[float, float, float], fence
     Args:
         @param agents: The agents to calculate the repulsion force for.
         @param shepherd: The shepherds repulsing.
+        @param target: The target to calculate the repulsion force for.
+        @param fence: The fence to calculate the repulsion force for.
 
     Returns:
         f_fence_force_x: The x-component of the repulsion force.
@@ -291,7 +293,7 @@ def update(agents, shepherd, target_x, target_y):
             f_x = np.cos(angle_agent_target) * distance_agent_target * 0.1
             f_y = np.sin(angle_agent_target) * distance_agent_target * 0.1
 
-        f_fence, _ = get_fence_force(agents, shepherd, TARGET, (0, 0))
+        f_fence, _ = get_fence_force(agents, shepherd, TARGET, np.ndarray(TARGET[:2]))
         f_x += f_fence[agent_index][0]
         f_y += f_fence[agent_index][1]
 
@@ -865,7 +867,7 @@ def herd(
         shepherd
     )
     # Gets force from the fence.
-    f_fence_agents, f_fence_shepherd = get_fence_force(agents, shepherd)
+    _, f_fence_shepherd = get_fence_force(agents, shepherd, TARGET, np.ndarray(TARGET[:2]))
 
     for shepherd_index in range(shepherd.shape[0]):
         shepherd_pos = (shepherd[shepherd_index][0], shepherd[shepherd_index][1])
