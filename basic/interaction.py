@@ -209,7 +209,7 @@ def get_fence_force(agents: np.ndarray, shepherds: np.ndarray,
                 ) <= agent_angle <= (
                 FENCE_MIDDLE_ANGLE + GATE_ANGULAR_WIDTH / 2)
         ) and agent_dist <= t_r + agents[:, 7],
-        fence - agents[:, :2], np.zeros((agents.shape[0], 2)
+        fence - agents[:, :2], np.zeros((agents.shape[0], 2))
     )
 
     # Calculates the repulsion force between the shepherds and the fence.
