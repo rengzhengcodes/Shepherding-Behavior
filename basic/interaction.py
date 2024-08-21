@@ -224,7 +224,7 @@ def get_fence_force(agents: np.ndarray, shepherds: np.ndarray,
     f_fence_on_shepherds = np.where(
         affected_shepherds, 
         fence - shepherds[:, :2], 
-        np.zeros(shepherds.shape[0], 2)
+        np.zeros((shepherds.shape[0], 2))
     )
 
     return f_fence_on_sheep, f_fence_on_shepherds
