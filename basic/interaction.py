@@ -185,7 +185,7 @@ def get_fence_force(agents, shepherds, target: tuple[float, float, float], fence
     """
     t_x, t_y, t_r = target
     # Calculates the distance between the agents and the fence.
-    agent_dist: np.ndarray = np.linalg.norm(
+    agent_dist: np.ndarray = distance.euclidean(
         agents[:, :2] - np.array([fence]), axis=1
     )
     # Calculates the angle the agent is approaching the target, from the target's perspective.
