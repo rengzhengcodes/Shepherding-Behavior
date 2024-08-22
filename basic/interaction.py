@@ -6,7 +6,7 @@ import math
 
 import numba as nb
 import numpy as np
-from scipy.spatial import ConvexHull, distance
+from scipy.spatial import ConvexHull
 from basic.vision_functions import (
     drive_the_herd_using_vision,
     collect_the_herd_using_vision,
@@ -15,6 +15,10 @@ from . import MODE, MORPHOLOGY, TARGET, FENCE, DEBUG
 
 if FENCE:
     from . import K_FENCE, FENCE_MIDDLE_ANGLE, GATE_ANGULAR_WIDTH
+else:
+    K_FENCE = 0
+    FENCE_MIDDLE_ANGLE = 0
+    GATE_ANGULAR_WIDTH = 2 * np.pi
 
 
 @nb.jit(nopython=not DEBUG)
@@ -80,7 +84,7 @@ def get_attraction_force(
                 x_j = agents[neighbor_index][0]
                 y_j = agents[neighbor_index][1]
                 distance = np.sqrt((x_i - x_j) ** 2 + (y_i - y_j) ** 2)
-                if (distance >= agents[0][3]) and (distance <= agents[0][5]):
+                if agents[0][3] <= distance <= agents[0][5]:
                     neighbor_num = neighbor_num + 1
                     r_x = r_x + (x_j - x_i) / distance  # unit vector
                     r_y = r_y + (y_j - y_i) / distance  # unit vector
@@ -191,32 +195,35 @@ def get_fence_force(
         f_fence_force_x: The x-component of the repulsion force.
         f_fence_force_y: The y-component of the repulsion force.
     """
-    t_x, t_y, t_r = target
     # Calculates the distance between the agents and the fence.
     agent_dist: np.ndarray = np.array(
         [np.linalg.norm(agents[i, :2] - fence) for i in range(agents.shape[0])]
     )
     # Calculates the angle the agent is approaching the target, from the target's perspective.
-    agent_angle: np.ndarray = np.arctan2(t_x - agents[:, 0], t_y - agents[:, 1])
+    agent_angle: np.ndarray = np.arctan2(
+        target[0] - agents[:, 0], target[1] - agents[:, 1]
+    )
     # Calculates the distance between the shepherds and the fence.
     shepherd_dist: np.ndarray = np.array(
         [np.linalg.norm(shepherds[i, :2] - fence) for i in range(shepherds.shape[0])]
     )
     # Calculates the angle the shepherd is approaching the target, from the target's perspective.
     shepherd_angle: np.ndarray = np.arctan2(
-        t_x - shepherds[:, 0], t_y - shepherds[:, 1]
+        target[0] - shepherds[:, 0], target[1] - shepherds[:, 1]
     )
 
     # Calculates the repulsion force between the agents and the fence.
-    unaffected_agents: np.ndarray = np.logical_or(
-        agents[:, 21] == 1,
-        np.logical_and(
-            FENCE_MIDDLE_ANGLE - GATE_ANGULAR_WIDTH / 2 <= agent_angle,
-            agent_angle <= FENCE_MIDDLE_ANGLE + GATE_ANGULAR_WIDTH / 2,
-        ),
-    )  # agents in the target or in the gate
-    fence_range_agents: np.ndarray = agent_dist <= t_r + 2 * agents[:, 7]
-    affected_agents: np.ndarray = np.logical_not(unaffected_agents) & fence_range_agents
+    affected_agents = np.logical_not(
+        np.logical_or(  # agents not in the target or in the gate
+            agents[:, 21] == 1,
+            np.logical_and(
+                FENCE_MIDDLE_ANGLE - GATE_ANGULAR_WIDTH / 2 <= agent_angle,
+                agent_angle <= FENCE_MIDDLE_ANGLE + GATE_ANGULAR_WIDTH / 2,
+            ),
+        )
+    ) & (  # agents within the fence's range.
+        agent_dist <= target[-1] + 2 * agents[:, 7]
+    )
     f_fence_on_sheep: np.ndarray = np.zeros((agents.shape[0], 2))
     for i in range(agents.shape[0]):
         if affected_agents[i]:
@@ -224,15 +231,13 @@ def get_fence_force(
             f_fence_on_sheep[i] = K_FENCE * (vec) / np.linalg.norm(vec)
 
     # Calculates the repulsion force between the shepherds and the fence.
-    unaffected_shepherds: np.ndarray = np.logical_not(
-        np.logical_and(
+    affected_shepherds: np.ndarray = np.logical_not(
+        np.logical_and(  # Shepherds not entering via the gate.
             FENCE_MIDDLE_ANGLE - GATE_ANGULAR_WIDTH / 2 <= shepherd_angle,
             shepherd_angle <= FENCE_MIDDLE_ANGLE + GATE_ANGULAR_WIDTH / 2,
         )
-    )
-    fence_range_shepherds: np.ndarray = shepherd_dist <= t_r + 2 * shepherds[:, 7]
-    affected_shepherds: np.ndarray = (
-        np.logical_not(unaffected_shepherds) & fence_range_shepherds
+    ) & (  # Shepherds within the fence's range.
+        shepherd_dist <= target[-1] + 2 * shepherds[:, 7]
     )
     # Casts the affected shepherds to a 2D array.
     affected_shepherds: np.ndarray = np.expand_dims(affected_shepherds, axis=1)
@@ -815,7 +820,7 @@ def herd(
         tick_time = shepherd[0][10]
         # max_turning_rate = shepherd[0][11]
         # HALF FOV threshold for collect mode;
-        Angle_Threshold_Collection = shepherd[0][17]
+        angle_threshold_collection = shepherd[0][17]
         # k_attraction_target = 0.01  # shepherd[0][18]  # k_attraction_target
         # 0.01
     else:
@@ -825,7 +830,7 @@ def herd(
         beta = 0.1
         dr = 0.1
         tick_time = 0.01
-        Angle_Threshold_Collection = np.pi / 2
+        angle_threshold_collection = np.pi / 2
 
     match MODE:
         case 0 | 1:
@@ -1022,7 +1027,7 @@ def herd(
                     # anti-clockwise; threshold = np.pi/3
                     if (
                         np.absolute(max_angle_target_to_agent)
-                        > Angle_Threshold_Collection
+                        > angle_threshold_collection
                     ) and (agents[max_agent_index][21] == 0.0):
                         # collect_mode = true
                         shepherd[shepherd_index][13] = 0.0
