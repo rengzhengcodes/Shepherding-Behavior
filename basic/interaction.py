@@ -789,20 +789,29 @@ def herd(
     """
     # record the furthest agent index
     max_agents_indexes = np.zeros(shepherd.shape[0])
-    l0 = shepherd[0][3]
-    # k = shepherd[0][4]
-    # l1 = shepherd[0][5]  # distance from the center of mass to the drive
-    # point ###related to N
-    v0 = shepherd[0][6]  # 4
-    alpha = shepherd[0][7]  # acceleration rate
-    beta = shepherd[0][8]  # turning rate
-    dr = shepherd[0][9]
-    tick_time = shepherd[0][10]
-    # max_turning_rate = shepherd[0][11]
-    # HALF FOV threshold for collect mode;
-    Angle_Threshold_Collection = shepherd[0][17]
-    # k_attraction_target = 0.01  # shepherd[0][18]  # k_attraction_target
-    # 0.01
+    if shepherd.shape[0] > 0:
+        l0 = shepherd[0][3]
+        # k = shepherd[0][4]
+        # l1 = shepherd[0][5]  # distance from the center of mass to the drive
+        # point ###related to N
+        v0 = shepherd[0][6]  # 4
+        alpha = shepherd[0][7]  # acceleration rate
+        beta = shepherd[0][8]  # turning rate
+        dr = shepherd[0][9]
+        tick_time = shepherd[0][10]
+        # max_turning_rate = shepherd[0][11]
+        # HALF FOV threshold for collect mode;
+        Angle_Threshold_Collection = shepherd[0][17]
+        # k_attraction_target = 0.01  # shepherd[0][18]  # k_attraction_target
+        # 0.01
+    else:
+        l0 = 15
+        v0 = 1
+        alpha = 1
+        beta = 0.1
+        dr = 0.1
+        tick_time = 0.01
+        Angle_Threshold_Collection = np.pi / 2
 
     match MODE:
         case 0 | 1:
