@@ -744,7 +744,8 @@ def drive_the_herd(agents, shepherd_x, shepherd_y, target_x, target_y):
 def keep_distance_from_other_shepherd(shepherd):
     angle_other_shepherd = np.zeros(shepherd.shape[0])
     distance_other_shepherd = np.zeros(shepherd.shape[0])
-    l3 = shepherd[0][19]  # L3 Equilibrium distance from other shepherd
+    if shepherd.shape[0] > 0:
+        l3 = shepherd[0][19]  # L3 Equilibrium distance from other shepherd
     for shepherd_index in range(shepherd.shape[0]):
         x_i = shepherd[shepherd_index][0]
         y_i = shepherd[shepherd_index][1]
