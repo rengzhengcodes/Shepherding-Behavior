@@ -210,7 +210,7 @@ def get_fence_force(agents: np.ndarray, shepherds: np.ndarray,
     affected_agents: np.ndarray = np.logical_not(unaffected_agents) & fence_range_agents
     # Casts the affected agents to a 2D array.
     affected_agents: np.ndarray = np.expand_dims(affected_agents, axis=1)
-    unit_force: np.ndarray = (vec := fence - agents[:, :2]) / np.linalg.norm(vec)
+    unit_force: np.ndarray = np.array((vec := fence - agent) / np.linalg.norm(vec) for agent in agents[:, :2])
     force: np.ndarray = 10 * unit_force
     f_fence_on_sheep: np.ndarray = np.where(
         affected_agents, force, np.zeros((agents.shape[0], 2))
@@ -225,7 +225,7 @@ def get_fence_force(agents: np.ndarray, shepherds: np.ndarray,
     affected_shepherds: np.ndarray = np.logical_not(unaffected_shepherds) & fence_range_shepherds
     # Casts the affected shepherds to a 2D array.
     affected_shepherds: np.ndarray = np.expand_dims(affected_shepherds, axis=1)
-    unit_force: np.ndarray = (vec := fence - shepherds[:, :2]) / np.linalg.norm(vec)
+    unit_force: np.ndarray = np.array((vec := fence - shepherd) / np.linalg.norm(vec) for shepherd in shepherds[:, :2])
     force: np.ndarray = 10 * unit_force
     f_fence_on_shepherds = np.where(
         affected_shepherds, 
