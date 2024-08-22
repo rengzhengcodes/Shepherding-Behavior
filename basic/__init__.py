@@ -1,5 +1,5 @@
 # Debug mode
-DEBUG = True
+DEBUG = False
 
 from numba import jit, config
 config.DISABLE_JIT = DEBUG

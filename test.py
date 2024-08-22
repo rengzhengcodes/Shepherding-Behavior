@@ -113,7 +113,6 @@ def run_mode(rep: int, evolver: callable, terminator: callable, summarizer: call
 
     # Draws the results.
     if DRAW:
-        folder_path = cur_dir
         draw_dynamic(
             final_tick,
             data_agents,
@@ -125,7 +124,7 @@ def run_mode(rep: int, evolver: callable, terminator: callable, summarizer: call
             results["TARGET_SIZE"],
             results["L3"],
             MODE=MODE,
-            folder_path=f"{folder_path}/repetition_{rep}",
+            folder_path=f"{res_dir}/repetition_{rep}",
         )
         # Runs the ffmpeg command to create a video.
         # ffmpeg -framerate 10 -start_number 0 -i %d.png -c:v libx264 \
@@ -138,19 +137,19 @@ def run_mode(rep: int, evolver: callable, terminator: callable, summarizer: call
                 "-start_number",
                 "0",
                 "-i",
-                f"{folder_path}/repetition_{rep}/%d.png",
+                f"{res_dir}/repetition_{rep}/%d.png",
                 "-c:v",
                 "libx264",
                 "-r",
                 "30",
                 "-pix_fmt",
                 "yuv420p",
-                f"{folder_path}/MODE_{MODE}|Rep_{rep}|final_{final_tick}.mp4",
+                f"{res_dir}/MODE_{MODE}|Rep_{rep}|final_{final_tick}.mp4",
             ],
             check=True,
         )
         # Deletes all the images.
-        shutil.rmtree(f"{folder_path}/repetition_{rep}")
+        shutil.rmtree(f"{res_dir}/repetition_{rep}")
 
     return results
 
