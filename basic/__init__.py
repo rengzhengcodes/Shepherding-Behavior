@@ -20,5 +20,8 @@ K_FENCE = np.inf
 FENCE_MIDDLE_ANGLE = 0
 GATE_ANGULAR_WIDTH = 1
 
+# Number of threads each experiment thread can use to draw.
+DRAW_THREADS = -1
+
 # Cannot have a fence without a target.
 assert not FENCE or not MORPHOLOGY

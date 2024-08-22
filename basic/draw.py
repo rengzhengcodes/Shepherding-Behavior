@@ -4,8 +4,9 @@ from scipy.spatial import ConvexHull
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import os, sys
+from joblib import Parallel, delayed
 
-from basic import FENCE
+from basic import DRAW_THREADS, FENCE
 if FENCE:
     from basic import FENCE_MIDDLE_ANGLE, GATE_ANGULAR_WIDTH
 
@@ -43,7 +44,9 @@ def draw_network(swarm):
 
 
 # @nb.jit(nopython=True)
-def draw_single(swarm, shepherd, Boundary_x, Boundary_y, Target_place_x, Target_place_y, Target_size, MODE):
+def draw_single(swarm, shepherd, 
+                boundary: tuple[int], target: tuple[int], 
+                MODE):
     # draw sheep
     N = swarm.shape[0]
     Agent_size = swarm[0][7]
@@ -141,12 +144,12 @@ def draw_single(swarm, shepherd, Boundary_x, Boundary_y, Target_place_x, Target_
 
 
     # draw target center
-    plt.plot(Target_place_x, Target_place_y, "b*")
-    target_circle = plt.Circle((Target_place_x, Target_place_y), radius=Target_size, facecolor='none', edgecolor='b',
-                               alpha=0.5)
+    plt.plot(*target[:2], "b*")
+    target_circle = plt.Circle(target[:2], radius=target[-1], facecolor='none', 
+                               edgecolor='b', alpha=0.5)
     plt.gca().add_patch(target_circle)
-    plt.xlim(xmin=-Boundary_x//4, xmax=Boundary_x)
-    plt.ylim(ymin=-Boundary_y//4, ymax=Boundary_y)
+    plt.xlim(xmin=-boundary[0]//4, xmax=boundary[0])
+    plt.ylim(ymin=-boundary[1]//4, ymax=boundary[1])
     # draw gate to the fence.
     if FENCE:
         # Calculate the angles of the fence.
@@ -155,20 +158,22 @@ def draw_single(swarm, shepherd, Boundary_x, Boundary_y, Target_place_x, Target_
         # Converts to degrees. Rotates becaue theta = 0 is down, instead of right.
         theta_1 = np.degrees(theta_1) - 90
         theta_2 = np.degrees(theta_2) - 90
-        fence = patches.Arc((Target_place_x, Target_place_y), 2 * Target_size, 2 * Target_size, theta1=theta_1, theta2=theta_2, color='r', lw=2)
+        fence = patches.Arc(target[:2], 2 * target[-1], 2 * target[-1], 
+                            theta1=theta_1, theta2=theta_2, color='r', lw=2)
         plt.gca().add_patch(fence)
     # plt.axis('equal')
     # plt.axis('square')
 
 
-def draw_dynamic(Iterations, Data_agents, Data_shepherds, Space_x, Space_y, Target_place_x, Target_place_y,
-                 Target_size, L3, MODE, folder_path=None, title=None):
-    N_sheep = Data_agents[:, :, 0].shape[0]
+def draw_dynamic(iterations:int, data_agents: np.ndarray, data_shepherds: np.ndarray, 
+                 space: tuple[int], target: tuple[int], L3: int, MODE: int, 
+                 folder_path: str=None, title=None):
+    N_sheep = data_agents[:, :, 0].shape[0]
     plt.figure(figsize=(8, 6), dpi=300)
     plt.ion()
 
     if folder_path is None:
-        folder_path = f"{os.getcwd()}/images"
+        folder_path: str = f"{os.getcwd()}/images"
     
     # If the folder does not exist, create it.
     if not os.path.exists(folder_path):
@@ -182,13 +187,17 @@ def draw_dynamic(Iterations, Data_agents, Data_shepherds, Space_x, Space_y, Targ
             if file_ext.lower() in ['.png', '.mp4']:
                 os.remove(file_path)
 
-    for index in range(0, Iterations, 100):
+    def savefig(index: int):
         plt.cla()
-        draw_single(Data_agents[:, :, index], Data_shepherds[:, :, index], Space_x, Space_y, Target_place_x,
-                    Target_place_y, Target_size, MODE)
+        draw_single(data_agents[:, :, index], data_shepherds[:, :, index], space, *target, MODE)
 
         plt.title(f"N_sheep = {N_sheep} | L3 = {L3} | Tick = {index}")
         plt.savefig(f"{folder_path}/{int(index / 100)}.png")
+
+    
+    Parallel(n_jobs=DRAW_THREADS)(
+        delayed(savefig)(index) for index in range(0, iterations, 100)
+    )
 
     plt.ioff()
     return

@@ -117,11 +117,8 @@ def run_mode(rep: int, evolver: callable, terminator: callable, summarizer: call
             final_tick,
             data_agents,
             data_shepherds,
-            results["BOUNDARY_X"],
-            results["BOUNDARY_Y"],
-            results["TARGET_X"],
-            results["TARGET_Y"],
-            results["TARGET_SIZE"],
+            (results["BOUNDARY_X"], results["BOUNDARY_Y"]),
+            (results["TARGET_X"], results["TARGET_Y"], results["TARGET_SIZE"]),
             results["L3"],
             MODE=MODE,
             folder_path=f"{res_dir}/repetition_{rep}",
@@ -254,7 +251,7 @@ def run_morph(rep):
 
 if __name__ == "__main__":
     start = timer()
-    sims: dict = Parallel(n_jobs=THREADS)(
+    sims: tuple[dict] = Parallel(n_jobs=THREADS)(
         delayed(run_morph if MORPHOLOGY else run_target)(seed) for seed in seeds
     )
     end = timer()
