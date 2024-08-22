@@ -211,8 +211,9 @@ def get_fence_force(agents: np.ndarray, shepherds: np.ndarray,
     # Casts the affected agents to a 2D array.
     affected_agents: np.ndarray = np.expand_dims(affected_agents, axis=1)
     unit_force: np.ndarray = (vec := fence - agents[:, :2]) / np.linalg.norm(vec)
+    force: np.ndarray = 10 * unit_force
     f_fence_on_sheep: np.ndarray = np.where(
-        affected_agents, 10 * unit_force, np.zeros((agents.shape[0], 2))
+        affected_agents, force, np.zeros((agents.shape[0], 2))
     )
 
     # Calculates the repulsion force between the shepherds and the fence.
@@ -225,9 +226,10 @@ def get_fence_force(agents: np.ndarray, shepherds: np.ndarray,
     # Casts the affected shepherds to a 2D array.
     affected_shepherds: np.ndarray = np.expand_dims(affected_shepherds, axis=1)
     unit_force: np.ndarray = (vec := fence - shepherds[:, :2]) / np.linalg.norm(vec)
+    force: np.ndarray = 10 * unit_force
     f_fence_on_shepherds = np.where(
         affected_shepherds, 
-        10 * unit_force, 
+        force, 
         np.zeros((shepherds.shape[0], 2))
     )
 
