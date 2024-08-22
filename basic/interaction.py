@@ -228,7 +228,11 @@ def get_fence_force(
     for i in range(agents.shape[0]):
         if affected_agents[i]:
             vec: np.ndarray = fence - agents[i, :2]
-            f_fence_on_sheep[i] = (K_FENCE/(agent_dist[i] - target[-1])**2) * (vec) / np.linalg.norm(vec)
+            f_fence_on_sheep[i] = (
+                (K_FENCE / (agent_dist[i] - target[-1]) ** 2)
+                * (vec)
+                / np.linalg.norm(vec)
+            )
 
     # Calculates the repulsion force between the shepherds and the fence.
     affected_shepherds: np.ndarray = np.logical_not(
@@ -245,7 +249,11 @@ def get_fence_force(
     for i in range(shepherds.shape[0]):
         if affected_shepherds[i]:
             vec: np.ndarray = fence - shepherds[i, :2]
-            f_fence_on_shepherds[i] = (K_FENCE/(shepherd_dist[i] - target[-1])**2) * (vec) / np.linalg.norm(vec)
+            f_fence_on_shepherds[i] = (
+                (K_FENCE / (shepherd_dist[i] - target[-1]) ** 2)
+                * (vec)
+                / np.linalg.norm(vec)
+            )
 
     return f_fence_on_sheep, f_fence_on_shepherds
 
