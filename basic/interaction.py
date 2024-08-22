@@ -13,7 +13,7 @@ from basic.vision_functions import (
 )
 from . import MODE, MORPHOLOGY, TARGET, FENCE, DEBUG
 if FENCE:
-    from . import FENCE_MIDDLE_ANGLE, GATE_ANGULAR_WIDTH
+    from . import K_FENCE, FENCE_MIDDLE_ANGLE, GATE_ANGULAR_WIDTH
 
 
 @nb.jit(nopython=not DEBUG)
@@ -212,7 +212,7 @@ def get_fence_force(agents: np.ndarray, shepherds: np.ndarray,
     for i in range(agents.shape[0]):
         if affected_agents[i]:
             vec: np.ndarray = fence - agents[i, :2]
-            f_fence_on_sheep[i] = (vec) / np.linalg.norm(vec) * 10
+            f_fence_on_sheep[i] = K_FENCE * (vec) / np.linalg.norm(vec)
 
     # Calculates the repulsion force between the shepherds and the fence.
     unaffected_shepherds: np.ndarray = np.logical_not(np.logical_and(
@@ -227,7 +227,7 @@ def get_fence_force(agents: np.ndarray, shepherds: np.ndarray,
     for i in range(shepherds.shape[0]):
         if affected_shepherds[i]:
             vec: np.ndarray = fence - shepherds[i, :2]
-            f_fence_on_shepherds[i] = (vec) / np.linalg.norm(vec) * 10
+            f_fence_on_shepherds[i] = K_FENCE * (vec) / np.linalg.norm(vec)
 
     return f_fence_on_sheep, f_fence_on_shepherds
 
