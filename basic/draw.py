@@ -94,53 +94,54 @@ def draw_single(swarm, shepherd,
         collecting_agent = swarm[int(agent[16])]
         plt.plot((agent[0], collecting_agent[0]), (agent[1], collecting_agent[1]), color='y', linestyle=':', lw=2)
 
-    # draw center of convex hull.
-    if MODE == 2:
-        hull = swarm[swarm[:, 22] != 0]
-        if np.any(hull):
-            # Sorts hull by CCW order for plotting.
-            hull = hull[np.argsort(hull[:, 22])]
+    match MODE:
+        # draw center of convex hull.
+        case 2:
+            hull = swarm[swarm[:, 22] != 0]
+            if np.any(hull):
+                # Sorts hull by CCW order for plotting.
+                hull = hull[np.argsort(hull[:, 22])]
 
-            # Calculates and plots the center of the hull.
-            center_of_hull_x, center_of_hull_y = np.mean(hull[:, 0]), np.mean(hull[:, 1])
-            plt.plot(center_of_hull_x, center_of_hull_y, "k*", markersize=5)
+                # Calculates and plots the center of the hull.
+                center_of_hull_x, center_of_hull_y = np.mean(hull[:, 0]), np.mean(hull[:, 1])
+                plt.plot(center_of_hull_x, center_of_hull_y, "k*", markersize=5)
 
-            # Draws the convex hull.
-            plt.fill(hull[:, 0], hull[:, 1], color='g', linestyle=':', lw=2, fill=False)
-    # Draw the direct line between shepherd and agent it can see.
-    if MODE == 3:
-        # Manually calculates entire hull.
-        moving_swarm = swarm[swarm[:, 21] == 0]
-        if moving_swarm.shape[0] > 2:
-            hull = ConvexHull(moving_swarm[:, :2]).vertices
-        else:
-            hull = np.arange(moving_swarm.shape[0])
-        plt.fill(moving_swarm[hull, 0], moving_swarm[hull, 1], color='g', linestyle=':', lw=2, fill=False)
-
-        for i in range(N_shepherd):
-            relevant_swarm = swarm[(swarm[:, 23].view('uint64') & (0b01 << i)) != 0b0]
-            plt.plot([np.repeat(shepherd[i, 0], relevant_swarm.shape[0]), relevant_swarm[:, 0]], [np.repeat(shepherd[i, 1], relevant_swarm.shape[0]), relevant_swarm[:, 1]], color='m', lw=1, alpha=0.25)
-            # draw center of visible sheep. If no visible sheep it assumes self as CoM.
-            center_of_visible_sheep_x = np.mean(relevant_swarm[:, 0])
-            center_of_visible_sheep_y = np.mean(relevant_swarm[:, 1])
-            plt.plot(center_of_visible_sheep_x, center_of_visible_sheep_y, "m*", markersize=5)
-    if MODE == 4:
-        # Goes through each flock and plots the hull.
-        for i in range(1, int(np.max(swarm[:, 24])) + 1):
-            flock = swarm[swarm[:, 24] == i]
-            if flock.shape[0] > 2:
-                hull = ConvexHull(flock[:, :2]).vertices
+                # Draws the convex hull.
+                plt.fill(hull[:, 0], hull[:, 1], color='g', linestyle=':', lw=2, fill=False)
+        # Draw the direct line between shepherd and agent it can see.
+        case 3:
+            # Manually calculates entire hull.
+            moving_swarm = swarm[swarm[:, 21] == 0]
+            if moving_swarm.shape[0] > 2:
+                hull = ConvexHull(moving_swarm[:, :2]).vertices
             else:
-                hull = np.arange(flock.shape[0])
-            plt.fill(flock[hull, 0], flock[hull, 1], color='g', linestyle=':', lw=2, fill=False)
+                hull = np.arange(moving_swarm.shape[0])
+            plt.fill(moving_swarm[hull, 0], moving_swarm[hull, 1], color='g', linestyle=':', lw=2, fill=False)
 
-        for i in range(N_shepherd):
-            relevant_swarm = swarm[(swarm[:, 23].view('uint64') & (0b01 << i)) != 0b0]
-            plt.plot([np.repeat(shepherd[i, 0], relevant_swarm.shape[0]), relevant_swarm[:, 0]], [np.repeat(shepherd[i, 1], relevant_swarm.shape[0]), relevant_swarm[:, 1]], color='m', lw=1, alpha=0.25)
-            # draw center of visible sheep. If no visible sheep it assumes self as CoM.
-            center_of_visible_sheep_x = np.mean(relevant_swarm[:, 0])
-            center_of_visible_sheep_y = np.mean(relevant_swarm[:, 1])
-            plt.plot(center_of_visible_sheep_x, center_of_visible_sheep_y, "m*", markersize=5)
+            for i in range(N_shepherd):
+                relevant_swarm = swarm[(swarm[:, 23].view('uint64') & (0b01 << i)) != 0b0]
+                plt.plot([np.repeat(shepherd[i, 0], relevant_swarm.shape[0]), relevant_swarm[:, 0]], [np.repeat(shepherd[i, 1], relevant_swarm.shape[0]), relevant_swarm[:, 1]], color='m', lw=1, alpha=0.25)
+                # draw center of visible sheep. If no visible sheep it assumes self as CoM.
+                center_of_visible_sheep_x = np.mean(relevant_swarm[:, 0])
+                center_of_visible_sheep_y = np.mean(relevant_swarm[:, 1])
+                plt.plot(center_of_visible_sheep_x, center_of_visible_sheep_y, "m*", markersize=5)
+        case 4:
+            # Goes through each flock and plots the hull.
+            for i in range(1, int(np.max(swarm[:, 24])) + 1):
+                flock = swarm[swarm[:, 24] == i]
+                if flock.shape[0] > 2:
+                    hull = ConvexHull(flock[:, :2]).vertices
+                else:
+                    hull = np.arange(flock.shape[0])
+                plt.fill(flock[hull, 0], flock[hull, 1], color='g', linestyle=':', lw=2, fill=False)
+
+            for i in range(N_shepherd):
+                relevant_swarm = swarm[(swarm[:, 23].view('uint64') & (0b01 << i)) != 0b0]
+                plt.plot([np.repeat(shepherd[i, 0], relevant_swarm.shape[0]), relevant_swarm[:, 0]], [np.repeat(shepherd[i, 1], relevant_swarm.shape[0]), relevant_swarm[:, 1]], color='m', lw=1, alpha=0.25)
+                # draw center of visible sheep. If no visible sheep it assumes self as CoM.
+                center_of_visible_sheep_x = np.mean(relevant_swarm[:, 0])
+                center_of_visible_sheep_y = np.mean(relevant_swarm[:, 1])
+                plt.plot(center_of_visible_sheep_x, center_of_visible_sheep_y, "m*", markersize=5)
 
 
     # draw target center
