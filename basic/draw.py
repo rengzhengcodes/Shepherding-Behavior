@@ -150,6 +150,7 @@ def draw_single(swarm, shepherd, Boundary_x, Boundary_y, Target_place_x, Target_
     # draw fence
     if FENCE:
         fence = patches.Arc((Target_place_x, Target_place_y), 2 * Target_size, 2 * Target_size, theta1=FENCE_MIDDLE_ANGLE - GATE_ANGULAR_WIDTH / 2, theta2=FENCE_MIDDLE_ANGLE + GATE_ANGULAR_WIDTH / 2, color='r', lw=2)
+        plt.gca().add_patch(fence)
     # plt.axis('equal')
     # plt.axis('square')
 
