@@ -8,7 +8,6 @@ import numpy as np
 from scipy.spatial import ConvexHull
 import matplotlib.pyplot as plt
 from matplotlib import patches
-from cycler import cycler
 from joblib import Parallel, delayed
 
 from basic import DRAW_THREADS, FENCE
@@ -57,7 +56,7 @@ def draw_single(
     for agent in swarm:
         plt.gca().add_patch(
             plt.Circle(
-                (agent[0], agent[1]),
+                agent[:2],
                 radius=swarm[0, 7],
                 facecolor=(
                     "g" if agent[22] != 0 and agent[21] != 1 else "none"
@@ -85,12 +84,16 @@ def draw_single(
     # shepherds to collect_x/drive_x collect_y/drive_y
     plt.plot(shepherds[:, (14, 0)].T, shepherds[:, (15, 1)].T, color="cyan")
     # Plots collect vs drive mode.
+    plt.gca().set_prop_cycle(
+        plt.cycler(color=np.where(shepherds[:, 13] == 1, "r", "b"))
+    )
     plt.plot(
         *(shepherds[:, :2].T),
-        *((np.where(shepherds[:, 13] == 1, "r", "b")) + "o"),
+        marker="o",
         markersize=swarm[0, 7],
         alpha=0.2,
     )
+    plt.gca().set_prop_cycle(None)
     # Plots orientation of movement.
     plt.quiver(
         *(shepherds[:, :2].T),
@@ -129,9 +132,7 @@ def draw_single(
                 hull = hull[np.argsort(hull[:, 22])]
 
                 # Calculates and plots the center of the hull.
-                plt.plot(
-                    np.mean(hull[:, 0]), np.mean(hull[:, 1]), "k*", markersize=5
-                )
+                plt.plot(np.mean(hull[:, 0]), np.mean(hull[:, 1]), "k*", markersize=5)
 
                 # Draws the convex hull.
                 plt.fill(
@@ -224,9 +225,11 @@ def draw_single(
 
     # draw target center
     plt.plot(*target[:2], "b*")
-    plt.gca().add_patch(plt.Circle(
-        target[:2], radius=target[-1], facecolor="none", edgecolor="b", alpha=0.5
-    ))
+    plt.gca().add_patch(
+        plt.Circle(
+            target[:2], radius=target[-1], facecolor="none", edgecolor="b", alpha=0.5
+        )
+    )
     plt.xlim(xmin=-boundary[0] // 4, xmax=boundary[0])
     plt.ylim(ymin=-boundary[1] // 4, ymax=boundary[1])
     # draw gate to the fence.
@@ -238,15 +241,17 @@ def draw_single(
         theta_1 = np.degrees(theta_1) - 90
         theta_2 = np.degrees(theta_2) - 90
         # Draws arc that represents the gate.
-        plt.gca().add_patch(patches.Arc(
-            target[:2],
-            2 * target[-1],
-            2 * target[-1],
-            theta1=theta_1,
-            theta2=theta_2,
-            color="r",
-            lw=2,
-        ))
+        plt.gca().add_patch(
+            patches.Arc(
+                target[:2],
+                2 * target[-1],
+                2 * target[-1],
+                theta1=theta_1,
+                theta2=theta_2,
+                color="r",
+                lw=2,
+            )
+        )
     # plt.axis('equal')
     # plt.axis('square')
 
@@ -347,17 +352,16 @@ def plot_snapshot(
     # create figure
     plt.figure(figsize=(8, 6), dpi=300)
     # plot sheep
-    plt.gca().add_patch(
-        plt.Circle(
-            swarm[:, :2],
-            radius=2.5,
-            facecolor="none",
-            alpha=0.8,
-            prop_cycle=cycler(  # colors edges based on if they are staying or not.
-                edgecolor=np.where(swarm[:, 21] == 1, "b", "g")
-            ),
+    for agent in swarm[:, :2] + swarm[:, 21]:
+        plt.gca().add_patch(
+            plt.Circle(
+                agent,
+                radius=2.5,
+                facecolor="none",
+                edgecolor="b" if agent[3] == 1 else "g",
+                alpha=0.8,
+            )
         )
-    )
     # Add arrow for orientation.
     plt.quiver(
         *(swarm[:, :2].T),
