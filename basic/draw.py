@@ -1,9 +1,13 @@
+"""
+The visualization functions for the simulation.
+"""
+
+import os
 import numba as nb
 import numpy as np
 from scipy.spatial import ConvexHull
 import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-import os, sys
+from matplotlib import patches
 from joblib import Parallel, delayed
 
 from basic import DRAW_THREADS, FENCE
@@ -11,12 +15,15 @@ from basic import DRAW_THREADS, FENCE
 if FENCE:
     from basic import FENCE_MIDDLE_ANGLE, GATE_ANGULAR_WIDTH
 
-# import shutil
-from turtle import *
-
 
 @nb.jit(nopython=True)
-def calculate_mass_center(agents):
+def calculate_mass_center(agents: np.ndarray):
+    """
+    Calculates the center of mass of a group of agents.
+
+    Args:
+        @param agents: The agents to calculate the CoM of.
+    """
     sum_x = 0
     sum_y = 0
     n = 0
@@ -46,19 +53,21 @@ def draw_network(swarm):
                     alpha=0.4,
                 )  # '#e6e6fa'
 
-    return
-
 
 # @nb.jit(nopython=True)
-def draw_single(swarm, shepherd, boundary: tuple[int], target: tuple[int], MODE):
+def draw_single(swarm, shepherds, boundary: tuple[int], target: tuple[int], mode: int):
+    """
+    Draws one frame of the simulation.
+    Args:
+        @param swarm: The flock agents at this point in time.
+        @param shepherds: The shepherds
+    """
     # draw sheep
-    N = swarm.shape[0]
-    Agent_size = swarm[0][7]
-    for index in range(N):
-        if swarm[index, 21] == 1:  # staying state radius=2.5
+    for agent in swarm:
+        if agent[21] == 1:  # staying state radius=2.5
             circles = plt.Circle(
-                (swarm[index, 0], swarm[index, 1]),
-                radius=Agent_size,
+                (agent[0], agent[1]),
+                radius=agent[7],
                 facecolor="none",
                 edgecolor="b",
                 alpha=0.8,
@@ -66,10 +75,10 @@ def draw_single(swarm, shepherd, boundary: tuple[int], target: tuple[int], MODE)
             )
         else:  # moving state radius=2.5
             # Determines edge color based on if the sheep is in the hull or not.
-            facecolor = "g" if swarm[index, 22] != 0 else "none"
+            facecolor = "g" if agent[22] != 0 else "none"
             circles = plt.Circle(
-                (swarm[index, 0], swarm[index, 1]),
-                radius=Agent_size,
+                (agent[0], agent[1]),
+                radius=agent[7],
                 facecolor=facecolor,
                 edgecolor="g",
                 alpha=0.8,
@@ -79,8 +88,7 @@ def draw_single(swarm, shepherd, boundary: tuple[int], target: tuple[int], MODE)
             #     plt.text(swarm[index, 0] * 1.05, swarm[index, 1] * 1.05, "agent_0", fontsize = 10)
         plt.gca().add_patch(circles)
     plt.quiver(
-        swarm[:, 0],
-        swarm[:, 1],
+        *swarm[:, :2],
         np.cos(swarm[:, 2]),
         np.sin(swarm[:, 2]),
         headwidth=3,
@@ -93,34 +101,36 @@ def draw_single(swarm, shepherd, boundary: tuple[int], target: tuple[int], MODE)
         scale=10,
     )
 
-    # draw shepherd
-    # plt.plot(shepherd[:, 0], shepherd[:, 1], marker='o', color='r', markersize=Agent_size * 2, alpha=0.2)
-    # plt.quiver(shepherd[:, 0], shepherd[:, 1], np.cos(shepherd[:, 2]), np.sin(shepherd[:, 2]), headwidth=3,
-    #            headlength=3, headaxislength=3.5, minshaft=4, minlength=1, color='r', scale_units='inches', scale=10)
-    # draw shepherd and its collect point
-    N_shepherd = shepherd.shape[0]
-    for i in range(N_shepherd):
-        # Shepherd to collect_x/drive_x collect_y/drive_y
+    # draw shepherds
+    # plt.plot(shepherds[:, 0], shepherds[:, 1],
+    #          marker='o', color='r', markersize=Agent_size * 2, alpha=0.2)
+    # plt.quiver(shepherds[:, 0], shepherds[:, 1],
+    #            np.cos(shepherds[:, 2]), np.sin(shepherds[:, 2]), headwidth=3,
+    #            headlength=3, headaxislength=3.5, minshaft=4, minlength=1,
+    #            color='r', scale_units='inches', scale=10)
+    # draw shepherds and its collect point
+    for shepherd in shepherds:
+        # shepherds to collect_x/drive_x collect_y/drive_y
         plt.plot(
-            [shepherd[i][14], shepherd[i][0]],
-            [shepherd[i][15], shepherd[i][1]],
+            [shepherd[14], shepherd[0]],
+            [shepherd[15], shepherd[1]],
             color="cyan",
         )
-        shepherd_state = shepherd[i][13]
+        shepherd_state = shepherd[13]
         if shepherd_state == 1:  # drive mode
             plt.plot(
-                shepherd[i, 0],
-                shepherd[i, 1],
+                shepherd[0],
+                shepherd[1],
                 marker="o",
                 color="r",
-                markersize=Agent_size,
+                markersize=shepherd[7],
                 alpha=0.2,
             )
             plt.quiver(
-                shepherd[i, 0],
-                shepherd[i, 1],
-                np.cos(shepherd[i, 2]),
-                np.sin(shepherd[i, 2]),
+                shepherd[0],
+                shepherd[1],
+                np.cos(shepherd[2]),
+                np.sin(shepherd[2]),
                 headwidth=3,
                 headlength=3,
                 headaxislength=3.5,
@@ -132,18 +142,18 @@ def draw_single(swarm, shepherd, boundary: tuple[int], target: tuple[int], MODE)
             )
         else:
             plt.plot(
-                shepherd[i, 0],
-                shepherd[i, 1],
+                shepherd[0],
+                shepherd[1],
                 marker="o",
                 color="b",
-                markersize=Agent_size,
+                markersize=agent[7],
                 alpha=0.2,
             )
             plt.quiver(
-                shepherd[i, 0],
-                shepherd[i, 1],
-                np.cos(shepherd[i, 2]),
-                np.sin(shepherd[i, 2]),
+                shepherd[0],
+                shepherd[1],
+                np.cos(shepherd[2]),
+                np.sin(shepherd[2]),
                 headwidth=3,
                 headlength=3,
                 headaxislength=3.5,
@@ -159,8 +169,8 @@ def draw_single(swarm, shepherd, boundary: tuple[int], target: tuple[int], MODE)
     plt.plot(center_of_mass_x, center_of_mass_y, "r*", markersize=5)
 
     # Plots the agent being collected.
-    collecting_shepherds = shepherd[shepherd[:, 13] == 0]
-    for agent in collecting_shepherds:
+    collecting_shepherdss = shepherds[shepherds[:, 13] == 0]
+    for agent in collecting_shepherdss:
         collecting_agent = swarm[int(agent[16])]
         plt.plot(
             (agent[0], collecting_agent[0]),
@@ -170,7 +180,7 @@ def draw_single(swarm, shepherd, boundary: tuple[int], target: tuple[int], MODE)
             lw=2,
         )
 
-    match MODE:
+    match mode:
         # draw center of convex hull.
         case 2:
             hull = swarm[swarm[:, 22] != 0]
@@ -188,7 +198,7 @@ def draw_single(swarm, shepherd, boundary: tuple[int], target: tuple[int], MODE)
                 plt.fill(
                     hull[:, 0], hull[:, 1], color="g", linestyle=":", lw=2, fill=False
                 )
-        # Draw the direct line between shepherd and agent it can see.
+        # Draw the direct line between shepherds and agent it can see.
         case 3:
             # Manually calculates entire hull.
             moving_swarm = swarm[swarm[:, 21] == 0]
@@ -205,17 +215,17 @@ def draw_single(swarm, shepherd, boundary: tuple[int], target: tuple[int], MODE)
                 fill=False,
             )
 
-            for i in range(N_shepherd):
+            for i, shepherd in enumerate(shepherds):
                 relevant_swarm = swarm[
                     (swarm[:, 23].view("uint64") & (0b01 << i)) != 0b0
                 ]
                 plt.plot(
                     [
-                        np.repeat(shepherd[i, 0], relevant_swarm.shape[0]),
+                        np.repeat(shepherd[0], relevant_swarm.shape[0]),
                         relevant_swarm[:, 0],
                     ],
                     [
-                        np.repeat(shepherd[i, 1], relevant_swarm.shape[0]),
+                        np.repeat(shepherd[1], relevant_swarm.shape[0]),
                         relevant_swarm[:, 1],
                     ],
                     color="m",
@@ -248,17 +258,17 @@ def draw_single(swarm, shepherd, boundary: tuple[int], target: tuple[int], MODE)
                     fill=False,
                 )
 
-            for i in range(N_shepherd):
+            for shepherd in shepherds:
                 relevant_swarm = swarm[
                     (swarm[:, 23].view("uint64") & (0b01 << i)) != 0b0
                 ]
                 plt.plot(
                     [
-                        np.repeat(shepherd[i, 0], relevant_swarm.shape[0]),
+                        np.repeat(shepherd[0], relevant_swarm.shape[0]),
                         relevant_swarm[:, 0],
                     ],
                     [
-                        np.repeat(shepherd[i, 1], relevant_swarm.shape[0]),
+                        np.repeat(shepherd[1], relevant_swarm.shape[0]),
                         relevant_swarm[:, 1],
                     ],
                     color="m",
@@ -306,17 +316,19 @@ def draw_single(swarm, shepherd, boundary: tuple[int], target: tuple[int], MODE)
 
 
 def draw_dynamic(
-    iterations: int,
-    data_agents: np.ndarray,
-    data_shepherds: np.ndarray,
+    setup: tuple[int, int, int],
+    data: tuple[np.ndarray, np.ndarray],
     space: tuple[int],
     target: tuple[int],
-    L3: int,
-    MODE: int,
     folder_path: str = None,
-    title=None,
 ):
-    N_sheep = data_agents[:, :, 0].shape[0]
+    data_agents: np.ndarray
+    data_shepherds: np.ndarray
+    data_agents, data_shepherds = data
+    iterations: int
+    l3: int
+    mode: int
+    iterations, l3, mode = setup
     plt.figure(figsize=(8, 6), dpi=300)
     plt.ion()
 
@@ -338,10 +350,12 @@ def draw_dynamic(
     def savefig(index: int):
         plt.cla()
         draw_single(
-            data_agents[:, :, index], data_shepherds[:, :, index], space, *target, MODE
+            data_agents[:, :, index], data_shepherds[:, :, index], space, target, mode
         )
 
-        plt.title(f"N_sheep = {N_sheep} | L3 = {L3} | Tick = {index}")
+        plt.title(
+            f"N_sheep = {data_agents[:, :, 0].shape[0]} | L3 = {l3} | Tick = {index}"
+        )
         plt.savefig(f"{folder_path}/{int(index / 100)}.png")
 
     Parallel(n_jobs=DRAW_THREADS)(
@@ -349,32 +363,24 @@ def draw_dynamic(
     )
 
     plt.ioff()
-    return
 
 
 def plot_snapshot(
-    Final_tick,
-    swarm,
-    shepherd,
-    repetition,
-    Boundary_x,
-    Boundary_y,
-    Target_place_x,
-    Target_place_y,
-    Target_size,
-    title=None,
-    filepath=None,
+    experiment: tuple,
+    boundary: tuple[int],
+    target: tuple[int],
+    filepath: str = None,
+    title: str = None,
 ):
+    final_tick, swarm, shepherds, repetition = experiment
     # create folder
     folder_path = os.getcwd() + "/snapshot"
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
     # create figure
     plt.figure(figsize=(8, 6), dpi=300)
-    N_sheep = swarm.shape[0]
-    N_shepherd = shepherd.shape[0]
     # plot sheep
-    for index in range(N_sheep):
+    for index in range(swarm.shape[0]):
         if swarm[index, 21] == 1:
             # staying state
             circles = plt.Circle(
@@ -409,15 +415,15 @@ def plot_snapshot(
         scale_units="inches",
         scale=10,
     )
-    # plot shepherd
+    # plot shepherds
     plt.plot(
-        shepherd[:, 0], shepherd[:, 1], marker="o", color="r", markersize=5, alpha=0.2
+        shepherds[:, 0], shepherds[:, 1], marker="o", color="r", markersize=5, alpha=0.2
     )
     plt.quiver(
-        shepherd[:, 0],
-        shepherd[:, 1],
-        np.cos(shepherd[:, 2]),
-        np.sin(shepherd[:, 2]),
+        shepherds[:, 0],
+        shepherds[:, 1],
+        np.cos(shepherds[:, 2]),
+        np.sin(shepherds[:, 2]),
         headwidth=3,
         headlength=3,
         headaxislength=3.5,
@@ -427,39 +433,40 @@ def plot_snapshot(
         scale_units="inches",
         scale=10,
     )
-    # draw direct line between shepherd
-    for i in range(N_shepherd):
+    # draw direct line between shepherds
+    for shepherd in shepherds:
         plt.plot(
-            [shepherd[i][14], shepherd[i][0]],
-            [shepherd[i][15], shepherd[i][1]],
+            [shepherd[14], shepherd[0]],
+            [shepherd[15], shepherd[1]],
             color="cyan",
         )
 
     center_of_mass_x, center_of_mass_y = calculate_mass_center(swarm)
 
     plt.plot(center_of_mass_x, center_of_mass_y, "r*", markersize=5)
-    plt.plot(Target_place_x, Target_place_y, "b*")
+    plt.plot(*target[:2], "b*")
     target_circle = plt.Circle(
-        (Target_place_x, Target_place_y),
-        radius=Target_size,
+        target[:2],
+        radius=target[-1],
         facecolor="none",
         edgecolor="b",
         alpha=0.5,
     )
     plt.gca().add_patch(target_circle)
 
-    plt.xlim(xmin=-100, xmax=Boundary_x)
-    plt.ylim(ymin=-100, ymax=Boundary_y)
+    plt.xlim(xmin=-100, xmax=boundary[0])
+    plt.ylim(ymin=-100, ymax=boundary[1])
 
     if title is None:
-        title = f"Ns = {N_sheep} | N = {N_shepherd} | tick = {Final_tick} | R = {repetition}"
+        title = (
+            f"Ns = {swarm.shape[0]} | N = {shepherds.shape[0]} | "
+            + f"tick = {final_tick} | R = {repetition}"
+        )
     plt.title(title)
 
     if filepath is None:
-        filepath = f"{folder_path}/N_sheep={N_sheep}_N_shepherd={N_shepherd}_repetition={repetition}.png"
+        filepath = f"{folder_path}/N_sheep={swarm.shape[0]}_N_shepherds={shepherds.shape[0]}_repetition={repetition}.png"
     plt.savefig(filepath)
-
-    return
 
 
 # ffmpeg -framerate 10 -start_number 0 -i %d.png -c:v libx264 -r 30 -pix_fmt yuv420p output.mp4
