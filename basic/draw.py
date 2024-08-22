@@ -146,6 +146,7 @@ def draw_single(
                 if moving_swarm.shape[0] > 2
                 else np.arange(moving_swarm.shape[0])
             )
+            # Plots the convex hull.
             plt.fill(
                 moving_swarm[hull, 0],
                 moving_swarm[hull, 1],
@@ -154,7 +155,7 @@ def draw_single(
                 lw=2,
                 fill=False,
             )
-
+            # Plots the hull agents visible to each shepherd.
             for i, shepherd in enumerate(shepherds):
                 relevant_swarm = swarm[
                     (swarm[:, 23].view("uint64") & (0b01 << i)) != 0b0
@@ -266,16 +267,21 @@ def draw_dynamic(
         @param target: Target location.
         @param folder_path: Where to store rendered images.
     """
+    # Unpacks setup variables for easier use.
     iterations: int
     l3: int
     mode: int
     iterations, l3, mode = setup
+    # Unpacks data for easier use.
     data_agents: np.ndarray
     data_shepherds: np.ndarray
     data_agents, data_shepherds = data
+
+    # Creates the figure.
     plt.figure(figsize=(8, 6), dpi=300)
     plt.ion()
 
+    # Default folder path.
     if folder_path is None:
         folder_path: str = f"{os.getcwd()}/images"
 
@@ -283,6 +289,7 @@ def draw_dynamic(
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
 
+    # Deletes all previous images in the folder.
     file_list = os.listdir(folder_path)
     for file_name in file_list:
         file_path = os.path.join(folder_path, file_name)
@@ -291,6 +298,7 @@ def draw_dynamic(
             if file_ext.lower() in [".png", ".mp4"]:
                 os.remove(file_path)
 
+    # Draws each frame.
     def savefig(index: int):
         plt.cla()
         draw_single(
@@ -302,6 +310,7 @@ def draw_dynamic(
         )
         plt.savefig(f"{folder_path}/{int(index / 100)}.png")
 
+    # Draws each frame in parallel.
     Parallel(n_jobs=DRAW_THREADS)(
         delayed(savefig)(index) for index in range(0, iterations, 100)
     )
