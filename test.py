@@ -44,7 +44,7 @@ NUM_NEAREST_NEIGHBOR = 5
 
 # Defines where to save the results.
 cur_dir = os.path.dirname(os.path.realpath(__file__))
-res_dir = f"{cur_dir}/results/morphology_attraction_naïve/{MODE}"
+res_dir = f"{cur_dir}/results/fence/{MODE}"
 
 
 # Function seeds numpy rng in numba code.
