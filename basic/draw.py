@@ -8,6 +8,7 @@ import numpy as np
 from scipy.spatial import ConvexHull
 import matplotlib.pyplot as plt
 from matplotlib import patches
+from cycler import cycler
 from joblib import Parallel, delayed
 
 from basic import DRAW_THREADS, FENCE
@@ -39,48 +40,35 @@ def calculate_mass_center(agents: np.ndarray):
     return sum_x, sum_y
 
 
-def draw_network(swarm):
-    # draw_network
-    N = swarm.shape[0]
-    for i in range(N):
-        for j in range(N):
-            if map[i, j] == 1:
-                plt.plot(
-                    [swarm[i][0], swarm[j][0]],
-                    [swarm[i][1], swarm[j][1]],
-                    linewidth=1,
-                    color="g",
-                    alpha=0.4,
-                )  # '#e6e6fa'
-
-
 # @nb.jit(nopython=True)
-def draw_single(swarm, shepherds, boundary: tuple[int], target: tuple[int], mode: int):
+def draw_single(
+    swarm, shepherds, boundary: tuple[int, int], target: tuple[int, int], mode: int
+):
     """
     Draws one frame of the simulation.
     Args:
         @param swarm: The flock agents at this point in time.
-        @param shepherds: The shepherds
+        @param shepherds: The shepherds at this point in time.
+        @param boundary: Max x and y to draw.
+        @param target: Target location.
+        @param mode: What mode the sim is from.
     """
-    # draw sheep
-    agent_size: float = agent[0][1]
+    # Draw sheep
     for agent in swarm:
-        # Determines edge color based on if the sheep is in the hull or not.
-        circles = plt.Circle(
-            (agent[0], agent[1]),
-            radius=agent_size,
-            facecolor=(
-                "g" if agent[22] != 0 and agent[21] != 1 else "none"
-            ),  # Color face if in hull
-            edgecolor="b" if agent[21] == 1 else "g",  # Blue if staying
-            alpha=0.8,
-            lw=0.5,
+        plt.gca().add_patch(
+            plt.Circle(
+                (agent[0], agent[1]),
+                radius=swarm[0, 7],
+                facecolor=(
+                    "g" if agent[22] != 0 and agent[21] != 1 else "none"
+                ),  # Color face if in hull
+                edgecolor="b" if agent[21] == 1 else "g",  # Blue if staying
+                alpha=0.8,
+                lw=0.5,
+            )
         )
-        # if index == 0:
-        #     plt.text(swarm[index, 0] * 1.05, swarm[index, 1] * 1.05, "agent_0", fontsize = 10)
-        plt.gca().add_patch(circles)
     plt.quiver(
-        *swarm[:, :2],
+        *(swarm[:, :2].T),
         np.cos(swarm[:, 2]),
         np.sin(swarm[:, 2]),
         headwidth=3,
@@ -94,25 +82,18 @@ def draw_single(swarm, shepherds, boundary: tuple[int], target: tuple[int], mode
     )
 
     # draw shepherds and its collect point
-    for shepherd in shepherds:
-        # shepherds to collect_x/drive_x collect_y/drive_y
-        plt.plot(
-            [shepherd[14], shepherd[0]],
-            [shepherd[15], shepherd[1]],
-            color="cyan",
-        )
-
-        # Plots collect vs drive mode.
-        plt.plot(
-            shepherd[:2],
-            marker="o",
-            color="r" if shepherd[13] == 1 else "b",
-            markersize=agent_size,
-            alpha=0.2,
-        )
-        # Plots orientation of movement.
+    # shepherds to collect_x/drive_x collect_y/drive_y
+    plt.plot(shepherds[:, (14, 0)].T, shepherds[:, (15, 1)].T, color="cyan")
+    # Plots collect vs drive mode.
+    plt.plot(
+        *(shepherds[:, :2].T),
+        *((np.where(shepherds[:, 13] == 1, "r", "b")) + "o"),
+        markersize=swarm[0, 7],
+        alpha=0.2,
+    )
+    # Plots orientation of movement.
     plt.quiver(
-        *shepherds[:, :2],
+        *(shepherds[:, :2].T),
         np.cos(shepherds[:, 2]),
         np.sin(shepherds[:, 2]),
         headwidth=3,
@@ -125,13 +106,11 @@ def draw_single(swarm, shepherds, boundary: tuple[int], target: tuple[int], mode
         scale=10,
     )
 
-    # draw center of mass
-    center_of_mass_x, center_of_mass_y = calculate_mass_center(swarm)
-    plt.plot(center_of_mass_x, center_of_mass_y, "r*", markersize=5)
+    # Draw center of mass
+    plt.plot(*calculate_mass_center(swarm), "r*", markersize=5)
 
     # Plots the agent being collected.
-    collecting_shepherdss = shepherds[shepherds[:, 13] == 0]
-    for agent in collecting_shepherdss:
+    for agent in shepherds[shepherds[:, 13] == 0]:
         collecting_agent = swarm[int(agent[16])]
         plt.plot(
             (agent[0], collecting_agent[0]),
@@ -150,10 +129,9 @@ def draw_single(swarm, shepherds, boundary: tuple[int], target: tuple[int], mode
                 hull = hull[np.argsort(hull[:, 22])]
 
                 # Calculates and plots the center of the hull.
-                center_of_hull_x, center_of_hull_y = np.mean(hull[:, 0]), np.mean(
-                    hull[:, 1]
+                plt.plot(
+                    np.mean(hull[:, 0]), np.mean(hull[:, 1]), "k*", markersize=5
                 )
-                plt.plot(center_of_hull_x, center_of_hull_y, "k*", markersize=5)
 
                 # Draws the convex hull.
                 plt.fill(
@@ -163,10 +141,11 @@ def draw_single(swarm, shepherds, boundary: tuple[int], target: tuple[int], mode
         case 3:
             # Manually calculates entire hull.
             moving_swarm = swarm[swarm[:, 21] == 0]
-            if moving_swarm.shape[0] > 2:
-                hull = ConvexHull(moving_swarm[:, :2]).vertices
-            else:
-                hull = np.arange(moving_swarm.shape[0])
+            hull = (
+                ConvexHull(moving_swarm[:, :2]).vertices
+                if moving_swarm.shape[0] > 2
+                else np.arange(moving_swarm.shape[0])
+            )
             plt.fill(
                 moving_swarm[hull, 0],
                 moving_swarm[hull, 1],
@@ -194,11 +173,9 @@ def draw_single(swarm, shepherds, boundary: tuple[int], target: tuple[int], mode
                     alpha=0.25,
                 )
                 # draw center of visible sheep. If no visible sheep it assumes self as CoM.
-                center_of_visible_sheep_x = np.mean(relevant_swarm[:, 0])
-                center_of_visible_sheep_y = np.mean(relevant_swarm[:, 1])
                 plt.plot(
-                    center_of_visible_sheep_x,
-                    center_of_visible_sheep_y,
+                    np.mean(relevant_swarm[:, 0]),
+                    np.mean(relevant_swarm[:, 1]),
                     "m*",
                     markersize=5,
                 )
@@ -237,21 +214,18 @@ def draw_single(swarm, shepherds, boundary: tuple[int], target: tuple[int], mode
                     alpha=0.25,
                 )
                 # draw center of visible sheep. If no visible sheep it assumes self as CoM.
-                center_of_visible_sheep_x = np.mean(relevant_swarm[:, 0])
-                center_of_visible_sheep_y = np.mean(relevant_swarm[:, 1])
                 plt.plot(
-                    center_of_visible_sheep_x,
-                    center_of_visible_sheep_y,
+                    np.mean(relevant_swarm[:, 0]),
+                    np.mean(relevant_swarm[:, 1]),
                     "m*",
                     markersize=5,
                 )
 
     # draw target center
     plt.plot(*target[:2], "b*")
-    target_circle = plt.Circle(
+    plt.gca().add_patch(plt.Circle(
         target[:2], radius=target[-1], facecolor="none", edgecolor="b", alpha=0.5
-    )
-    plt.gca().add_patch(target_circle)
+    ))
     plt.xlim(xmin=-boundary[0] // 4, xmax=boundary[0])
     plt.ylim(ymin=-boundary[1] // 4, ymax=boundary[1])
     # draw gate to the fence.
@@ -262,7 +236,8 @@ def draw_single(swarm, shepherds, boundary: tuple[int], target: tuple[int], mode
         # Converts to degrees. Rotates becaue theta = 0 is down, instead of right.
         theta_1 = np.degrees(theta_1) - 90
         theta_2 = np.degrees(theta_2) - 90
-        fence = patches.Arc(
+        # Draws arc that represents the gate.
+        plt.gca().add_patch(patches.Arc(
             target[:2],
             2 * target[-1],
             2 * target[-1],
@@ -270,8 +245,7 @@ def draw_single(swarm, shepherds, boundary: tuple[int], target: tuple[int], mode
             theta2=theta_2,
             color="r",
             lw=2,
-        )
-        plt.gca().add_patch(fence)
+        ))
     # plt.axis('equal')
     # plt.axis('square')
 
@@ -283,13 +257,22 @@ def draw_dynamic(
     target: tuple[int],
     folder_path: str = None,
 ):
-    data_agents: np.ndarray
-    data_shepherds: np.ndarray
-    data_agents, data_shepherds = data
+    """
+    Draws frames of an experiment run.
+    Args:
+        @param setup: Number of ticks calculated, l3, and mode run in that order.
+        @param data: All agents across time, all shepherds across time.
+        @param space: Boundary of visualization.
+        @param target: Target location.
+        @param folder_path: Where to store rendered images.
+    """
     iterations: int
     l3: int
     mode: int
     iterations, l3, mode = setup
+    data_agents: np.ndarray
+    data_shepherds: np.ndarray
+    data_agents, data_shepherds = data
     plt.figure(figsize=(8, 6), dpi=300)
     plt.ion()
 
@@ -336,7 +319,7 @@ def plot_snapshot(
     """
     Plots ending state of the experiment
     Args:
-        @param experiment: Experiment setup. Gives final_tick, the swarm state, 
+        @param experiment: Experiment setup. Gives final_tick, the swarm state,
         the shepherd state, and the seed (repetition) in that order.
         @param boundary: x and y boundary to plot.
         @param target: x and y of the target area.
@@ -355,20 +338,20 @@ def plot_snapshot(
     # create figure
     plt.figure(figsize=(8, 6), dpi=300)
     # plot sheep
-    for agent in swarm:
-        # moving state
-        circles = plt.Circle(
-            agent[:2],
+    plt.gca().add_patch(
+        plt.Circle(
+            swarm[:, :2],
             radius=2.5,
             facecolor="none",
-            edgecolor="b" if agent[21] == 1 else "g",  # colors edges based on if
-            # they are staying or not.
             alpha=0.8,
+            prop_cycle=cycler(  # colors edges based on if they are staying or not.
+                edgecolor=np.where(swarm[:, 21] == 1, "b", "g")
+            ),
         )
-        plt.gca().add_patch(circles)
-    # add arrow
+    )
+    # Add arrow for orientation.
     plt.quiver(
-        *swarm[:, :2],
+        *(swarm[:, :2].T),
         np.cos(swarm[:, 2]),
         np.sin(swarm[:, 2]),
         headwidth=3,
@@ -381,12 +364,9 @@ def plot_snapshot(
         scale=10,
     )
     # plot shepherds
-    plt.plot(
-        shepherds[:, 0], shepherds[:, 1], marker="o", color="r", markersize=5, alpha=0.2
-    )
+    plt.plot(*(shepherds[:, :2].T), marker="o", color="r", markersize=5, alpha=0.2)
     plt.quiver(
-        shepherds[:, 0],
-        shepherds[:, 1],
+        *(shepherds[:, :2].T),
         np.cos(shepherds[:, 2]),
         np.sin(shepherds[:, 2]),
         headwidth=3,
@@ -406,9 +386,9 @@ def plot_snapshot(
             color="cyan",
         )
 
-    center_of_mass_x, center_of_mass_y = calculate_mass_center(swarm)
+    center_of_mass: tuple[int, int] = calculate_mass_center(swarm)
 
-    plt.plot(center_of_mass_x, center_of_mass_y, "r*", markersize=5)
+    plt.plot(*center_of_mass, "r*", markersize=5)
     plt.plot(*target[:2], "b*")
     target_circle = plt.Circle(
         target[:2],

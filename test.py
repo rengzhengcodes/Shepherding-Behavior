@@ -114,13 +114,10 @@ def run_mode(rep: int, evolver: callable, terminator: callable, summarizer: call
     # Draws the results.
     if DRAW:
         draw_dynamic(
-            final_tick,
-            data_agents,
-            data_shepherds,
+            (final_tick, results["L3"], MODE),
+            (data_agents, data_shepherds),
             (results["BOUNDARY_X"], results["BOUNDARY_Y"]),
             (results["TARGET_X"], results["TARGET_Y"], results["TARGET_SIZE"]),
-            results["L3"],
-            MODE=MODE,
             folder_path=f"{res_dir}/repetition_{rep}",
         )
         # Runs the ffmpeg command to create a video.
