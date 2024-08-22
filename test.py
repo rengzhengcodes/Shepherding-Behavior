@@ -164,7 +164,7 @@ def run_target(rep: int):
 
     def evolver(agents, shepherds, *args, **kwargs):
         del args, kwargs
-        return evolve(agents, shepherds, *TARGET[:2], TARGET_SIZE)
+        return evolve(agents, shepherds, *TARGET)
 
     def terminator(agents, shepherds, *args, **kwargs):
         del shepherds, args, kwargs
