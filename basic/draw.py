@@ -147,9 +147,15 @@ def draw_single(swarm, shepherd, Boundary_x, Boundary_y, Target_place_x, Target_
     plt.gca().add_patch(target_circle)
     plt.xlim(xmin=-Boundary_x//4, xmax=Boundary_x)
     plt.ylim(ymin=-Boundary_y//4, ymax=Boundary_y)
-    # draw fence
+    # draw gate to the fence.
     if FENCE:
-        fence = patches.Arc((Target_place_x, Target_place_y), 2 * Target_size, 2 * Target_size, theta1=FENCE_MIDDLE_ANGLE - GATE_ANGULAR_WIDTH / 2, theta2=FENCE_MIDDLE_ANGLE + GATE_ANGULAR_WIDTH / 2, color='r', lw=2)
+        # Calculate the angles of the fence.
+        theta_1: float = FENCE_MIDDLE_ANGLE - GATE_ANGULAR_WIDTH / 2
+        theta_2: float = FENCE_MIDDLE_ANGLE + GATE_ANGULAR_WIDTH / 2
+        # Converts to degrees. Rotates becaue theta = 0 is down, instead of right.
+        theta_1 = np.degrees(theta_1) - 90
+        theta_2 = np.degrees(theta_2) - 90
+        fence = patches.Arc((Target_place_x, Target_place_y), 2 * Target_size, 2 * Target_size, theta1=theta_1, theta2=theta_2, color='r', lw=2)
         plt.gca().add_patch(fence)
     # plt.axis('equal')
     # plt.axis('square')
