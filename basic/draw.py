@@ -316,9 +316,8 @@ def draw_dynamic(
         plt.savefig(f"{folder_path}/{int(index / 100)}.png")
 
     # Draws each frame in parallel.
-    Parallel(n_jobs=DRAW_THREADS)(
-        delayed(savefig)(index) for index in range(0, iterations, 100)
-    )
+    for index in range(0, iterations, 100):
+        savefig(index)
 
     plt.ioff()
 
