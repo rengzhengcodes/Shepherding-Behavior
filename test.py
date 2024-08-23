@@ -22,7 +22,7 @@ from basic.draw import draw_dynamic
 from basic import MODE, MORPHOLOGY, TARGET_X, TARGET_Y, TARGET_SIZE, TARGET
 
 THREADS = -1
-DRAW = True
+DRAW = False
 
 N_SHEEP = 300
 N_SHEPHERD = 3
@@ -37,7 +37,7 @@ TICK = 1000
 ITERATIONS = 200000
 
 L3 = np.sqrt(N_SHEEP / N_SHEPHERD) * 5  # average flock radius per shepherd
-REPS = 1
+REPS = 1000
 seeds = range(REPS)
 
 NUM_NEAREST_NEIGHBOR = 5
