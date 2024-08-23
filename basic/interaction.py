@@ -239,9 +239,7 @@ def get_fence_force(
             if np.linalg.norm(f_fence_on_sheep[i]) > 1e5:
                 f_fence_on_sheep[i] = 1e5 * vec
             # Assert the force is not nan or inf.
-            assert np.all((f_fence_on_sheep[i] != np.nan) & 
-                          (np.abs(f_fence_on_sheep[i]) != np.inf)
-                          ), f"Force: {f_fence_on_sheep[i]}"
+            assert np.all(np.isfinite(f_fence_on_sheep[i])), f"Force: {f_fence_on_sheep[i]}"
 
     # Calculates the repulsion force between the shepherds and the fence.
     affected_shepherds: np.ndarray = np.logical_not(
@@ -267,9 +265,7 @@ def get_fence_force(
             if np.linalg.norm(f_fence_on_shepherds[i]) > 1e5:
                 f_fence_on_shepherds[i] = 1e5 * vec
             # Assert the force is not nan or inf.
-            assert np.all((f_fence_on_shepherds[i] != np.nan) & 
-                          (np.abs(f_fence_on_shepherds[i]) != np.inf)
-                          ), f"Force: {f_fence_on_shepherds[i]}"
+            assert np.all(np.isfinite(f_fence_on_shepherds[i])), f"Force: {f_fence_on_shepherds[i]}"
 
     return f_fence_on_sheep, f_fence_on_shepherds
 
