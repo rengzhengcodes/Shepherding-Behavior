@@ -261,7 +261,7 @@ def get_fence_force(
             vec = vec / np.linalg.norm(vec)
             # Calculate the repulsion force.
             f_fence_on_shepherds[i] = (
-                (K_FENCE / (shepherd_dist[i] - target[-1]) ** 2) * vec
+                (K_FENCE / (shepherd_dist[i] - target[-1])) * vec
             )
             # Force should not be infinite, cap it.
             if np.linalg.norm(f_fence_on_shepherds[i]) > 1e5:
