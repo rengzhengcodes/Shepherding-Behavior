@@ -227,12 +227,21 @@ def get_fence_force(
     f_fence_on_sheep: np.ndarray = np.zeros((agents.shape[0], 2))
     for i in range(agents.shape[0]):
         if affected_agents[i]:
+            # Direction of repulsion (normal to fence).
             vec: np.ndarray = fence - agents[i, :2]
+            # Unit vector in the direction of the fence.
+            vec = vec / np.linalg.norm(vec)
+            # Calculate the repulsion force.
             f_fence_on_sheep[i] = (
-                (K_FENCE / (agent_dist[i] - target[-1]) ** 2)
-                * (vec)
-                / np.linalg.norm(vec)
+                (K_FENCE / (agent_dist[i] - target[-1])) * vec
             )
+            # Force should not be infinite, cap it.
+            if np.linalg.norm(f_fence_on_sheep[i]) > 1e5:
+                f_fence_on_sheep[i] = 1e5 * vec
+            # Assert the force is not nan or inf.
+            assert np.all((f_fence_on_sheep[i] != np.nan) & 
+                          (np.abs(f_fence_on_sheep[i]) != np.inf)
+                          ), f"Force: {f_fence_on_sheep[i]}"
 
     # Calculates the repulsion force between the shepherds and the fence.
     affected_shepherds: np.ndarray = np.logical_not(
@@ -248,12 +257,21 @@ def get_fence_force(
     f_fence_on_shepherds: np.ndarray = np.zeros((shepherds.shape[0], 2))
     for i in range(shepherds.shape[0]):
         if affected_shepherds[i]:
+            # Vector parallel to the repulsion force (normal from fence).
             vec: np.ndarray = fence - shepherds[i, :2]
+            # Unit vector in the direction of the fence.
+            vec = vec / np.linalg.norm(vec)
+            # Calculate the repulsion force.
             f_fence_on_shepherds[i] = (
-                (K_FENCE / (shepherd_dist[i] - target[-1]) ** 2)
-                * (vec)
-                / np.linalg.norm(vec)
+                (K_FENCE / (shepherd_dist[i] - target[-1]) ** 2) * vec
             )
+            # Force should not be infinite, cap it.
+            if np.linalg.norm(f_fence_on_shepherds[i]) > 1e5:
+                f_fence_on_shepherds[i] = 1e5 * vec
+            # Assert the force is not nan or inf.
+            assert np.all((f_fence_on_shepherds[i] != np.nan) & 
+                          (np.abs(f_fence_on_shepherds[i]) != np.inf)
+                          ), f"Force: {f_fence_on_shepherds[i]}"
 
     return f_fence_on_sheep, f_fence_on_shepherds
 
