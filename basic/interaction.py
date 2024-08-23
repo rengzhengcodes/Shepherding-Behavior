@@ -234,14 +234,13 @@ def get_fence_force(
             # Unit vector in the direction of the fence.
             vec = vec / np.linalg.norm(vec)
             # Calculate the repulsion force.
-            f_fence_on_sheep[i] = (
-                (K_FENCE / (agent_dist[i] - target[-1])) * vec
-            )
+            f_fence_on_sheep[i] = (K_FENCE / (agent_dist[i] - target[-1])) * vec
             # Force should not be infinite, cap it.
             if np.linalg.norm(f_fence_on_sheep[i]) > f_max:
                 f_fence_on_sheep[i] = f_max * vec
             # Assert the force is not nan or inf.
-            # assert np.all(np.isfinite(f_fence_on_sheep[i])), f"Force: {f_fence_on_sheep[i]}"
+            # assert (np.all(np.isfinite(f_fence_on_sheep[i])), 
+            # f"Force: {f_fence_on_sheep[i]}")
 
     # Calculates the repulsion force between the shepherds and the fence.
     affected_shepherds: np.ndarray = np.logical_not(
@@ -260,14 +259,13 @@ def get_fence_force(
             # Unit vector in the direction of the fence.
             vec = vec / np.linalg.norm(vec)
             # Calculate the repulsion force.
-            f_fence_on_shepherds[i] = (
-                (K_FENCE / (shepherd_dist[i] - target[-1])) * vec
-            )
+            f_fence_on_shepherds[i] = (K_FENCE / (shepherd_dist[i] - target[-1])) * vec
             # Force should not be infinite, cap it.
             if np.linalg.norm(f_fence_on_shepherds[i]) > f_max:
                 f_fence_on_shepherds[i] = f_max * vec
             # Assert the force is not nan or inf.
-            # assert np.all(np.isfinite(f_fence_on_shepherds[i])), f"Force: {f_fence_on_shepherds[i]}"
+            # assert (np.all(np.isfinite(f_fence_on_shepherds[i])), 
+            # f"Force: {f_fence_on_shepherds[i]}")
 
     return f_fence_on_sheep, f_fence_on_shepherds
 
