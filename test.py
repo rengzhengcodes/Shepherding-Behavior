@@ -113,6 +113,7 @@ def run_mode(rep: int, evolver: callable, terminator: callable, summarizer: call
 
     # Draws the results.
     if DRAW:
+        print(f"Drawing repetition {rep}")
         draw_dynamic(
             (final_tick, results["L3"], MODE),
             (data_agents, data_shepherds),
