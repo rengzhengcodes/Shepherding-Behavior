@@ -2,15 +2,18 @@
 Contains all the driving algorithms for the shepherds in the simulation, along
 with their helper functions.
 """
+
 import numba as nb
 import numpy as np
 from scipy.spatial import ConvexHull
 from .. import DEBUG
 
+
 @nb.jit(nopython=not DEBUG)
 def get_relative_distance_angle(
     vector_head_x, vector_head_y, vector_end_x, vector_end_y
 ):
+    """Gets the relative distance and angle, with 0 degrees being i_hat."""
     r_x = vector_head_x - vector_end_x
     r_y = vector_head_y - vector_end_y
     r_length = np.sqrt(r_x**2 + r_y**2)
@@ -20,6 +23,7 @@ def get_relative_distance_angle(
 
 @nb.jit(nopython=not DEBUG)
 def calculate_mass_center(agents):
+    """Calculates the mass center of the moving agents."""
     sum_x = 0
     sum_y = 0
     n = 0  # number of agents in moving state;
@@ -37,6 +41,10 @@ def calculate_mass_center(agents):
 
 @nb.jit(nopython=not DEBUG)
 def drive_the_herd(agents, shepherd_x, shepherd_y, target_x, target_y):
+    """
+    Drives the herd towards the target using the center of mass model described
+    in Yating's paper.
+    """
     # get the center of only moving mass, not concluding the staying mass;
     num_agents_moving, center_of_mass_x, center_of_mass_y = calculate_mass_center(
         agents
@@ -76,6 +84,11 @@ def drive_the_herd(agents, shepherd_x, shepherd_y, target_x, target_y):
 def drive_the_herd_using_convex_hull(
     agents, shepherd_x, shepherd_y, target_x, target_y
 ):
+    """
+    Drives the herd ina  method similar to Yating's paper, but using the center 
+    of the convex hull of the flock (estimated through the average of the vertices
+    of the convex hull) instead of the center of mass.
+    """
     # Gets the precalculated convex hull of the flock.
     hull = np.where(agents[:, 22] != 0)[0]
 
@@ -122,6 +135,11 @@ def drive_the_herd_using_convex_hull(
 def drive_the_herd_using_visible_convex_hull(
     agents, shepherd_x, shepherd_y, shepherd_index, target_x, target_y
 ):
+    """
+    Drives the herd using the average of the positions of the visible convex hull
+    vertices of the flock to the shepherd. l1_new is decreased as the estimated
+    center of mass is closer to the edge of the flock.
+    """
     # Calculate the convex hull of the flock not staying.
     roaming_agents = agents[agents[:, 21] == 0]
     sheperd_and_sheep_coordinates = np.concatenate(
@@ -220,6 +238,9 @@ def drive_the_herd_using_visible_convex_hull(
 def drive_the_herd_using_subflock_convex_hulls(
     agents, shepherd_x, shepherd_y, shepherd_index, target_x, target_y
 ):
+    """
+    Drives the herd using the visible convex hull method on the nearest subflock.
+    """
     # Goes through every flock and calculates the visible hull agents.
     visible_hulls_section = np.zeros(0, dtype="int64")
     # Calculates the number of flocks.
@@ -311,5 +332,3 @@ def drive_the_herd_using_subflock_convex_hulls(
         center_of_hull_y,
         visible_hulls_section,
     )
-
-
