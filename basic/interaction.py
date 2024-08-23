@@ -20,13 +20,6 @@ from .herd.forces import (
 )
 from .herd.driver import *
 
-if FENCE:
-    from . import K_FENCE, FENCE_MIDDLE_ANGLE, GATE_ANGULAR_WIDTH
-else:
-    K_FENCE = 0
-    FENCE_MIDDLE_ANGLE = 0
-    GATE_ANGULAR_WIDTH = 2 * np.pi
-
 
 @nb.jit(nopython=not DEBUG)
 def transform_angle(theta):  # [-pi, pi]

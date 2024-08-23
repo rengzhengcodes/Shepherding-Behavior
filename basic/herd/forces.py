@@ -4,7 +4,11 @@ Calculates the social forces for the herding problem.
 
 import numpy as np
 import numba as nb
-from .. import DEBUG, FENCE_MIDDLE_ANGLE, GATE_ANGULAR_WIDTH, K_FENCE
+from .. import DEBUG, FENCE, FENCE_MIDDLE_ANGLE, GATE_ANGULAR_WIDTH, K_FENCE
+if not FENCE:
+    K_FENCE = 0
+    FENCE_MIDDLE_ANGLE = 0
+    GATE_ANGULAR_WIDTH = 2 * np.pi
 
 
 @nb.jit(nopython=not DEBUG)
