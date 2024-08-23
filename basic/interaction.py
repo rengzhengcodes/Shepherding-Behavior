@@ -12,7 +12,12 @@ from basic.vision_functions import (
     collect_the_herd_using_vision,
 )
 from . import MODE, MORPHOLOGY, TARGET, FENCE, DEBUG
-from herd.forces import get_attraction_force, get_repulsion_force, get_shepherd_force, get_fence_force
+from herd.forces import (
+    get_attraction_force,
+    get_repulsion_force,
+    get_shepherd_force,
+    get_fence_force,
+)
 
 if FENCE:
     from . import K_FENCE, FENCE_MIDDLE_ANGLE, GATE_ANGULAR_WIDTH
