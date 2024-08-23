@@ -143,7 +143,7 @@ def get_fence_force(
         f_fence_force_y: The y-component of the repulsion force.
     """
     # Cutoff force
-    f_max: float = 5e3
+    f_max: float = 5e2
     # Calculates the distance between the agents and the fence.
     agent_dist: np.ndarray = np.array(
         [np.linalg.norm(agents[i, :2] - fence) for i in range(agents.shape[0])]
