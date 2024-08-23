@@ -6,6 +6,7 @@ import numpy as np
 import numba as nb
 from .. import DEBUG, FENCE_MIDDLE_ANGLE, GATE_ANGULAR_WIDTH, K_FENCE
 
+
 @nb.jit(nopython=not DEBUG)
 def get_attraction_force(
     agents: np.ndarray,
@@ -97,32 +98,22 @@ def get_shepherd_force(agents, shepherd):
         f_shepherd_force_y: The y-component of the repulsion force.
     """
     num_shepherd_avoid = np.zeros(agents.shape[0])
-    f_shepherd_force_x = np.zeros(agents.shape[0])
-    f_shepherd_force_y = np.zeros(agents.shape[0])
+    f_shepherd_force = np.zeros((agents.shape[0], 2))
 
     safe_distance = agents[0][17]  # safe_distance
     for agent_index in range(agents.shape[0]):
-        agent_x = agents[agent_index][0]
-        agent_y = agents[agent_index][1]
-        r_x = 0
-        r_y = 0
-        num_shepherd = 0
+        agent_pos: np.ndarray = agents[agent_index][:2]
+        r_pos: np.ndarray = np.zeros(2)
+        num_shepherd: int = 0
         for shepherd_index in range(shepherd.shape[0]):
-            shepherd_x = shepherd[shepherd_index][0]
-            shepherd_y = shepherd[shepherd_index][1]
-            distance = np.sqrt(
-                (agent_x - shepherd_x) ** 2 + (agent_y - shepherd_y) ** 2
-            )
+            shepherd_pos: np.ndarray = shepherd[shepherd_index][:2]
+            distance = np.linalg.norm(agent_pos - shepherd_pos)
             if distance <= safe_distance and distance != 0.0:
                 num_shepherd = num_shepherd + 1
-                r_x = (
-                    r_x + (agent_x - shepherd_x) / distance
-                )  # unit vector  ?? check distance == 0 ?
-                r_y = r_y + (agent_y - shepherd_y) / distance  # unit vector
+                r_pos = r_pos + (agent_pos - shepherd_pos) / distance
         num_shepherd_avoid[agent_index] = num_shepherd
-        f_shepherd_force_x[agent_index] = r_x
-        f_shepherd_force_y[agent_index] = r_y
-    return num_shepherd_avoid, f_shepherd_force_x, f_shepherd_force_y
+        f_shepherd_force[agent_index] = r_pos
+    return num_shepherd_avoid, *f_shepherd_force.T
 
 
 @nb.jit(nopython=not DEBUG)
@@ -190,7 +181,7 @@ def get_fence_force(
             if np.linalg.norm(f_fence_on_sheep[i]) > f_max:
                 f_fence_on_sheep[i] = f_max * vec
             # Assert the force is not nan or inf.
-            # assert (np.all(np.isfinite(f_fence_on_sheep[i])), 
+            # assert (np.all(np.isfinite(f_fence_on_sheep[i])),
             # f"Force: {f_fence_on_sheep[i]}")
 
     # Calculates the repulsion force between the shepherds and the fence.
@@ -215,7 +206,7 @@ def get_fence_force(
             if np.linalg.norm(f_fence_on_shepherds[i]) > f_max:
                 f_fence_on_shepherds[i] = f_max * vec
             # Assert the force is not nan or inf.
-            # assert (np.all(np.isfinite(f_fence_on_shepherds[i])), 
+            # assert (np.all(np.isfinite(f_fence_on_shepherds[i])),
             # f"Force: {f_fence_on_shepherds[i]}")
 
     return f_fence_on_sheep, f_fence_on_shepherds
