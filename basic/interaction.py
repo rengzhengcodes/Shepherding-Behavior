@@ -252,8 +252,6 @@ def get_fence_force(
     ) & (  # Shepherds within the fence's range.
         shepherd_dist <= target[-1] + 3 * shepherds[:, 7]
     )
-    # Casts the affected shepherds to a 2D array.
-    affected_shepherds: np.ndarray = np.expand_dims(affected_shepherds, axis=1)
     f_fence_on_shepherds: np.ndarray = np.zeros((shepherds.shape[0], 2))
     for i in range(shepherds.shape[0]):
         if affected_shepherds[i]:
