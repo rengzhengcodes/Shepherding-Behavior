@@ -195,6 +195,8 @@ def get_fence_force(
         f_fence_force_x: The x-component of the repulsion force.
         f_fence_force_y: The y-component of the repulsion force.
     """
+    # Cutoff force
+    f_max: float = 1e3
     # Calculates the distance between the agents and the fence.
     agent_dist: np.ndarray = np.array(
         [np.linalg.norm(agents[i, :2] - fence) for i in range(agents.shape[0])]
@@ -236,8 +238,8 @@ def get_fence_force(
                 (K_FENCE / (agent_dist[i] - target[-1])) * vec
             )
             # Force should not be infinite, cap it.
-            if np.linalg.norm(f_fence_on_sheep[i]) > 1e5:
-                f_fence_on_sheep[i] = 1e5 * vec
+            if np.linalg.norm(f_fence_on_sheep[i]) > f_max:
+                f_fence_on_sheep[i] = f_max * vec
             # Assert the force is not nan or inf.
             # assert np.all(np.isfinite(f_fence_on_sheep[i])), f"Force: {f_fence_on_sheep[i]}"
 
@@ -262,8 +264,8 @@ def get_fence_force(
                 (K_FENCE / (shepherd_dist[i] - target[-1])) * vec
             )
             # Force should not be infinite, cap it.
-            if np.linalg.norm(f_fence_on_shepherds[i]) > 1e5:
-                f_fence_on_shepherds[i] = 1e5 * vec
+            if np.linalg.norm(f_fence_on_shepherds[i]) > f_max:
+                f_fence_on_shepherds[i] = f_max * vec
             # Assert the force is not nan or inf.
             # assert np.all(np.isfinite(f_fence_on_shepherds[i])), f"Force: {f_fence_on_shepherds[i]}"
 
