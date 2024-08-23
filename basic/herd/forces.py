@@ -177,7 +177,7 @@ def get_fence_force(
     for i in range(agents.shape[0]):
         if affected_agents[i]:
             # Direction of repulsion (normal to fence).
-            vec: np.ndarray = fence - agents[i, :2]
+            vec: np.ndarray = agents[i, :2] - fence
             # Unit vector in the direction of the fence.
             vec = vec / np.linalg.norm(vec)
             # Calculate the repulsion force.
@@ -202,7 +202,7 @@ def get_fence_force(
     for i in range(shepherds.shape[0]):
         if affected_shepherds[i]:
             # Vector parallel to the repulsion force (normal from fence).
-            vec: np.ndarray = fence - shepherds[i, :2]
+            vec: np.ndarray = shepherds[i, :2] - fence
             # Unit vector in the direction of the fence.
             vec = vec / np.linalg.norm(vec)
             # Calculate the repulsion force.
