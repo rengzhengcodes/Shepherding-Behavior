@@ -20,6 +20,11 @@ from .herd.forces import (
 )
 from .herd.driver import *
 
+from . import FENCE_MIDDLE_ANGLE, GATE_ANGULAR_WIDTH
+if not FENCE:
+    FENCE_MIDDLE_ANGLE = 0
+    GATE_ANGULAR_WIDTH = 2 * np.pi
+
 
 @nb.jit(nopython=not DEBUG)
 def transform_angle(theta):  # [-pi, pi]
@@ -73,7 +78,12 @@ def update_agents_state(
         agent_x = agents[agent_index][0]
         agent_y = agents[agent_index][1]
         distance, _ = get_relative_distance_angle(target_x, target_y, agent_x, agent_y)
-        if distance < target_size and not MORPHOLOGY:
+        if not MORPHOLOGY and ((distance < target_size) or (
+            FENCE and (
+                FENCE_MIDDLE_ANGLE - GATE_ANGULAR_WIDTH / 2
+                <= np.arctan2(agent_x - target_x, agent_y - target_y) <=
+                FENCE_MIDDLE_ANGLE + GATE_ANGULAR_WIDTH / 2
+        ) or agents[agent_index][21] == 1)):
             # agent state: 0 -> moving; 1 -> staying;
             agents[agent_index][21] = 1.0
         else:
