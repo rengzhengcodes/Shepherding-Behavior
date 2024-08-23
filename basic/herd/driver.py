@@ -85,7 +85,7 @@ def drive_the_herd_using_convex_hull(
     agents, shepherd_x, shepherd_y, target_x, target_y
 ):
     """
-    Drives the herd ina  method similar to Yating's paper, but using the center 
+    Drives the herd ina  method similar to Yating's paper, but using the center
     of the convex hull of the flock (estimated through the average of the vertices
     of the convex hull) instead of the center of mass.
     """
