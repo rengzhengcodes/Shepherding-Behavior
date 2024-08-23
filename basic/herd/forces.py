@@ -118,7 +118,7 @@ def get_shepherd_force(agents, shepherd):
                 r_pos = r_pos + (agent_pos - shepherd_pos) / distance
         num_shepherd_avoid[agent_index] = num_shepherd
         f_shepherd_force[agent_index] = r_pos
-    return num_shepherd_avoid, *(f_shepherd_force.T)
+    return num_shepherd_avoid, f_shepherd_force[:, 0], f_shepherd_force[:, 1]
 
 
 @nb.jit(nopython=not DEBUG)
