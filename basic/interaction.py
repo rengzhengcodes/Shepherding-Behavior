@@ -224,7 +224,7 @@ def get_fence_force(
     ) & (  # agents within the fence's range.
         agent_dist <= target[-1] + 3 * agents[:, 7]
     )
-    f_fence_on_sheep: np.ndarray = np.zeros((agents.shape[0], 2))
+    f_fence_on_sheep: np.ndarray = np.zeros((agents.shape[0], 2), dtype=float)
     for i in range(agents.shape[0]):
         if affected_agents[i]:
             # Direction of repulsion (normal to fence).
@@ -252,7 +252,7 @@ def get_fence_force(
     ) & (  # Shepherds within the fence's range.
         shepherd_dist <= target[-1] + 3 * shepherds[:, 7]
     )
-    f_fence_on_shepherds: np.ndarray = np.zeros((shepherds.shape[0], 2))
+    f_fence_on_shepherds: np.ndarray = np.zeros((shepherds.shape[0], 2), dtype=float)
     for i in range(shepherds.shape[0]):
         if affected_shepherds[i]:
             # Vector parallel to the repulsion force (normal from fence).
