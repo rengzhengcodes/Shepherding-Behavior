@@ -16,11 +16,22 @@ ALIAS = {
 mode_runs = {}
 for MODE in [0, 2, 3, 4]:
     # Gets the folder of the latest results.
-    folder = f"{os.getcwd()}/results/morphology_attraction_naïve/{MODE}"
+    folder = f"{os.getcwd()}/results/fence/{MODE}"
     # Gets latest txt file in folder.
-    filename = [file for file in os.listdir(folder) if file.endswith('.txt')][-1]
+    files: list = reversed(sorted(file for file in os.listdir(folder) if file.endswith('.txt')))
+    filename: str = next(files)
+
     with open(os.path.join(folder, filename), "r") as f:
         results = json.load(f)
+        # Asserts we're getting the right results.
+        assert results[0]["MODE"] == MODE, "Wrong mode."
+    # Goes until we get the right file.
+    while results[0]["N_SHEEP"] != 60 and results[0]["N_SHEPHERD"] != 3:
+        filename = next(files)
+        with open(os.path.join(folder, filename), "r") as f:
+            results = json.load(f)
+            # Asserts we're getting the right results.
+            assert results[0]["MODE"] == MODE, "Wrong mode."
 
     # Prints out result summary.
     successes = sum([result["Success"] for result in results])
