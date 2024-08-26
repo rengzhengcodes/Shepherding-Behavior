@@ -18,7 +18,14 @@ from .herd.forces import (
     get_shepherd_force,
     get_fence_force,
 )
-from .herd.driver import *
+from .herd.driver import (
+    get_relative_distance_angle,
+    calculate_mass_center,
+    drive_the_herd,
+    drive_the_herd_using_convex_hull,
+    drive_the_herd_using_visible_convex_hull,
+    drive_the_herd_using_subflock_convex_hulls,
+)
 
 from . import FENCE_MIDDLE_ANGLE, GATE_ANGULAR_WIDTH
 
@@ -67,25 +74,24 @@ def update_agents_state(
 ) -> np.ndarray:
     """
     Updates the state of the agents if they are within the target.
-    Args:
-        @param agents: The agents to update the state of.
-        @param target_x: The x-coordinate of the target.
-        @param target_y: The y-coordinate of the target.
-        @param target_size: The size of the target.
-    Returns:
-        agents: The agents with updated states.
+
+    @param agents: The agents to update the state of.
+    @param target_x: The x-coordinate of the target.
+    @param target_y: The y-coordinate of the target.
+    @param target_size: The size of the target.
+
+    @return agents: The agents with updated states.
     """
     for agent_index in range(agents.shape[0]):
-        agent_x = agents[agent_index][0]
-        agent_y = agents[agent_index][1]
-        distance, _ = get_relative_distance_angle(target_x, target_y, agent_x, agent_y)
+        agent_pos: np.ndarray = agents[agent_index][:2]
+        distance, _ = get_relative_distance_angle(target_x, target_y, *agent_pos)
         if not MORPHOLOGY and (
             (distance < target_size)
             or (
                 FENCE
                 and (
                     FENCE_MIDDLE_ANGLE - GATE_ANGULAR_WIDTH / 2
-                    <= np.arctan2(agent_x - target_x, agent_y - target_y)
+                    <= np.arctan2(agent_pos[0] - target_x, agent_pos[1] - target_y)
                     <= FENCE_MIDDLE_ANGLE + GATE_ANGULAR_WIDTH / 2
                 )
                 or agents[agent_index][21] == 1
@@ -100,6 +106,16 @@ def update_agents_state(
 
 @nb.jit(nopython=not DEBUG)
 def update(agents, shepherd, target_x, target_y):
+    """
+    Updates the force, angular velocity, and velocity of the agents.
+    
+    @param agents: The agents to update.
+    @param shepherd: The shepherds herding the agents.
+    @param target_x: The x-coordinate of the target.
+    @param target_y: The y-coordinate of the target.
+
+    @return agents: The updated agents.
+    """
     # get variables
     v0 = agents[0][6]
     k_repulsion_agent = agents[0][10]  # k_repulsion_agent
@@ -110,24 +126,22 @@ def update(agents, shepherd, target_x, target_y):
     max_turning_angle = agents[0][18]  # np.pi*2/3
 
     # calculate agent-agent repulsion force
-    num_avoid, f_avoid_x, f_avoid_y = get_repulsion_force(agents)
+    num_avoid, *f_avoid = get_repulsion_force(agents)
+    f_avoid: np.ndarray = np.array(f_avoid)
     # calculate agent-agent attraction force
-    _, f_attraction_x, f_attraction_y = get_attraction_force(agents)
+    _, *f_attraction = get_attraction_force(agents)
+    f_attraction: np.ndarray = np.array(f_attraction)
     # calculate agent-shepherd repulsion force
-    _, f_shepherd_force_x, f_shepherd_force_y = get_shepherd_force(agents, shepherd)
+    _, *f_shepherd_force = get_shepherd_force(agents, shepherd)
+    f_shepherd_force: np.ndarray = np.array(f_shepherd_force)
 
     for agent_index in range(agents.shape[0]):
         if num_avoid[agent_index] != 0:  # first priority!!!
-            f_x = f_avoid_x[agent_index] * k_repulsion_agent
-            f_y = f_avoid_y[agent_index] * k_repulsion_agent
+            force: np.ndarray = f_avoid[agent_index] * k_repulsion_agent
         else:
-            f_x = (
-                f_attraction_x[agent_index] * k_attraction_agent
-                + f_shepherd_force_x[agent_index] * k_repulsion_shepherd
-            )
-            f_y = (
-                f_attraction_y[agent_index] * k_attraction_agent
-                + f_shepherd_force_y[agent_index] * k_repulsion_shepherd
+            force: np.ndarray = (
+                f_attraction[agent_index] * k_attraction_agent +
+                f_shepherd_force[agent_index] * k_repulsion_shepherd
             )
 
         if (
@@ -137,21 +151,19 @@ def update(agents, shepherd, target_x, target_y):
             distance_agent_target, angle_agent_target = get_relative_distance_angle(
                 target_x, target_y, agents[agent_index][0], agents[agent_index][1]
             )
-            # if abs(target_size - distance_agent_target) < 20:  # near the
-            # wall
-            f_x = np.cos(angle_agent_target) * distance_agent_target * 0.1
-            f_y = np.sin(angle_agent_target) * distance_agent_target * 0.1
+            # This is just a 
+            force: np.ndarray = np.ndarray(np.cos(angle_agent_target), np.sin(angle_agent_target))
+            force = 0.1 * distance_agent_target * force
 
         if FENCE:
             f_fence, _ = get_fence_force(agents, shepherd, TARGET, np.array(TARGET[:2]))
-            f_x += f_fence[agent_index][0]
-            f_y += f_fence[agent_index][1]
+            force += f_fence[agent_index]
 
-        v_dot = f_x * np.cos(agents[agent_index][2]) + f_y * np.sin(
+        v_dot = force[0] * np.cos(agents[agent_index][2]) + force[1] * np.sin(
             agents[agent_index][2]
         )
         w_dot = (
-            -f_x * np.sin(agents[agent_index][2]) + f_y * np.cos(agents[agent_index][2])
+            -force[0] * np.sin(agents[agent_index][2]) + force[1] * np.cos(agents[agent_index][2])
         ) * (
             1 / v0
         )  # inertia
@@ -661,8 +673,9 @@ def herd(
             # !!! switch to the drive mode:
             match MODE:
                 case 1:
-                    # if the agent is closer enough to ANY AGENT in the GROUP or the agents are staying inside the circe;
-                    # get the center of projection of the GROUP
+                    # if the agent is closer enough to ANY AGENT in the GROUP or
+                    # the agents are staying inside the circle; get the center of 
+                    # projection of the GROUP
                     angle_difference_agent_mass = collect_the_herd_using_vision(
                         collect_agent_id, agents, *shepherd_pos
                     )
