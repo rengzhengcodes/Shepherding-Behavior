@@ -19,7 +19,7 @@ from basic.initiation import initiate, initiate_shepherds
 from basic.interaction import evolve
 from basic.draw import draw_dynamic
 
-from basic import MODE, MORPHOLOGY, TARGET_X, TARGET_Y, TARGET_SIZE, TARGET
+from basic import MODE, MORPHOLOGY, FENCE, TARGET_X, TARGET_Y, TARGET_SIZE, TARGET
 
 THREADS = -1
 DRAW = False
@@ -184,6 +184,7 @@ def run_target(rep: int):
             "L3": L3,
             "Repetition": rep,
             "MODE": MODE,
+            "FENCE": FENCE,
             # Results
             "final_tick": final_tick,
             "Success": success,
