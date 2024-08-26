@@ -21,6 +21,7 @@ from .herd.forces import (
 from .herd.driver import *
 
 from . import FENCE_MIDDLE_ANGLE, GATE_ANGULAR_WIDTH
+
 if not FENCE:
     FENCE_MIDDLE_ANGLE = 0
     GATE_ANGULAR_WIDTH = 2 * np.pi
@@ -78,12 +79,18 @@ def update_agents_state(
         agent_x = agents[agent_index][0]
         agent_y = agents[agent_index][1]
         distance, _ = get_relative_distance_angle(target_x, target_y, agent_x, agent_y)
-        if not MORPHOLOGY and ((distance < target_size) or (
-            FENCE and (
-                FENCE_MIDDLE_ANGLE - GATE_ANGULAR_WIDTH / 2
-                <= np.arctan2(agent_x - target_x, agent_y - target_y) <=
-                FENCE_MIDDLE_ANGLE + GATE_ANGULAR_WIDTH / 2
-        ) or agents[agent_index][21] == 1)):
+        if not MORPHOLOGY and (
+            (distance < target_size)
+            or (
+                FENCE
+                and (
+                    FENCE_MIDDLE_ANGLE - GATE_ANGULAR_WIDTH / 2
+                    <= np.arctan2(agent_x - target_x, agent_y - target_y)
+                    <= FENCE_MIDDLE_ANGLE + GATE_ANGULAR_WIDTH / 2
+                )
+                or agents[agent_index][21] == 1
+            )
+        ):
             # agent state: 0 -> moving; 1 -> staying;
             agents[agent_index][21] = 1.0
         else:
@@ -319,19 +326,13 @@ def herd(
     max_agents_indexes = np.zeros(shepherd.shape[0])
     if shepherd.shape[0] > 0:
         l0 = shepherd[0][3]
-        # k = shepherd[0][4]
-        # l1 = shepherd[0][5]  # distance from the center of mass to the drive
-        # point ###related to N
         v0 = shepherd[0][6]  # 4
         alpha = shepherd[0][7]  # acceleration rate
         beta = shepherd[0][8]  # turning rate
         dr = shepherd[0][9]
         tick_time = shepherd[0][10]
-        # max_turning_rate = shepherd[0][11]
         # HALF FOV threshold for collect mode;
         angle_threshold_collection = shepherd[0][17]
-        # k_attraction_target = 0.01  # shepherd[0][18]  # k_attraction_target
-        # 0.01
     else:
         l0 = 15
         v0 = 1
