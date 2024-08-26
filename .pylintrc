@@ -1,3 +1,4 @@
 [MASTER]
-extension-pkg-whitelist=scipy
-extension-pkg-allow-list=scipy.spatial.ConvexHull
+extension-pkg-allow-list=scipy, matplotlib
+# https://github.com/pylint-dev/pylint/issues/2289
+generated-members=tab10
