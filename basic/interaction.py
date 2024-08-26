@@ -484,7 +484,7 @@ def herd(
                         center_of_hull_y,
                         visible_hulls_section,
                     ) = drive_the_herd_using_subflock_convex_hulls(
-                        agents, *shepherd_pos, shepherd_index, *target
+                        agents, shepherd_pos, shepherd_index, *target
                     )
                     center_of_mass_x = center_of_hull_x
                     center_of_mass_y = center_of_hull_y
@@ -616,7 +616,7 @@ def herd(
                         center_of_hull_y,
                         visible_hulls_section,
                     ) = drive_the_herd_using_subflock_convex_hulls(
-                        agents, *shepherd_pos, shepherd_index, *target
+                        agents, shepherd_pos, shepherd_index, *target
                     )
                     collect_point_x, collect_point_y, force_x, force_y = (
                         collect_furthest_agent(*agent_pos, *shepherd_pos, *target, l0)
