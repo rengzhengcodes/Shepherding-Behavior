@@ -46,9 +46,7 @@ def drive_the_herd(agents, shepherd_x, shepherd_y, target_x, target_y):
     in Yating's paper.
     """
     # get the center of only moving mass, not concluding the staying mass;
-    num_agents_moving, *center_of_mass = calculate_mass_center(
-        agents
-    )
+    num_agents_moving, *center_of_mass = calculate_mass_center(agents)
     # calculate the distance, angle between the center of the mass and the
     # shepherd;
     _, angle_mass_target = get_relative_distance_angle(
@@ -113,7 +111,7 @@ def drive_the_herd_using_convex_hull(
     # angle_mass_target: from the target place to the mass
     drive_point: np.ndarray = (
         center_of_hull[0] + l1_new * np.cos(angle_mass_target),
-        center_of_hull[1] + l1_new * np.sin(angle_mass_target)
+        center_of_hull[1] + l1_new * np.sin(angle_mass_target),
     )
 
     # the shepherd should be attracted by the drive point
@@ -134,7 +132,7 @@ def drive_the_herd_using_convex_hull(
 
 @nb.jit(nopython=not DEBUG)
 def drive_the_herd_using_visible_convex_hull(
-    agents, shepherd_x, shepherd_y, shepherd_index, target_x, target_y
+    agents, shepherd_pos: np.ndarray, shepherd_index, target_x, target_y
 ):
     """
     Drives the herd using the average of the positions of the visible convex hull
@@ -144,7 +142,7 @@ def drive_the_herd_using_visible_convex_hull(
     # Calculate the convex hull of the flock not staying.
     roaming_agents = agents[agents[:, 21] == 0]
     sheperd_and_sheep_coordinates = np.concatenate(
-        (np.array([[shepherd_x, shepherd_y]]), roaming_agents[:, :2])
+        (np.expand_dims(shepherd_pos, axis=1), roaming_agents[:, :2])
     )
 
     with nb.objmode(visible_hull="int64[:]"):
@@ -167,8 +165,8 @@ def drive_the_herd_using_visible_convex_hull(
                     [
                         np.argmin(
                             np.sqrt(
-                                (roaming_agents[:, 0] - shepherd_x) ** 2
-                                + (roaming_agents[:, 1] - shepherd_y) ** 2
+                                (roaming_agents[:, 0] - shepherd_pos[0]) ** 2
+                                + (roaming_agents[:, 1] - shepherd_pos[1]) ** 2
                             )
                         )
                     ]
@@ -213,7 +211,7 @@ def drive_the_herd_using_visible_convex_hull(
 
     # the shepherd should be attracted by the drive point
     distance_drive_herd, angle_drive_herd = get_relative_distance_angle(
-        drive_point_x, drive_point_y, shepherd_x, shepherd_y
+        drive_point_x, drive_point_y, *shepherd_pos
     )
 
     # the drive force is linear to the distance between the shepherd and the
