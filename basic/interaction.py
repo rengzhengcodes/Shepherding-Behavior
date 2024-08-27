@@ -78,7 +78,7 @@ def update_agents_state(
     """
     for agent_index in range(agents.shape[0]):
         agent_pos: np.ndarray = agents[agent_index][:2]
-        distance, _ = get_relative_distance_angle(target_x, target_y, *agent_pos)
+        distance, _ = get_relative_distance_angle(target_x, target_y, agent_pos[0], agent_pos[1])
         if not MORPHOLOGY and (
             (distance < target_size)
             or (

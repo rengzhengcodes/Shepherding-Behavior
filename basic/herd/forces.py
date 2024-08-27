@@ -12,7 +12,7 @@ if not FENCE:
     GATE_ANGULAR_WIDTH = 2 * np.pi
 
 
-@nb.jit(nopython=not DEBUG)
+@nb.jit(nopython=True)
 def get_attraction_force(
     agents: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -50,7 +50,7 @@ def get_attraction_force(
     return num_att, f_attraction
 
 
-@nb.jit(nopython=not DEBUG)
+@nb.jit(nopython=True)
 def get_repulsion_force(
     agents: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -86,7 +86,7 @@ def get_repulsion_force(
     return num_avoid, f_avoid
 
 
-@nb.jit(nopython=not DEBUG)
+@nb.jit(nopython=True)
 def get_shepherd_force(agents, shepherd):
     """
     Calculates the repulsion force between agents and shepherds.
@@ -116,7 +116,7 @@ def get_shepherd_force(agents, shepherd):
     return num_shepherd_avoid, f_shepherd_force[:, :2]
 
 
-@nb.jit(nopython=not DEBUG)
+@nb.jit(nopython=True)
 def get_fence_force(
     agents: np.ndarray,
     shepherds: np.ndarray,
