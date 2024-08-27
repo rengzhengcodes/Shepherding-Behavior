@@ -38,18 +38,12 @@ if not FENCE:
 def transform_angle(theta):  # [-pi, pi]
     """
     Limits the angle to the range [-pi, pi].
-    Args:
-        @param theta: The angle to be transformed.
-    Returns:
-        The transformed angle.
+
+    @param theta: The angles to be transformed.
+
+    @return theta: The transformed angles.
     """
-    # new_theta = (theta + np.pi) % (2. * np.pi)
-    # new_theta -= np.pi
-    while theta >= np.pi:
-        theta = theta - 2 * np.pi
-    while theta <= -np.pi:
-        theta = theta + 2 * np.pi
-    return theta
+    return np.atan2(np.sin(theta), np.cos(theta))
 
 
 @nb.jit(nopython=not DEBUG)
@@ -129,7 +123,7 @@ def update(agents, shepherd, target_x, target_y):
     _, *f_shepherd_force = get_shepherd_force(agents, shepherd)
     f_shepherd_force: np.ndarray = np.array(f_shepherd_force)
     # Determine the velocity and angular velocity of the agents.
-    v0 = np.where(agents[:, 21] == 1 & num_avoid == 0, 0.5, agents[:, 6])
+    v0: np.ndarray = np.where(agents[:, 21] == 1 & num_avoid == 0, 0.5, agents[:, 6])
 
     # Calculates the force, whether they are explicitly avoiding other shepherds
     # versus flocking behavior.
@@ -158,7 +152,9 @@ def update(agents, shepherd, target_x, target_y):
     w_dot = np.clip(w_dot, -agents[:, 18], agents[:, 18])
 
     # Calculates the random noise.
-    dr = np.random.normal(0, 1) * np.sqrt(2 * agents[:, 13]) / np.sqrt(agents[:, 14])
+    dr: np.ndarray = (
+        np.random.normal(0, 1) * np.sqrt(2 * agents[:, 13]) / np.sqrt(agents[:, 14])
+    )
 
     # Updates the agents.
     agents[:, 0] += (v0 + v_dot) * np.cos(agents[:, 2]) * agents[:, 14]
