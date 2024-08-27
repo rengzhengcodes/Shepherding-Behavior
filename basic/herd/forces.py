@@ -24,9 +24,8 @@ def get_attraction_force(
         num_att: The number of agents attracted to the agent.
         f_attraction: The attraction force.
     """
-    num_att = np.zeros(agents.shape[0])
-    f_attraction_x = np.zeros(agents.shape[0])
-    f_attraction_y = np.zeros(agents.shape[0])
+    num_att: np.ndarray = np.zeros(agents.shape[0])
+    f_attraction: np.ndarray = np.zeros((agents.shape[0], 2))
     for agent_index in range(agents.shape[0]):
         neighbor_num = 0
         r_x = 0
@@ -45,10 +44,10 @@ def get_attraction_force(
                     r_x = r_x + (x_j - x_i) / distance  # unit vector
                     r_y = r_y + (y_j - y_i) / distance  # unit vector
         num_att[agent_index] = neighbor_num
-        f_attraction_x[agent_index] = r_x
-        f_attraction_y[agent_index] = r_y
+        f_attraction[agent_index, 0] = r_x
+        f_attraction[agent_index, 1] = r_y
 
-    return num_att, np.array([f_attraction_x, f_attraction_y])
+    return num_att, f_attraction
 
 
 @nb.jit(nopython=not DEBUG)
@@ -64,8 +63,7 @@ def get_repulsion_force(
         f_avoid: The repulsion force.
     """
     num_avoid = np.zeros(agents.shape[0])
-    f_avoid_x = np.zeros(agents.shape[0])
-    f_avoid_y = np.zeros(agents.shape[0])
+    f_avoid = np.zeros((agents.shape[0], 2))
     for agent_index in range(agents.shape[0]):
         neighbor_num = 0
         r_x = 0
@@ -82,10 +80,10 @@ def get_repulsion_force(
                     r_x = r_x + (x_i - x_j) / distance  # unit vector
                     r_y = r_y + (y_i - y_j) / distance  # unit vector
         num_avoid[agent_index] = neighbor_num
-        f_avoid_x[agent_index] = r_x
-        f_avoid_y[agent_index] = r_y
+        f_avoid[agent_index, 0] = r_x
+        f_avoid[agent_index, 1] = r_y
 
-    return num_avoid, np.array([f_avoid_x, f_avoid_y])
+    return num_avoid, f_avoid
 
 
 @nb.jit(nopython=not DEBUG)

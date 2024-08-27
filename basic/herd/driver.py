@@ -36,7 +36,7 @@ def calculate_mass_center(agents):
     if n != 0.0:
         sum_x = sum_x / n
         sum_y = sum_y / n
-    return n, sum_x, sum_y
+    return n, np.array([sum_x, sum_y])
 
 
 @nb.jit(nopython=not DEBUG)
@@ -46,7 +46,7 @@ def drive_the_herd(agents, shepherd_x, shepherd_y, target_x, target_y):
     in Yating's paper.
     """
     # get the center of only moving mass, not concluding the staying mass;
-    num_agents_moving, *center_of_mass = calculate_mass_center(agents)
+    num_agents_moving, center_of_mass = calculate_mass_center(agents)
     # calculate the distance, angle between the center of the mass and the
     # shepherd;
     _, angle_mass_target = get_relative_distance_angle(

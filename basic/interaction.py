@@ -120,7 +120,7 @@ def update(agents, shepherd, target_x, target_y):
     # calculate agent-shepherd repulsion force
     _, f_shepherd_force = get_shepherd_force(agents, shepherd)
     # Determine the velocity and angular velocity of the agents.
-    v0: np.ndarray = np.where(agents[:, 21] == 1 & num_avoid == 0, 0.5, agents[:, 6])
+    v0: np.ndarray = np.where((agents[:, 21] == 1) & (num_avoid == 0), 0.5, agents[:, 6])
 
     # Calculates the force, whether they are explicitly avoiding other shepherds
     # versus flocking behavior.
@@ -131,7 +131,7 @@ def update(agents, shepherd, target_x, target_y):
     )
     # Attraction to the target.
     force: np.ndarray = np.where(
-        agents[:, 21] == 1 & num_avoid == 0, 0.1 * (agents[:, :2] - target), force
+        (agents[:, 21] == 1) & (num_avoid == 0), 0.1 * (agents[:, :2] - target), force
     )
     # Gets the force from the fences.
     if FENCE:
@@ -140,10 +140,10 @@ def update(agents, shepherd, target_x, target_y):
 
     # Calculates v_dot and w_dot for each agent.
     v_dot: np.ndarray = (
-        force * np.array([np.cos(agents[:, 2]), np.sin(agents[:, 2])])
+        force * np.stack((np.cos(agents[:, 2]), np.sin(agents[:, 2])), axis=1)
     ).sum(axis=1)
     w_dot: np.ndarray = (
-        force * np.array([-np.sin(agents[:, 2]), np.cos(agents[:, 2])])
+        force * np.stack((-np.sin(agents[:, 2]), np.cos(agents[:, 2])), axis=1)
     ).sum(axis=1)
     w_dot *= 1 / v0  # inertia
     w_dot = np.clip(w_dot, -agents[:, 18], agents[:, 18])
@@ -332,9 +332,10 @@ def herd(
     match MODE:
         case 0 | 1:
             # first get the position of the center of the mass
-            num_agents_moving, center_of_mass_x, center_of_mass_y = (
+            num_agents_moving, center_of_mass = (
                 calculate_mass_center(agents)
             )
+            center_of_mass_x, center_of_mass_y = center_of_mass
         case 2:
             # Reset hull status.
             agents[:, 22] = 0
