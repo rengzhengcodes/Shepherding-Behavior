@@ -41,7 +41,7 @@ def transform_angle(theta):  # [-pi, pi]
 
     @param theta: The angles to be transformed.
 
-    @return theta: The transformed angles.
+    @return: The transformed angles.
     """
     return np.atan2(np.sin(theta), np.cos(theta))
 
@@ -50,10 +50,10 @@ def transform_angle(theta):  # [-pi, pi]
 def reflect_angle(angle):  # [-2pi, 2pi]
     """
     Reflects the angle.
-    Args:
-        @param angle: The angle to be reflected.
-    Returns:
-        The reflected angle.
+        
+    @param angle: The angle to be reflected.
+    
+    @return: The reflected angle.
     """
     while angle >= 2 * np.pi:
         angle = angle - 2 * np.pi
@@ -74,7 +74,7 @@ def update_agents_state(
     @param target_y: The y-coordinate of the target.
     @param target_size: The size of the target.
 
-    @return agents: The agents with updated states.
+    @return: The agents with updated states.
     """
     for agent_index in range(agents.shape[0]):
         agent_pos: np.ndarray = agents[agent_index][:2]
@@ -108,7 +108,7 @@ def update(agents, shepherd, target_x, target_y):
     @param target_x: The x-coordinate of the target.
     @param target_y: The y-coordinate of the target.
 
-    @return agents: The updated agents.
+    @return: The updated agents.
     """
 
     target: np.ndarray = np.array((target_x, target_y))
