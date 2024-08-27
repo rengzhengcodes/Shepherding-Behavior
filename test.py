@@ -37,7 +37,7 @@ TICK = 1000
 ITERATIONS = 200000
 
 L3 = np.sqrt(N_SHEEP / N_SHEPHERD) * 5  # average flock radius per shepherd
-REPS = 1000
+REPS = 64
 seeds = range(REPS)
 
 NUM_NEAREST_NEIGHBOR = 5

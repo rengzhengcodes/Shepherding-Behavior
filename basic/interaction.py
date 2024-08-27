@@ -125,13 +125,16 @@ def update(agents, shepherd, target_x, target_y):
     # Calculates the force, whether they are explicitly avoiding other shepherds
     # versus flocking behavior.
     force: np.ndarray = np.where(
-        num_avoid != 0,
-        f_avoid * agents[:, 10],
-        f_attraction * agents[:, 11] + f_shepherd_force * agents[:, 12],
+        np.expand_dims(num_avoid != 0, axis=1),
+        f_avoid * np.expand_dims(agents[:, 10], axis=1),
+        f_attraction * np.expand_dims(agents[:, 11], axis=1) + 
+        f_shepherd_force * np.expand_dims(agents[:, 12], axis=1),
     )
     # Attraction to the target.
     force: np.ndarray = np.where(
-        (agents[:, 21] == 1) & (num_avoid == 0), 0.1 * (agents[:, :2] - target), force
+        np.expand_dims((agents[:, 21] == 1) & (num_avoid == 0), axis=1), 
+        0.1 * (agents[:, :2] - target), 
+        force
     )
     # Gets the force from the fences.
     if FENCE:

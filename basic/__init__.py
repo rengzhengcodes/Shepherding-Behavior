@@ -3,7 +3,7 @@ DEBUG = False
 
 import numpy as np
 from numba import jit, config
-config.DISABLE_JIT = DEBUG
+config.DISABLE_JIT = True
 
 # Experiment parameters.
 MORPHOLOGY = False
