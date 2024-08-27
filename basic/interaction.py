@@ -108,7 +108,7 @@ def update_agents_state(
 def update(agents, shepherd, target_x, target_y):
     """
     Updates the force, angular velocity, and velocity of the agents.
-    
+
     @param agents: The agents to update.
     @param shepherd: The shepherds herding the agents.
     @param target_x: The x-coordinate of the target.
@@ -116,14 +116,8 @@ def update(agents, shepherd, target_x, target_y):
 
     @return agents: The updated agents.
     """
-    # get variables
-    v0 = agents[0][6]
-    k_repulsion_agent = agents[0][10]  # k_repulsion_agent
-    k_attraction_agent = agents[0][11]  # k_attraction_agent
-    k_repulsion_shepherd = agents[0][12]  # k_repulsion_shepherd
-    k_dr = agents[0][13]  # noise_strength
-    tick_time = agents[0][14]  # tick_time
-    max_turning_angle = agents[0][18]  # np.pi*2/3
+
+    target: np.ndarray = np.array((target_x, target_y))
 
     # calculate agent-agent repulsion force
     num_avoid, *f_avoid = get_repulsion_force(agents)
@@ -134,56 +128,43 @@ def update(agents, shepherd, target_x, target_y):
     # calculate agent-shepherd repulsion force
     _, *f_shepherd_force = get_shepherd_force(agents, shepherd)
     f_shepherd_force: np.ndarray = np.array(f_shepherd_force)
+    # Determine the velocity and angular velocity of the agents.
+    v0 = np.where(agents[:, 21] == 1 & num_avoid == 0, 0.5, agents[:, 6])
 
-    for agent_index in range(agents.shape[0]):
-        if num_avoid[agent_index] != 0:  # first priority!!!
-            force: np.ndarray = f_avoid[agent_index] * k_repulsion_agent
-        else:
-            force: np.ndarray = (
-                f_attraction[agent_index] * k_attraction_agent +
-                f_shepherd_force[agent_index] * k_repulsion_shepherd
-            )
+    # Calculates the force, whether they are explicitly avoiding other shepherds
+    # versus flocking behavior.
+    force: np.ndarray = np.where(
+        num_avoid != 0,
+        f_avoid * agents[:, 10],
+        f_attraction * agents[:, 11] + f_shepherd_force * agents[:, 12],
+    )
+    # Attraction to the target.
+    force: np.ndarray = np.where(
+        agents[:, 21] == 1 & num_avoid == 0, 0.1 * (agents[:, :2] - target), force
+    )
+    # Gets the force from the fences.
+    if FENCE:
+        f_fence, _ = get_fence_force(agents, shepherd, TARGET, np.array(TARGET[:2]))
+        force += f_fence
 
-        if (
-            agents[agent_index][21] == 1 and num_avoid[agent_index] == 0
-        ):  # staying state and no repulsion
-            v0 = 0.5
-            distance_agent_target, angle_agent_target = get_relative_distance_angle(
-                target_x, target_y, agents[agent_index][0], agents[agent_index][1]
-            )
-            # This is just a 
-            force: np.ndarray = np.ndarray(np.cos(angle_agent_target), np.sin(angle_agent_target))
-            force = 0.1 * distance_agent_target * force
+    # Calculates v_dot and w_dot for each agent.
+    v_dot: np.ndarray = (
+        force * np.array([np.cos(agents[:, 2]), np.sin(agents[:, 2])])
+    ).sum(axis=1)
+    w_dot: np.ndarray = (
+        force * np.array([-np.sin(agents[:, 2]), np.cos(agents[:, 2])])
+    ).sum(axis=1)
+    w_dot *= 1 / v0  # inertia
+    w_dot = np.clip(w_dot, -agents[:, 18], agents[:, 18])
 
-        if FENCE:
-            f_fence, _ = get_fence_force(agents, shepherd, TARGET, np.array(TARGET[:2]))
-            force += f_fence[agent_index]
+    # Calculates the random noise.
+    dr = np.random.normal(0, 1) * np.sqrt(2 * agents[:, 13]) / np.sqrt(agents[:, 14])
 
-        v_dot = force[0] * np.cos(agents[agent_index][2]) + force[1] * np.sin(
-            agents[agent_index][2]
-        )
-        w_dot = (
-            -force[0] * np.sin(agents[agent_index][2]) + force[1] * np.cos(agents[agent_index][2])
-        ) * (
-            1 / v0
-        )  # inertia
+    # Updates the agents.
+    agents[:, 0] += (v0 + v_dot) * np.cos(agents[:, 2]) * agents[:, 14]
+    agents[:, 1] += (v0 + v_dot) * np.sin(agents[:, 2]) * agents[:, 14]
+    agents[:, 2] = transform_angle(agents[:, 2] + (w_dot + dr) * agents[:, 14])
 
-        w_dot = min(w_dot, max_turning_angle)
-        w_dot = max(w_dot, -max_turning_angle)
-
-        dr = np.random.normal(0, 1) * np.sqrt(2 * k_dr) / (tick_time**0.5)
-
-        agents[agent_index][0] = (
-            agents[agent_index][0]
-            + (v0 + v_dot) * np.cos(agents[agent_index][2]) * tick_time
-        )
-        agents[agent_index][1] = (
-            agents[agent_index][1]
-            + (v0 + v_dot) * np.sin(agents[agent_index][2]) * tick_time
-        )
-        agents[agent_index][2] = transform_angle(
-            agents[agent_index][2] + (w_dot + dr) * tick_time
-        )
     return agents
 
 
@@ -674,7 +655,7 @@ def herd(
             match MODE:
                 case 1:
                     # if the agent is closer enough to ANY AGENT in the GROUP or
-                    # the agents are staying inside the circle; get the center of 
+                    # the agents are staying inside the circle; get the center of
                     # projection of the GROUP
                     angle_difference_agent_mass = collect_the_herd_using_vision(
                         collect_agent_id, agents, *shepherd_pos
