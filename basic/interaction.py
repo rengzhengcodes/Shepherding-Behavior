@@ -114,13 +114,13 @@ def update(agents, shepherd, target_x, target_y):
     target: np.ndarray = np.array((target_x, target_y))
 
     # calculate agent-agent repulsion force
-    num_avoid, *f_avoid = get_repulsion_force(agents)
+    num_avoid, f_avoid = get_repulsion_force(agents)
     f_avoid: np.ndarray = np.array(f_avoid)
     # calculate agent-agent attraction force
-    _, *f_attraction = get_attraction_force(agents)
+    _, f_attraction = get_attraction_force(agents)
     f_attraction: np.ndarray = np.array(f_attraction)
     # calculate agent-shepherd repulsion force
-    _, *f_shepherd_force = get_shepherd_force(agents, shepherd)
+    _, f_shepherd_force = get_shepherd_force(agents, shepherd)
     f_shepherd_force: np.ndarray = np.array(f_shepherd_force)
     # Determine the velocity and angular velocity of the agents.
     v0: np.ndarray = np.where(agents[:, 21] == 1 & num_avoid == 0, 0.5, agents[:, 6])

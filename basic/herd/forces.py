@@ -22,8 +22,7 @@ def get_attraction_force(
         @param agents: The agents to calculate the attraction forces between.
     Returns:
         num_att: The number of agents attracted to the agent.
-        f_attraction_x: The x-component of the attraction force.
-        f_attraction_y: The y-component of the attraction force.
+        f_attraction: The attraction force.
     """
     num_att = np.zeros(agents.shape[0])
     f_attraction_x = np.zeros(agents.shape[0])
@@ -49,7 +48,7 @@ def get_attraction_force(
         f_attraction_x[agent_index] = r_x
         f_attraction_y[agent_index] = r_y
 
-    return num_att, f_attraction_x, f_attraction_y
+    return num_att, np.array([f_attraction_x, f_attraction_y])
 
 
 @nb.jit(nopython=not DEBUG)
@@ -62,8 +61,7 @@ def get_repulsion_force(
         @param agents: The agents to calculate the repulsion forces between.
     Returns:
         num_avoid: The number of agents repelled by the agent.
-        f_avoid_x: The x-component of the repulsion force.
-        f_avoid_y: The y-component of the repulsion force
+        f_avoid: The repulsion force.
     """
     num_avoid = np.zeros(agents.shape[0])
     f_avoid_x = np.zeros(agents.shape[0])
@@ -87,7 +85,7 @@ def get_repulsion_force(
         f_avoid_x[agent_index] = r_x
         f_avoid_y[agent_index] = r_y
 
-    return num_avoid, f_avoid_x, f_avoid_y
+    return num_avoid, np.array([f_avoid_x, f_avoid_y])
 
 
 @nb.jit(nopython=not DEBUG)
@@ -99,8 +97,7 @@ def get_shepherd_force(agents, shepherd):
         @param shepherd: The shepherds repulsing.
     Returns:
         num_shepherd_avoid: The number of shepherds repelling the agent.
-        f_shepherd_force_x: The x-component of the repulsion force.
-        f_shepherd_force_y: The y-component of the repulsion force.
+        f_shepherd_force: The repulsion force.
     """
     num_shepherd_avoid = np.zeros(agents.shape[0])
     f_shepherd_force = np.zeros((agents.shape[0], 2))
@@ -118,7 +115,7 @@ def get_shepherd_force(agents, shepherd):
                 r_pos = r_pos + (agent_pos - shepherd_pos) / distance
         num_shepherd_avoid[agent_index] = num_shepherd
         f_shepherd_force[agent_index] = r_pos
-    return num_shepherd_avoid, f_shepherd_force[:, 0], f_shepherd_force[:, 1]
+    return num_shepherd_avoid, f_shepherd_force[:, :2]
 
 
 @nb.jit(nopython=not DEBUG)
@@ -132,15 +129,13 @@ def get_fence_force(
     We model a fence as an impassible barrier around the pen that the agents and
     shepherds cannot pass. We calculate the repulsion force between agents and
     the fence, necessary for the agents to not pass through the fence.
-    Args:
-        @param agents: The agents to calculate the repulsion force for.
-        @param shepherd: The shepherds repulsing.
-        @param target: The target to calculate the repulsion force for.
-        @param fence: The fence to calculate the repulsion force for.
 
-    Returns:
-        f_fence_force_x: The x-component of the repulsion force.
-        f_fence_force_y: The y-component of the repulsion force.
+    @param agents: The agents to calculate the repulsion force for.
+    @param shepherd: The shepherds repulsing.
+    @param target: The target to calculate the repulsion force for.
+    @param fence: The fence to calculate the repulsion force for.
+
+    @return f_fence_force: The repulsion force of the fence.
     """
     # Cutoff force
     f_max: float = 5e2
