@@ -9,7 +9,7 @@ from scipy.spatial import ConvexHull
 from .. import DEBUG
 
 
-@nb.jit(nopython=not DEBUG)
+@nb.jit(nopython=True)
 def get_relative_distance_angle(
     vector_head_x, vector_head_y, vector_end_x, vector_end_y
 ):
@@ -21,7 +21,7 @@ def get_relative_distance_angle(
     return r_length, r_angle
 
 
-@nb.jit(nopython=not DEBUG)
+@nb.jit(nopython=True)
 def calculate_mass_center(agents):
     """Calculates the mass center of the moving agents."""
     sum_x = 0
@@ -39,7 +39,7 @@ def calculate_mass_center(agents):
     return n, np.array([sum_x, sum_y])
 
 
-@nb.jit(nopython=not DEBUG)
+@nb.jit(nopython=True)
 def drive_the_herd(agents, shepherd_x, shepherd_y, target_x, target_y):
     """
     Drives the herd towards the target using the center of mass model described
@@ -78,7 +78,7 @@ def drive_the_herd(agents, shepherd_x, shepherd_y, target_x, target_y):
     return drive_point_x, drive_point_y, force_x, force_y
 
 
-@nb.jit(nopython=not DEBUG)
+@nb.jit(nopython=True)
 def drive_the_herd_using_convex_hull(
     agents, shepherd_x, shepherd_y, target_x, target_y
 ):
@@ -130,7 +130,7 @@ def drive_the_herd_using_convex_hull(
     return *drive_point, force_x, force_y
 
 
-@nb.jit(nopython=not DEBUG)
+@nb.jit(nopython=True)
 def drive_the_herd_using_visible_convex_hull(
     agents, shepherd_pos: np.ndarray, shepherd_index, target_x, target_y
 ):
@@ -233,7 +233,7 @@ def drive_the_herd_using_visible_convex_hull(
     )
 
 
-@nb.jit(nopython=not DEBUG)
+@nb.jit(nopython=True)
 def drive_the_herd_using_subflock_convex_hulls(
     agents, shepherd_pos: np.ndarray, shepherd_index, target_x, target_y
 ):

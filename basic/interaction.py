@@ -34,7 +34,7 @@ if not FENCE:
     GATE_ANGULAR_WIDTH = 2 * np.pi
 
 
-@nb.jit(nopython=not DEBUG)
+@nb.jit(nopython=True)
 def transform_angle(theta):  # [-pi, pi]
     """
     Limits the angle to the range [-pi, pi].
@@ -46,7 +46,7 @@ def transform_angle(theta):  # [-pi, pi]
     return np.atan2(np.sin(theta), np.cos(theta))
 
 
-@nb.jit(nopython=not DEBUG)
+@nb.jit(nopython=True)
 def reflect_angle(angle):  # [-2pi, 2pi]
     """
     Reflects the angle.
@@ -62,7 +62,7 @@ def reflect_angle(angle):  # [-2pi, 2pi]
     return angle
 
 
-@nb.jit(nopython=not DEBUG)
+@nb.jit(nopython=True)
 def update_agents_state(
     agents: np.ndarray, target_x: float, target_y: float, target_size: float
 ) -> np.ndarray:
@@ -98,7 +98,7 @@ def update_agents_state(
     return agents
 
 
-@nb.jit(nopython=not DEBUG)
+@nb.jit(nopython=True)
 def update(agents, shepherd, target_x, target_y):
     """
     Updates the force, angular velocity, and velocity of the agents.
@@ -164,7 +164,7 @@ def update(agents, shepherd, target_x, target_y):
     return agents
 
 
-@nb.jit(nopython=not DEBUG)
+@nb.jit(nopython=True)
 def get_furthest_agent(agents, shepherd_x, shepherd_y, target_x, target_y):
     num_agents = agents.shape[0]
     angle_herd_agents = np.zeros(agents.shape[0])
@@ -204,7 +204,7 @@ def get_furthest_agent(agents, shepherd_x, shepherd_y, target_x, target_y):
     )
 
 
-@nb.jit(nopython=not DEBUG)
+@nb.jit(nopython=True)
 def collect_furthest_agent(
     agent_x, agent_y, shepherd_x, shepherd_y, target_x, target_y, l0
 ):
@@ -227,7 +227,7 @@ def collect_furthest_agent(
     return collect_point_x, collect_point_y, force_x, force_y
 
 
-@nb.jit(nopython=not DEBUG)
+@nb.jit(nopython=True)
 def identify_flocks(agents, flock_distance):
     # Calculates the flocks using full DFS.
     i = 0  # Flock number
@@ -263,7 +263,7 @@ def identify_flocks(agents, flock_distance):
         remaining_agents = np.where(agents[:, 24] == 0)[0]
 
 
-@nb.jit(nopython=not DEBUG)
+@nb.jit(nopython=True)
 def keep_distance_from_other_shepherd(shepherd):
     angle_other_shepherd = np.zeros(shepherd.shape[0])
     distance_other_shepherd = np.zeros(shepherd.shape[0])
@@ -297,7 +297,7 @@ def keep_distance_from_other_shepherd(shepherd):
     return distance_other_shepherd, angle_other_shepherd
 
 
-@nb.jit(nopython=not DEBUG)
+@nb.jit(nopython=True)
 def herd(
     agents, shepherd, target: tuple[float, float]
 ) -> tuple[np.ndarray, np.ndarray]:
@@ -719,7 +719,7 @@ def make_periodic_boundary(agents, space_x, space_y):
     return agents
 
 
-@nb.jit(nopython=not DEBUG)
+@nb.jit(nopython=True)
 def evolve(agents, shepherd, target_x, target_y, target_size):
     target = (target_x, target_y)
     # network_matrix = create_metric_network((agents, R, Fov))
