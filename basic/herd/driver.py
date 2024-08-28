@@ -68,13 +68,17 @@ def drive_the_herd(agents, shepherd_x, shepherd_y, target_x, target_y):
     # print("distance_drive_herd", distance_drive_herd)
     # the drive force is linear to the distance between the shepherd and the
     # drive point;
-    force_x = distance_drive_herd * np.cos(
-        angle_drive_herd
-    )  # angle_drive_herd: from shepherd to drive point;
-    force_y = distance_drive_herd * np.sin(angle_drive_herd)  #
-    # !!! Attention: the vector (force_x, force_y) is not unit;
+    force = np.array(
+        [
+            distance_drive_herd
+            * np.cos(
+                angle_drive_herd
+            ),  # angle_drive_herd: from shepherd to drive point;
+            distance_drive_herd * np.sin(angle_drive_herd),
+        ]  # !!! Attention: the vector (force_x, force_y) is not unit;
+    )
 
-    return drive_point_x, drive_point_y, force_x, force_y
+    return drive_point_x, drive_point_y, force
 
 
 @nb.jit(nopython=True)
@@ -120,13 +124,17 @@ def drive_the_herd_using_convex_hull(
 
     # the drive force is linear to the distance between the shepherd and the
     # drive point;
-    force_x = distance_drive_herd * np.cos(
-        angle_drive_herd
-    )  # angle_drive_herd: from shepherd to drive point;
-    force_y = distance_drive_herd * np.sin(angle_drive_herd)  #
-    # !!! Attention: the vector (force_x, force_y) is not unit;
+    force = np.array(
+        [
+            distance_drive_herd
+            * np.cos(
+                angle_drive_herd
+            ),  # angle_drive_herd: from shepherd to drive point;
+            distance_drive_herd * np.sin(angle_drive_herd),
+        ]  # !!! Attention: the vector (force_x, force_y) is not unit;
+    )
 
-    return *drive_point, force_x, force_y
+    return *drive_point, force
 
 
 @nb.jit(nopython=True)
@@ -215,17 +223,20 @@ def drive_the_herd_using_visible_convex_hull(
 
     # the drive force is linear to the distance between the shepherd and the
     # drive point;
-    force_x = distance_drive_herd * np.cos(
-        angle_drive_herd
-    )  # angle_drive_herd: from shepherd to drive point;
-    force_y = distance_drive_herd * np.sin(angle_drive_herd)  #
-    # !!! Attention: the vector (force_x, force_y) is not unit;
+    force = np.array(
+        [
+            distance_drive_herd
+            * np.cos(
+                angle_drive_herd
+            ),  # angle_drive_herd: from shepherd to drive point;
+            distance_drive_herd * np.sin(angle_drive_herd),
+        ]  # !!! Attention: the vector (force_x, force_y) is not unit;
+    )
 
     return (
         drive_point_x,
         drive_point_y,
-        force_x,
-        force_y,
+        force,
         center_of_hull_x,
         center_of_hull_y,
         visible_hull,
@@ -250,7 +261,7 @@ def drive_the_herd_using_subflock_convex_hulls(
         # Gets the flock.
         flock = agents[agents[:, 24] == flock_index]
         # Gets the visible convex hull.
-        _, _, _, _, _, _, visible_flock_hull = drive_the_herd_using_visible_convex_hull(
+        _, _, _, _, _, visible_flock_hull = drive_the_herd_using_visible_convex_hull(
             flock,
             *shepherd_pos,
             shepherd_index,
@@ -314,17 +325,20 @@ def drive_the_herd_using_subflock_convex_hulls(
 
     # the drive force is linear to the distance between the shepherd and the
     # drive point;
-    force_x = distance_drive_herd * np.cos(
-        angle_drive_herd
-    )  # angle_drive_herd: from shepherd to drive point;
-    force_y = distance_drive_herd * np.sin(angle_drive_herd)  #
-    # !!! Attention: the vector (force_x, force_y) is not unit;
+    force: np.ndarray = np.array(
+        [
+            distance_drive_herd
+            * np.cos(
+                angle_drive_herd
+            ),  # angle_drive_herd: from shepherd to drive point;
+            distance_drive_herd * np.sin(angle_drive_herd),
+        ]  # !!! Attention: the vector (force_x, force_y) is not unit;
+    )
 
     return (
         drive_point_x,
         drive_point_y,
-        force_x,
-        force_y,
+        force,
         center_of_hull_x,
         center_of_hull_y,
         visible_hulls_section,

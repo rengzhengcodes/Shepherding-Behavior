@@ -480,7 +480,7 @@ def herd(
                 case 0:
                     # find the drive point and calculate the force attraction
                     # from the drive point; drive_point_x,
-                    drive_point_x, drive_point_y, drive_force_x, drive_force_y = (
+                    drive_point_x, drive_point_y, drive_force = (
                         drive_the_herd(agents, *shepherd_pos, *target)
                     )
                 case 1:
@@ -493,9 +493,11 @@ def herd(
                         drive_agent_id,
                     ) = drive_the_herd_using_vision(agents, *shepherd_pos, *target)
                     shepherd[shepherd_index][20] = drive_agent_id
+                    drive_force = np.array((drive_force_x, drive_force_y))
+                    del drive_force_x, drive_force_y
                 case 2:
                     # using convex hull
-                    (drive_point_x, drive_point_y, drive_force_x, drive_force_y) = (
+                    (drive_point_x, drive_point_y, drive_force) = (
                         drive_the_herd_using_convex_hull(agents, *shepherd_pos, *target)
                     )
                 case 3:
@@ -503,8 +505,7 @@ def herd(
                     (
                         drive_point_x,
                         drive_point_y,
-                        drive_force_x,
-                        drive_force_y,
+                        drive_force,
                         center_of_hull_x,
                         center_of_hull_y,
                         subset,
@@ -518,8 +519,7 @@ def herd(
                     (
                         drive_point_x,
                         drive_point_y,
-                        drive_force_x,
-                        drive_force_y,
+                        drive_force,
                         center_of_hull_x,
                         center_of_hull_y,
                         subset,
@@ -533,7 +533,6 @@ def herd(
                         "Mode {MODE} does not have drive mode implemented."
                     )
 
-            drive_force = np.array([drive_force_x, drive_force_y])
             f_net = drive_force + f_other_shepherd[shepherd_index]
             if FENCE:
                 f_net += f_fence_shepherd[shepherd_index]
@@ -608,7 +607,7 @@ def herd(
                     )
                 case 3:
                     # using visible convex hull
-                    _, _, _, _, center_of_hull_x, center_of_hull_y, subset = (
+                    _, _, _, center_of_hull_x, center_of_hull_y, subset = (
                         drive_the_herd_using_visible_convex_hull(
                             agents, *shepherd_pos, shepherd_index, *target
                         )
@@ -624,7 +623,6 @@ def herd(
                 case 4:
                     # using subflock convex hulls
                     (
-                        _,
                         _,
                         _,
                         _,
