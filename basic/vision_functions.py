@@ -229,12 +229,14 @@ def drive_the_herd_using_vision(agents, shepherd_x, shepherd_y, target_place_x, 
                                                                               shepherd_y)
 
     # the drive force is linear to the distance between the shepherd and the drive point;
-    force_x = distance_drive_herd * np.cos(angle_drive_herd)  # angle_drive_herd: from shepherd to drive point;
-    force_y = distance_drive_herd * np.sin(angle_drive_herd)  #
+    force = np.array(
+                [distance_drive_herd * np.cos(angle_drive_herd),  # angle_drive_herd: from shepherd to drive point;
+                 distance_drive_herd * np.sin(angle_drive_herd)]
+    )
 
     # b. find the closest agent from the target projection;
     # max_agent_id
-    return drive_point_x, drive_point_y, force_x, force_y, max_agent_id
+    return drive_point_x, drive_point_y, force, max_agent_id
 
 
 

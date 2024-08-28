@@ -480,21 +480,18 @@ def herd(
                 case 0:
                     # find the drive point and calculate the force attraction
                     # from the drive point; drive_point_x,
-                    drive_point_x, drive_point_y, drive_force = (
-                        drive_the_herd(agents, *shepherd_pos, *target)
+                    drive_point_x, drive_point_y, drive_force = drive_the_herd(
+                        agents, *shepherd_pos, *target
                     )
                 case 1:
                     # using vision
                     (
                         drive_point_x,
                         drive_point_y,
-                        drive_force_x,
-                        drive_force_y,
+                        drive_force,
                         drive_agent_id,
                     ) = drive_the_herd_using_vision(agents, *shepherd_pos, *target)
                     shepherd[shepherd_index][20] = drive_agent_id
-                    drive_force = np.array((drive_force_x, drive_force_y))
-                    del drive_force_x, drive_force_y
                 case 2:
                     # using convex hull
                     (drive_point_x, drive_point_y, drive_force) = (
@@ -506,28 +503,24 @@ def herd(
                         drive_point_x,
                         drive_point_y,
                         drive_force,
-                        center_of_hull_x,
-                        center_of_hull_y,
+                        center_of_mass_x,
+                        center_of_mass_y,
                         subset,
                     ) = drive_the_herd_using_visible_convex_hull(
                         agents, *shepherd_pos, shepherd_index, *target
                     )
-                    center_of_mass_x = center_of_hull_x
-                    center_of_mass_y = center_of_hull_y
                 case 4:
                     # using subflock convex hulls
                     (
                         drive_point_x,
                         drive_point_y,
                         drive_force,
-                        center_of_hull_x,
-                        center_of_hull_y,
+                        center_of_mass_x,
+                        center_of_mass_y,
                         subset,
                     ) = drive_the_herd_using_subflock_convex_hulls(
                         agents, shepherd_pos, shepherd_index, *target
                     )
-                    center_of_mass_x = center_of_hull_x
-                    center_of_mass_y = center_of_hull_y
                 case _:
                     raise NotImplementedError(
                         "Mode {MODE} does not have drive mode implemented."
@@ -607,7 +600,7 @@ def herd(
                     )
                 case 3:
                     # using visible convex hull
-                    _, _, _, center_of_hull_x, center_of_hull_y, subset = (
+                    _, _, _, center_of_mass_x, center_of_mass_y, subset = (
                         drive_the_herd_using_visible_convex_hull(
                             agents, *shepherd_pos, shepherd_index, *target
                         )
@@ -615,30 +608,20 @@ def herd(
                     collect_point_x, collect_point_y, force_x, force_y = (
                         collect_furthest_agent(*agent_pos, *shepherd_pos, *target, l0)
                     )
-                    # Aliased for code concision.
-                    center_of_mass_x, center_of_mass_y = (
-                        center_of_hull_x,
-                        center_of_hull_y,
-                    )
                 case 4:
                     # using subflock convex hulls
                     (
                         _,
                         _,
                         _,
-                        center_of_hull_x,
-                        center_of_hull_y,
+                        center_of_mass_x,
+                        center_of_mass_y,
                         subset,
                     ) = drive_the_herd_using_subflock_convex_hulls(
                         agents, shepherd_pos, shepherd_index, *target
                     )
                     collect_point_x, collect_point_y, force_x, force_y = (
                         collect_furthest_agent(*agent_pos, *shepherd_pos, *target, l0)
-                    )
-                    # Aliased for code concision.
-                    center_of_mass_x, center_of_mass_y = (
-                        center_of_hull_x,
-                        center_of_hull_y,
                     )
                 case 0 | 2:
                     # attract by the furthest agent;
