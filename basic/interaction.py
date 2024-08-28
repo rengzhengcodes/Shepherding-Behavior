@@ -465,7 +465,7 @@ def herd(
         )
 
     # Calculates the repulsion force for each shepherd on each other.
-    f_other_shepherd = distance_other_shepherd * np.stack(
+    f_other_shepherd = np.expand_dims(distance_other_shepherd, axis=1) * np.stack(
         (np.cos(angle_other_shepherd), np.sin(angle_other_shepherd)), axis=1
     )
 
@@ -484,6 +484,7 @@ def herd(
                     drive_point_x, drive_point_y, drive_force = drive_the_herd(
                         agents, *shepherd_pos, *target
                     )
+                    subset = None
                 case 1:
                     # using vision
                     (
@@ -493,6 +494,7 @@ def herd(
                         drive_agent_id,
                     ) = drive_the_herd_using_vision(agents, *shepherd_pos, *target)
                     shepherd[shepherd_index][20] = drive_agent_id
+                    subset = None
                 case 2:
                     # using convex hull
                     (drive_point_x, drive_point_y, drive_force) = (
