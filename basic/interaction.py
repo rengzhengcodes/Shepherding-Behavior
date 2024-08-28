@@ -375,6 +375,38 @@ def herd_preprocessor(agents: np.ndarray) -> tuple[int, tuple[float, float]]:
 
 
 @nb.jit(nopython=True)
+def herd_trigger_collect(
+    agents: np.ndarray,
+    shepherd_pos: np.ndarray,
+    target: np.ndarray,
+    subset: np.ndarray = None,
+):
+    """
+    Checks the furthest agent and triggers the collect mode if necessary.
+
+    @param agents: The agents to be herded.
+    @param shepherd_pos: The position of the shepherd.
+    @param target: The target location.
+    @param subset: The subset of agents to consider.
+
+    @return: The furthest agent index, the distance to the furthest agent, and 
+    the angle from the target to the furthest agent.
+    """
+    if subset is None:
+        max_agent_index, _, max_angle_target_to_agent = get_furthest_agent(
+            agents, *shepherd_pos, *target
+        )
+    else:
+        max_agent_index, _, max_angle_target_to_agent = get_furthest_agent(
+            agents[subset], *shepherd_pos, *target
+        )
+        # Converts max agent index in visible hull to the original index.
+        max_agent_index = subset[max_agent_index]
+
+    return max_agent_index, max_angle_target_to_agent
+
+
+@nb.jit(nopython=True)
 def herd(
     agents, shepherd, target: tuple[float, float]
 ) -> tuple[np.ndarray, np.ndarray]:
@@ -478,7 +510,7 @@ def herd(
                         drive_force_y,
                         center_of_hull_x,
                         center_of_hull_y,
-                        visible_hull,
+                        subset,
                     ) = drive_the_herd_using_visible_convex_hull(
                         agents, *shepherd_pos, shepherd_index, *target
                     )
@@ -493,7 +525,7 @@ def herd(
                         drive_force_y,
                         center_of_hull_x,
                         center_of_hull_y,
-                        visible_hulls_section,
+                        subset,
                     ) = drive_the_herd_using_subflock_convex_hulls(
                         agents, shepherd_pos, shepherd_index, *target
                     )
@@ -515,32 +547,9 @@ def herd(
 
             # check the current furthest agent which triggers the switch of collect mode;
             # get the info of the furthest agent;
-            match MODE:
-                case 0 | 1 | 2:
-                    # Case 2 degenerates to this due to furthest agents needing
-                    # to be an extreme point.
-                    max_agent_index, _, max_angle_target_to_agent = get_furthest_agent(
-                        agents, *shepherd_pos, *target
-                    )
-
-                case 3:
-                    max_agent_index, _, max_angle_target_to_agent = get_furthest_agent(
-                        agents[visible_hull], *shepherd_pos, *target
-                    )
-                    # Converts max agent index in visible hull to the original
-                    # index.
-                    max_agent_index = visible_hull[max_agent_index]
-                case 4:
-                    max_agent_index, _, max_angle_target_to_agent = get_furthest_agent(
-                        agents[visible_hulls_section], *shepherd_pos, *target
-                    )
-                    # Converts max agent index in visible hull to the original
-                    # index.
-                    max_agent_index = visible_hulls_section[max_agent_index]
-                case _:
-                    raise NotImplementedError(
-                        "Mode {MODE} does not have furthest agent identification implemented."
-                    )
+            max_agent_index, max_angle_target_to_agent = herd_trigger_collect(
+                agents, shepherd_pos, target, subset
+            )
 
             match MODE:
                 case 1:
@@ -603,7 +612,7 @@ def herd(
                     )
                 case 3:
                     # using visible convex hull
-                    _, _, _, _, center_of_hull_x, center_of_hull_y, visible_hull = (
+                    _, _, _, _, center_of_hull_x, center_of_hull_y, subset = (
                         drive_the_herd_using_visible_convex_hull(
                             agents, *shepherd_pos, shepherd_index, *target
                         )
@@ -625,7 +634,7 @@ def herd(
                         _,
                         center_of_hull_x,
                         center_of_hull_y,
-                        visible_hulls_section,
+                        subset,
                     ) = drive_the_herd_using_subflock_convex_hulls(
                         agents, shepherd_pos, shepherd_index, *target
                     )
