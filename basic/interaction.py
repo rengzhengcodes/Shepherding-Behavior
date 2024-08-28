@@ -50,9 +50,9 @@ def transform_angle(theta):  # [-pi, pi]
 def reflect_angle(angle):  # [-2pi, 2pi]
     """
     Reflects the angle.
-        
+
     @param angle: The angle to be reflected.
-    
+
     @return: The reflected angle.
     """
     while angle >= 2 * np.pi:
@@ -78,7 +78,9 @@ def update_agents_state(
     """
     for agent_index in range(agents.shape[0]):
         agent_pos: np.ndarray = agents[agent_index][:2]
-        distance, _ = get_relative_distance_angle(target_x, target_y, agent_pos[0], agent_pos[1])
+        distance, _ = get_relative_distance_angle(
+            target_x, target_y, agent_pos[0], agent_pos[1]
+        )
         if not MORPHOLOGY and (
             (distance < target_size)
             or (
@@ -120,21 +122,23 @@ def update(agents, shepherd, target_x, target_y):
     # calculate agent-shepherd repulsion force
     _, f_shepherd_force = get_shepherd_force(agents, shepherd)
     # Determine the velocity and angular velocity of the agents.
-    v0: np.ndarray = np.where((agents[:, 21] == 1) & (num_avoid == 0), 0.5, agents[:, 6])
+    v0: np.ndarray = np.where(
+        (agents[:, 21] == 1) & (num_avoid == 0), 0.5, agents[:, 6]
+    )
 
     # Calculates the force, whether they are explicitly avoiding other shepherds
     # versus flocking behavior.
     force: np.ndarray = np.where(
         np.expand_dims(num_avoid != 0, axis=1),
         f_avoid * np.expand_dims(agents[:, 10], axis=1),
-        f_attraction * np.expand_dims(agents[:, 11], axis=1) + 
-        f_shepherd_force * np.expand_dims(agents[:, 12], axis=1),
+        f_attraction * np.expand_dims(agents[:, 11], axis=1)
+        + f_shepherd_force * np.expand_dims(agents[:, 12], axis=1),
     )
     # Attraction to the target.
     force: np.ndarray = np.where(
-        np.expand_dims((agents[:, 21] == 1) & (num_avoid == 0), axis=1), 
-        0.1 * (agents[:, :2] - target), 
-        force
+        np.expand_dims((agents[:, 21] == 1) & (num_avoid == 0), axis=1),
+        0.1 * (agents[:, :2] - target),
+        force,
     )
     # Gets the force from the fences.
     if FENCE:
@@ -166,6 +170,9 @@ def update(agents, shepherd, target_x, target_y):
 
 @nb.jit(nopython=True)
 def get_furthest_agent(agents, shepherd_x, shepherd_y, target_x, target_y):
+    """
+    Sets which agent is the furthest from the shepherd and collects it.
+    """
     num_agents = agents.shape[0]
     angle_herd_agents = np.zeros(agents.shape[0])
     distance_herd_agents = np.zeros(agents.shape[0])
@@ -298,46 +305,19 @@ def keep_distance_from_other_shepherd(shepherd):
 
 
 @nb.jit(nopython=True)
-def herd(
-    agents, shepherd, target: tuple[float, float]
-) -> tuple[np.ndarray, np.ndarray]:
+def herd_preprocessor(agents: np.ndarray) -> tuple[int, tuple[float, float]]:
     """
-    Herds the agents using the shepherds by some specified mode.
-    Args:
-        @param agents: The agents to be herded.
-        @param shepherd: The shepherds herding the agents.
-        @param target: The target location.
-    Returns:
-        shepherd: The shepherds after herding.
-        max_indexes: The agents being collected.
-    """
-    # record the furthest agent index
-    max_agents_indexes = np.zeros(shepherd.shape[0])
-    if shepherd.shape[0] > 0:
-        l0 = shepherd[0][3]
-        v0 = shepherd[0][6]  # 4
-        alpha = shepherd[0][7]  # acceleration rate
-        beta = shepherd[0][8]  # turning rate
-        dr = shepherd[0][9]
-        tick_time = shepherd[0][10]
-        # HALF FOV threshold for collect mode;
-        angle_threshold_collection = shepherd[0][17]
-    else:
-        l0 = 15
-        v0 = 1
-        alpha = 1
-        beta = 0.1
-        dr = 0.1
-        tick_time = 0.01
-        angle_threshold_collection = np.pi / 2
+    Calculates the number of agents still moving and the default [estimated]
+    center of mass for the flock.
 
-    # Determines the number of agents still moving and the [estimated] CoM.
+    @param agents: The agents to be herded.
+
+    @return: The number of agents still moving and the default [estimated] center of mass.
+    """
     match MODE:
         case 0 | 1:
             # first get the position of the center of the mass
-            num_agents_moving, center_of_mass = (
-                calculate_mass_center(agents)
-            )
+            num_agents_moving, center_of_mass = calculate_mass_center(agents)
             center_of_mass_x, center_of_mass_y = center_of_mass
         case 2:
             # Reset hull status.
@@ -390,6 +370,46 @@ def herd(
             raise NotImplementedError(
                 "Mode {MODE} does not have pre-processing implemented."
             )
+
+    return num_agents_moving, center_of_mass_x, center_of_mass_y
+
+
+@nb.jit(nopython=True)
+def herd(
+    agents, shepherd, target: tuple[float, float]
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Herds the agents using the shepherds by some specified mode.
+    Args:
+        @param agents: The agents to be herded.
+        @param shepherd: The shepherds herding the agents.
+        @param target: The target location.
+    Returns:
+        shepherd: The shepherds after herding.
+        max_indexes: The agents being collected.
+    """
+    # record the furthest agent index
+    max_agents_indexes = np.zeros(shepherd.shape[0])
+    if shepherd.shape[0] > 0:
+        l0 = shepherd[0][3]
+        v0 = shepherd[0][6]  # 4
+        alpha = shepherd[0][7]  # acceleration rate
+        beta = shepherd[0][8]  # turning rate
+        dr = shepherd[0][9]
+        tick_time = shepherd[0][10]
+        # HALF FOV threshold for collect mode;
+        angle_threshold_collection = shepherd[0][17]
+    else:
+        l0 = 15
+        v0 = 1
+        alpha = 1
+        beta = 0.1
+        dr = 0.1
+        tick_time = 0.01
+        angle_threshold_collection = np.pi / 2
+
+    # Determines the number of agents still moving and the [estimated] CoM.
+    num_agents_moving, center_of_mass_x, center_of_mass_y = herd_preprocessor(agents)
 
     # d_furthest = shepherd[0][12]    # L2
     if num_agents_moving >= 50:
@@ -721,6 +741,9 @@ def make_periodic_boundary(agents, space_x, space_y):
 
 @nb.jit(nopython=True)
 def evolve(agents, shepherd, target_x, target_y, target_size):
+    """
+    Evolves the agents and shepherds for one time step.
+    """
     target = (target_x, target_y)
     # network_matrix = create_metric_network((agents, R, Fov))
     # agent-agent, agent-shepherd interaction;
