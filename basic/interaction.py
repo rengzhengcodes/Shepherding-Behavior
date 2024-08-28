@@ -11,7 +11,7 @@ from basic.vision_functions import (
     drive_the_herd_using_vision,
     collect_the_herd_using_vision,
 )
-from . import MODE, MORPHOLOGY, TARGET, FENCE, DEBUG
+from . import MODE, MORPHOLOGY, TARGET, FENCE
 from .herd.forces import (
     get_attraction_force,
     get_repulsion_force,
@@ -725,7 +725,13 @@ def evolve(agents, shepherd, target_x, target_y, target_size):
     # network_matrix = create_metric_network((agents, R, Fov))
     # agent-agent, agent-shepherd interaction;
     agents_update = update(agents, shepherd, *target)
-    # shepherd switch between collect and drive mode;
+    ## shepherd switch between collect and drive mode;
+    # Changes target to center of group if FENCE.
+    if FENCE:
+        target = (
+            target_x + target_size * np.cos(FENCE_MIDDLE_ANGLE),
+            target_y + target_size * np.sin(FENCE_MIDDLE_ANGLE),
+        )
     shepherd_update, max_agents_indexes = herd(agents, shepherd, target)
     # update agents state
     agents_update = update_agents_state(agents_update, *target, target_size)
