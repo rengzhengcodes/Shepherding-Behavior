@@ -533,11 +533,10 @@ def herd(
                         "Mode {MODE} does not have drive mode implemented."
                     )
 
-            f_x = drive_force_x + f_other_shepherd[shepherd_index, 0]
-            f_y = drive_force_y + f_other_shepherd[shepherd_index, 1]
+            drive_force = np.array([drive_force_x, drive_force_y])
+            f_net = drive_force + f_other_shepherd[shepherd_index]
             if FENCE:
-                f_x += f_fence_shepherd[shepherd_index][0]
-                f_y += f_fence_shepherd[shepherd_index][1]
+                f_net += f_fence_shepherd[shepherd_index]
 
             shepherd[shepherd_index][14] = drive_point_x
             shepherd[shepherd_index][15] = drive_point_y
@@ -662,11 +661,11 @@ def herd(
 
             # repulsion from other shepherd and attraction from the furthest
             # agent;
-            f_x = force_x + f_other_shepherd[shepherd_index, 0]
-            f_y = force_y + f_other_shepherd[shepherd_index, 1]
+            f_net = np.array([force_x, force_y])
+            f_net += f_other_shepherd[shepherd_index]
+
             if FENCE:
-                f_x += f_fence_shepherd[shepherd_index][0]
-                f_y += f_fence_shepherd[shepherd_index][1]
+                f_net += f_fence_shepherd[shepherd_index]
 
             shepherd[shepherd_index][14] = collect_point_x  # collect_x
             shepherd[shepherd_index][15] = collect_point_y  # collect_y
@@ -701,10 +700,10 @@ def herd(
                     )
 
         # calculate the linear speed and angular speed;
-        v_dot = f_x * np.cos(shepherd_angle) + f_y * np.sin(
+        v_dot = f_net[0] * np.cos(shepherd_angle) + f_net[1] * np.sin(
             shepherd_angle
         )  # heading_direction_acceleration
-        w_dot = -f_x * np.sin(shepherd_angle) + f_y * np.cos(
+        w_dot = -f_net[0] * np.sin(shepherd_angle) + f_net[1] * np.cos(
             shepherd_angle
         )  # angular_acceleration
         # alpha: acceleration rate; beta: turning rate;
