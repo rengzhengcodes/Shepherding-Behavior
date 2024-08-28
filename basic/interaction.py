@@ -372,7 +372,7 @@ def herd_preprocessor(agents: np.ndarray) -> tuple[int, tuple[float, float]]:
                 "Mode {MODE} does not have pre-processing implemented."
             )
 
-    return num_agents_moving, center_of_mass_x, center_of_mass_y
+    return num_agents_moving, np.array(center_of_mass_x, center_of_mass_y)
 
 
 @nb.jit(nopython=True)
@@ -442,7 +442,7 @@ def herd(
         angle_threshold_collection = np.pi / 2
 
     # Determines the number of agents still moving and the [estimated] CoM.
-    num_agents_moving, center_of_mass_x, center_of_mass_y = herd_preprocessor(agents)
+    num_agents_moving, center_of_mass = herd_preprocessor(agents)
 
     # d_furthest = shepherd[0][12]    # L2
     if num_agents_moving >= 50:
@@ -470,7 +470,7 @@ def herd(
     )
 
     for shepherd_index in range(shepherd.shape[0]):
-        shepherd_pos = (shepherd[shepherd_index][0], shepherd[shepherd_index][1])
+        shepherd_pos = shepherd[shepherd_index][(0, 1)]
         shepherd_angle = shepherd[shepherd_index][2]
 
         # drive_mode: attract by the mass center and the target, repulsion from
@@ -481,15 +481,14 @@ def herd(
                 case 0:
                     # find the drive point and calculate the force attraction
                     # from the drive point; drive_point_x,
-                    drive_point_x, drive_point_y, drive_force = drive_the_herd(
+                    drive_point, drive_force = drive_the_herd(
                         agents, *shepherd_pos, *target
                     )
                     subset = None
                 case 1:
                     # using vision
                     (
-                        drive_point_x,
-                        drive_point_y,
+                        drive_point,
                         drive_force,
                         drive_agent_id,
                     ) = drive_the_herd_using_vision(agents, *shepherd_pos, *target)
@@ -497,17 +496,15 @@ def herd(
                     subset = None
                 case 2:
                     # using convex hull
-                    (drive_point_x, drive_point_y, drive_force) = (
-                        drive_the_herd_using_convex_hull(agents, *shepherd_pos, *target)
+                    (drive_point, drive_force) = drive_the_herd_using_convex_hull(
+                        agents, *shepherd_pos, *target
                     )
                 case 3:
                     # using visible convex hull
                     (
-                        drive_point_x,
-                        drive_point_y,
+                        drive_point,
                         drive_force,
-                        center_of_mass_x,
-                        center_of_mass_y,
+                        center_of_mass,
                         subset,
                     ) = drive_the_herd_using_visible_convex_hull(
                         agents, *shepherd_pos, shepherd_index, *target
@@ -515,11 +512,9 @@ def herd(
                 case 4:
                     # using subflock convex hulls
                     (
-                        drive_point_x,
-                        drive_point_y,
+                        drive_point,
                         drive_force,
-                        center_of_mass_x,
-                        center_of_mass_y,
+                        center_of_mass,
                         subset,
                     ) = drive_the_herd_using_subflock_convex_hulls(
                         agents, shepherd_pos, shepherd_index, *target
@@ -533,8 +528,7 @@ def herd(
             if FENCE:
                 f_net += f_fence_shepherd[shepherd_index]
 
-            shepherd[shepherd_index][14] = drive_point_x
-            shepherd[shepherd_index][15] = drive_point_y
+            shepherd[shepherd_index][(14, 15)] = drive_point
 
             # check the current furthest agent which triggers the switch of collect mode;
             # get the info of the furthest agent;
@@ -560,7 +554,7 @@ def herd(
                     agent_y = agents[int(max_agent_index)][1]
                     max_agents_indexes[shepherd_index] = int(max_agent_index)
                     distance_agent_mass, _ = get_relative_distance_angle(
-                        agent_x, agent_y, center_of_mass_x, center_of_mass_y
+                        agent_x, agent_y, center_of_mass[0], center_of_mass[1]
                     )
                     # switch to the collect mode if the furthest agent are far
                     # enough from the center, and moving outside the target
@@ -603,7 +597,7 @@ def herd(
                     )
                 case 3:
                     # using visible convex hull
-                    _, _, _, center_of_mass_x, center_of_mass_y, subset = (
+                    _, _, center_of_mass, subset = (
                         drive_the_herd_using_visible_convex_hull(
                             agents, *shepherd_pos, shepherd_index, *target
                         )
@@ -616,9 +610,7 @@ def herd(
                     (
                         _,
                         _,
-                        _,
-                        center_of_mass_x,
-                        center_of_mass_y,
+                        center_of_mass,
                         subset,
                     ) = drive_the_herd_using_subflock_convex_hulls(
                         agents, shepherd_pos, shepherd_index, *target
@@ -632,8 +624,8 @@ def herd(
                     collect_point_x, collect_point_y, force = collect_furthest_agent(
                         *agent_pos,
                         *shepherd_pos,
-                        center_of_mass_x,
-                        center_of_mass_y,
+                        center_of_mass[0],
+                        center_of_mass[1],
                         l0,
                     )
                 case _:
@@ -652,7 +644,7 @@ def herd(
             shepherd[shepherd_index][15] = collect_point_y  # collect_y
 
             distance_agent_mass, _ = get_relative_distance_angle(
-                collect_point_x, collect_point_y, center_of_mass_x, center_of_mass_y
+                collect_point_x, collect_point_y, center_of_mass[0], center_of_mass[1]
             )
             # !!! switch to the drive mode:
             match MODE:

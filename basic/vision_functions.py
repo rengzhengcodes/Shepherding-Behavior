@@ -236,7 +236,7 @@ def drive_the_herd_using_vision(agents, shepherd_x, shepherd_y, target_place_x, 
 
     # b. find the closest agent from the target projection;
     # max_agent_id
-    return drive_point_x, drive_point_y, force, max_agent_id
+    return np.array(drive_point_x, drive_point_y), force, max_agent_id
 
 
 

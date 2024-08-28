@@ -59,11 +59,12 @@ def drive_the_herd(agents, shepherd_x, shepherd_y, target_x, target_y):
         l1_new = 15
     # L1: drive point: from shepherd to mass center
     # angle_mass_target: from the target place to the mass
-    drive_point_x = center_of_mass[0] + l1_new * np.cos(angle_mass_target)
-    drive_point_y = center_of_mass[1] + l1_new * np.sin(angle_mass_target)
+    drive_point = center_of_mass + np.array(
+        [l1_new * np.cos(angle_mass_target),  l1_new * np.sin(angle_mass_target)]
+    )
     # the shepherd should be attracted by the drive point
     distance_drive_herd, angle_drive_herd = get_relative_distance_angle(
-        drive_point_x, drive_point_y, shepherd_x, shepherd_y
+        drive_point[0], drive_point[1], shepherd_x, shepherd_y
     )
     # print("distance_drive_herd", distance_drive_herd)
     # the drive force is linear to the distance between the shepherd and the
@@ -78,7 +79,7 @@ def drive_the_herd(agents, shepherd_x, shepherd_y, target_x, target_y):
         ]  # !!! Attention: the vector (force_x, force_y) is not unit;
     )
 
-    return drive_point_x, drive_point_y, force
+    return drive_point, force
 
 
 @nb.jit(nopython=True)
@@ -134,7 +135,7 @@ def drive_the_herd_using_convex_hull(
         ]  # !!! Attention: the vector (force_x, force_y) is not unit;
     )
 
-    return *drive_point, force
+    return drive_point, force
 
 
 @nb.jit(nopython=True)
@@ -194,13 +195,14 @@ def drive_the_herd_using_visible_convex_hull(
 
     # Gets center of mass estimate as average of the visible convex hull
     # vertices.
-    center_of_hull_x = np.mean(agents[visible_hull, 0])
-    center_of_hull_y = np.mean(agents[visible_hull, 1])
+    center_of_hull: np.ndarray = np.array(
+        [np.mean(agents[visible_hull, 0]), np.mean(agents[visible_hull, 1])]
+    )
 
     # calculate the distance, angle between the center of the mass and the
     # shepherd;
     _, angle_mass_target = get_relative_distance_angle(
-        center_of_hull_x, center_of_hull_y, target_x, target_y
+        center_of_hull[0], center_of_hull[1], target_x, target_y
     )
 
     # update the safe drive distance to the center according to the CURRENT num of moving agents,
@@ -213,12 +215,13 @@ def drive_the_herd_using_visible_convex_hull(
 
     # L1: drive point: from shepherd to mass center
     # angle_mass_target: from the target place to the mass
-    drive_point_x = center_of_hull_x + l1_new * np.cos(angle_mass_target)
-    drive_point_y = center_of_hull_y + l1_new * np.sin(angle_mass_target)
+    drive_point: np.ndarray = center_of_hull + np.array(
+        [l1_new * np.cos(angle_mass_target), l1_new * np.sin(angle_mass_target)]
+    )
 
     # the shepherd should be attracted by the drive point
     distance_drive_herd, angle_drive_herd = get_relative_distance_angle(
-        drive_point_x, drive_point_y, *shepherd_pos
+        drive_point[0], drive_point[1], *shepherd_pos
     )
 
     # the drive force is linear to the distance between the shepherd and the
@@ -234,11 +237,9 @@ def drive_the_herd_using_visible_convex_hull(
     )
 
     return (
-        drive_point_x,
-        drive_point_y,
+        drive_point,
         force,
-        center_of_hull_x,
-        center_of_hull_y,
+        center_of_hull,
         visible_hull,
     )
 
@@ -296,13 +297,15 @@ def drive_the_herd_using_subflock_convex_hulls(
         ).view("float64")
 
     # Calculates the center of mass of the shepherd flock.
-    center_of_hull_x = np.mean(agents[visible_hulls_section, 0])
-    center_of_hull_y = np.mean(agents[visible_hulls_section, 1])
+    center_of_hull: np.ndarray = np.array(
+        np.mean(agents[visible_hulls_section, 0]),
+        np.mean(agents[visible_hulls_section, 1])
+    )
 
     # calculate the distance, angle between the center of the mass and the
     # shepherd;
     _, angle_mass_target = get_relative_distance_angle(
-        center_of_hull_x, center_of_hull_y, target_x, target_y
+        *center_of_hull, target_x, target_y
     )
 
     # update the safe drive distance to the center according to the CURRENT num of moving agents,
@@ -315,12 +318,13 @@ def drive_the_herd_using_subflock_convex_hulls(
 
     # L1: drive point: from shepherd to mass center
     # angle_mass_target: from the target place to the mass
-    drive_point_x = center_of_hull_x + l1_new * np.cos(angle_mass_target)
-    drive_point_y = center_of_hull_y + l1_new * np.sin(angle_mass_target)
+    drive_point = (center_of_hull + np.array(
+        [l1_new * np.cos(angle_mass_target), l1_new * np.sin(angle_mass_target)]
+    ))
 
     # the shepherd should be attracted by the drive point
     distance_drive_herd, angle_drive_herd = get_relative_distance_angle(
-        drive_point_x, drive_point_y, *shepherd_pos
+        drive_point[0], drive_point[1], *shepherd_pos
     )
 
     # the drive force is linear to the distance between the shepherd and the
@@ -336,10 +340,8 @@ def drive_the_herd_using_subflock_convex_hulls(
     )
 
     return (
-        drive_point_x,
-        drive_point_y,
+        drive_point,
         force,
-        center_of_hull_x,
-        center_of_hull_y,
+        center_of_hull,
         visible_hulls_section,
     )
