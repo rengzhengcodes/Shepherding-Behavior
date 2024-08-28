@@ -6,7 +6,6 @@ with their helper functions.
 import numba as nb
 import numpy as np
 from scipy.spatial import ConvexHull
-from .. import DEBUG
 
 
 @nb.jit(nopython=True)
