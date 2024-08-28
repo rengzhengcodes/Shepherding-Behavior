@@ -229,9 +229,10 @@ def collect_furthest_agent(
     # print("distance_cp_herd:", distance_cp_herd)
     # attraction force is linear with the distance between the herd and the
     # collect point;
-    force_x = distance_cp_herd * np.cos(angle_cp_herd)  #
-    force_y = distance_cp_herd * np.sin(angle_cp_herd)  #
-    return collect_point_x, collect_point_y, force_x, force_y
+    force = distance_cp_herd * np.array(
+        [np.cos(angle_cp_herd), distance_cp_herd * np.sin(angle_cp_herd)]
+    )
+    return collect_point_x, collect_point_y, force
 
 
 @nb.jit(nopython=True)
@@ -595,8 +596,8 @@ def herd(
                 case 1:
                     # attract by the furthest agent out of FOV;
                     # using target place: x/y;
-                    collect_point_x, collect_point_y, force_x, force_y = (
-                        collect_furthest_agent(*agent_pos, *shepherd_pos, *target, l0)
+                    collect_point_x, collect_point_y, force = collect_furthest_agent(
+                        *agent_pos, *shepherd_pos, *target, l0
                     )
                 case 3:
                     # using visible convex hull
@@ -605,8 +606,8 @@ def herd(
                             agents, *shepherd_pos, shepherd_index, *target
                         )
                     )
-                    collect_point_x, collect_point_y, force_x, force_y = (
-                        collect_furthest_agent(*agent_pos, *shepherd_pos, *target, l0)
+                    collect_point_x, collect_point_y, force = collect_furthest_agent(
+                        *agent_pos, *shepherd_pos, *target, l0
                     )
                 case 4:
                     # using subflock convex hulls
@@ -620,20 +621,18 @@ def herd(
                     ) = drive_the_herd_using_subflock_convex_hulls(
                         agents, shepherd_pos, shepherd_index, *target
                     )
-                    collect_point_x, collect_point_y, force_x, force_y = (
-                        collect_furthest_agent(*agent_pos, *shepherd_pos, *target, l0)
+                    collect_point_x, collect_point_y, force = collect_furthest_agent(
+                        *agent_pos, *shepherd_pos, *target, l0
                     )
                 case 0 | 2:
                     # attract by the furthest agent;
                     # using center of mas: x/y;
-                    collect_point_x, collect_point_y, force_x, force_y = (
-                        collect_furthest_agent(
-                            *agent_pos,
-                            *shepherd_pos,
-                            center_of_mass_x,
-                            center_of_mass_y,
-                            l0,
-                        )
+                    collect_point_x, collect_point_y, force = collect_furthest_agent(
+                        *agent_pos,
+                        *shepherd_pos,
+                        center_of_mass_x,
+                        center_of_mass_y,
+                        l0,
                     )
                 case _:
                     raise NotImplementedError(
@@ -642,8 +641,7 @@ def herd(
 
             # repulsion from other shepherd and attraction from the furthest
             # agent;
-            f_net = np.array([force_x, force_y])
-            f_net += f_other_shepherd[shepherd_index]
+            f_net = force + f_other_shepherd[shepherd_index]
 
             if FENCE:
                 f_net += f_fence_shepherd[shepherd_index]
