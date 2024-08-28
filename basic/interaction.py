@@ -389,7 +389,7 @@ def herd_trigger_collect(
     @param target: The target location.
     @param subset: The subset of agents to consider.
 
-    @return: The furthest agent index, the distance to the furthest agent, and 
+    @return: The furthest agent index, the distance to the furthest agent, and
     the angle from the target to the furthest agent.
     """
     if subset is None:
