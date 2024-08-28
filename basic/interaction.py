@@ -351,7 +351,7 @@ def herd_preprocessor(agents: np.ndarray) -> tuple[int, tuple[float, float]]:
             # call of herd.
             agents[:, 23] = 0.0
             # Sets center of mass values for error handling.
-            center_of_mass_x, center_of_mass_y = None, None
+            center_of_mass_x, center_of_mass_y = np.nan, np.nan
             # Sets the number of moving agents.
             num_agents_moving = np.count_nonzero(agents[:, 21] == 0)
         case 4:
@@ -362,7 +362,7 @@ def herd_preprocessor(agents: np.ndarray) -> tuple[int, tuple[float, float]]:
             # call of herd.
             agents[:, 23] = 0.0
             # Sets center of mass values for error handling.
-            center_of_mass_x, center_of_mass_y = None, None
+            center_of_mass_x, center_of_mass_y = np.nan, np.nan
             # Sets the number of moving agents.
             num_agents_moving = np.count_nonzero(agents[:, 21] == 0)
             # Resets the flock membership.
@@ -372,7 +372,7 @@ def herd_preprocessor(agents: np.ndarray) -> tuple[int, tuple[float, float]]:
                 "Mode {MODE} does not have pre-processing implemented."
             )
 
-    return num_agents_moving, np.array(center_of_mass_x, center_of_mass_y)
+    return num_agents_moving, np.array([center_of_mass_x, center_of_mass_y])
 
 
 @nb.jit(nopython=True)
@@ -443,6 +443,7 @@ def herd(
 
     # Determines the number of agents still moving and the [estimated] CoM.
     num_agents_moving, center_of_mass = herd_preprocessor(agents)
+    assert center_of_mass is not None, "Center of mass is None."
 
     # d_furthest = shepherd[0][12]    # L2
     if num_agents_moving >= 50:
@@ -470,7 +471,7 @@ def herd(
     )
 
     for shepherd_index in range(shepherd.shape[0]):
-        shepherd_pos = shepherd[shepherd_index][(0, 1)]
+        shepherd_pos = shepherd[shepherd_index][(0, 1),]
         shepherd_angle = shepherd[shepherd_index][2]
 
         # drive_mode: attract by the mass center and the target, repulsion from
@@ -528,7 +529,7 @@ def herd(
             if FENCE:
                 f_net += f_fence_shepherd[shepherd_index]
 
-            shepherd[shepherd_index][(14, 15)] = drive_point
+            shepherd[shepherd_index][(14, 15),] = drive_point
 
             # check the current furthest agent which triggers the switch of collect mode;
             # get the info of the furthest agent;
@@ -554,7 +555,7 @@ def herd(
                     agent_y = agents[int(max_agent_index)][1]
                     max_agents_indexes[shepherd_index] = int(max_agent_index)
                     distance_agent_mass, _ = get_relative_distance_angle(
-                        agent_x, agent_y, center_of_mass[0], center_of_mass[1]
+                        agent_x, agent_y, *center_of_mass
                     )
                     # switch to the collect mode if the furthest agent are far
                     # enough from the center, and moving outside the target
