@@ -463,17 +463,14 @@ def herd(
             agents, shepherd, TARGET, np.array(TARGET[:2])
         )
 
+    # Calculates the repulsion force for each shepherd on each other.
+    f_other_shepherd = distance_other_shepherd * np.stack(
+        (np.cos(angle_other_shepherd), np.sin(angle_other_shepherd)), axis=1
+    )
+
     for shepherd_index in range(shepherd.shape[0]):
         shepherd_pos = (shepherd[shepherd_index][0], shepherd[shepherd_index][1])
         shepherd_angle = shepherd[shepherd_index][2]
-
-        # repulsion force from other shepherd
-        f_x_other_shepherd = distance_other_shepherd[shepherd_index] * np.cos(
-            angle_other_shepherd[shepherd_index]
-        )
-        f_y_other_shepherd = distance_other_shepherd[shepherd_index] * np.sin(
-            angle_other_shepherd[shepherd_index]
-        )
 
         # drive_mode: attract by the mass center and the target, repulsion from
         # other shepherd;
@@ -536,8 +533,8 @@ def herd(
                         "Mode {MODE} does not have drive mode implemented."
                     )
 
-            f_x = drive_force_x + f_x_other_shepherd
-            f_y = drive_force_y + f_y_other_shepherd
+            f_x = drive_force_x + f_other_shepherd[shepherd_index, 0]
+            f_y = drive_force_y + f_other_shepherd[shepherd_index, 1]
             if FENCE:
                 f_x += f_fence_shepherd[shepherd_index][0]
                 f_y += f_fence_shepherd[shepherd_index][1]
@@ -665,8 +662,8 @@ def herd(
 
             # repulsion from other shepherd and attraction from the furthest
             # agent;
-            f_x = force_x + f_x_other_shepherd
-            f_y = force_y + f_y_other_shepherd
+            f_x = force_x + f_other_shepherd[shepherd_index, 0]
+            f_y = force_y + f_other_shepherd[shepherd_index, 1]
             if FENCE:
                 f_x += f_fence_shepherd[shepherd_index][0]
                 f_y += f_fence_shepherd[shepherd_index][1]
