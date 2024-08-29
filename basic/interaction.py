@@ -70,8 +70,7 @@ def update_agents_state(
     Updates the state of the agents if they are within the target.
 
     @param agents: The agents to update the state of.
-    @param target_x: The x-coordinate of the target.
-    @param target_y: The y-coordinate of the target.
+    @param target_pos: The target coordinates.
     @param target_size: The size of the target.
 
     @return: The agents with updated states.
@@ -215,9 +214,9 @@ def collect_furthest_agent(
     # get the angle from agent to target first;
     _, angle_agent_target = get_relative_distance_angle(agent_pos, target_pos)
     # keep l0 distance from the collect agent;
-    collect_point: np.ndarray = agent_pos + l0 * np.array(
+    collect_point: np.ndarray = agent_pos + l0 * np.array([
         np.cos(angle_agent_target), np.sin(angle_agent_target)
-    )
+    ])
     # attracted by the collect point;
     distance_cp_herd, angle_cp_herd = get_relative_distance_angle(
         collect_point, shepherd_pos
@@ -391,11 +390,11 @@ def herd_trigger_collect(
     """
     if subset is None:
         max_agent_index, _, max_angle_target_to_agent = get_furthest_agent(
-            agents, shepherd_pos[0], shepherd_pos[1], *target
+            agents, shepherd_pos, target
         )
     else:
         max_agent_index, _, max_angle_target_to_agent = get_furthest_agent(
-            agents[subset], shepherd_pos[0], shepherd_pos[1], *target
+            agents[subset], shepherd_pos, target
         )
         # Converts max agent index in visible hull to the original index.
         max_agent_index = subset[max_agent_index]
@@ -581,11 +580,8 @@ def herd(
         else:
             # collect mode: attract by the furthest agent and repulsion from other shepherd;
             # get the info of the furthest agent;
-            collect_agent_id = shepherd[shepherd_index][16]
-            agent_pos = (
-                agents[int(collect_agent_id)][0],
-                agents[int(collect_agent_id)][1],
-            )
+            collect_agent_id: float = shepherd[shepherd_index][16]
+            agent_pos: np.ndarray = agents[int(collect_agent_id)][:2]
 
             match MODE:
                 case 1:
@@ -728,19 +724,21 @@ def evolve(agents, shepherd, target_x, target_y, target_size):
     """
     Evolves the agents and shepherds for one time step.
     """
-    target = np.array(target_x, target_y)
+    target_pos = np.array([target_x, target_y], dtype=np.float64)
     # network_matrix = create_metric_network((agents, R, Fov))
     # agent-agent, agent-shepherd interaction;
-    agents_update = update(agents, shepherd, *target)
+    agents_update = update(agents, shepherd, target_pos[0], target_pos[1])
     ## shepherd switch between collect and drive mode;
     # Changes target to center of group if FENCE.
     if FENCE:
-        target += target_size * np.array(
-            np.cos(FENCE_MIDDLE_ANGLE),
-            np.sin(FENCE_MIDDLE_ANGLE),
+        target_pos += target_size * np.array(
+            [
+                np.cos(FENCE_MIDDLE_ANGLE),
+                np.sin(FENCE_MIDDLE_ANGLE),
+            ]
         )
-    shepherd_update, max_agents_indexes = herd(agents, shepherd, target)
+    shepherd_update, max_agents_indexes = herd(agents, shepherd, target_pos)
     # update agents state
-    agents_update = update_agents_state(agents_update, *target, target_size)
+    agents_update = update_agents_state(agents_update, target_pos, target_size)
 
     return agents_update, shepherd_update, max_agents_indexes
