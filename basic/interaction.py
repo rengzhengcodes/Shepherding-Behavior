@@ -41,25 +41,21 @@ def transform_angle(theta):  # [-pi, pi]
 
     @param theta: The angles to be transformed.
 
-    @return: The transformed angles.
+    @returns The transformed angles.
     """
     return np.atan2(np.sin(theta), np.cos(theta))
 
 
 @nb.jit(nopython=True)
-def reflect_angle(angle):  # [-2pi, 2pi]
+def reflect_angle(angle):  # [0, 2pi)
     """
     Reflects the angle.
 
     @param angle: The angle to be reflected.
 
-    @return: The reflected angle.
+    @returns The reflected angle.
     """
-    while angle >= 2 * np.pi:
-        angle = angle - 2 * np.pi
-    while angle <= 0:
-        angle = angle + 2 * np.pi
-    return angle
+    return angle % (2 * np.pi)
 
 
 @nb.jit(nopython=True)
@@ -209,8 +205,20 @@ def get_furthest_agent(agents, shepherd_pos: np.ndarray, target_pos: np.ndarray)
 
 @nb.jit(nopython=True)
 def collect_furthest_agent(
-    agent_pos: np.ndarray, shepherd_pos: np.ndarray, target_pos, l0
-):
+    agent_pos: np.ndarray, shepherd_pos: np.ndarray, target_pos: np.ndarray, l0: float
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Identifies the collect point and attraction force of a shepherd  to the collect
+    point given the agent to be collected's position and shepherd's position.
+
+    @param agent_pos: The position of the agent to be collected.
+    @param shepherd_pos: The shepherd doing the collecting.
+    @param target_pos: The target position.
+    @param l0:
+
+    @returns collect_point: The point at which to collec the agent.
+    @returns force: The shepherd's attraction force towards the collect point.
+    """
     # get the angle from agent to target first;
     _, angle_agent_target = get_relative_distance_angle(agent_pos, target_pos)
     # keep l0 distance from the collect agent;
@@ -225,23 +233,31 @@ def collect_furthest_agent(
     # attraction force is linear with the distance between the herd and the
     # collect point;
     force = distance_cp_herd * np.array(
-        [np.cos(angle_cp_herd), distance_cp_herd * np.sin(angle_cp_herd)]
+        [np.cos(angle_cp_herd), np.sin(angle_cp_herd)]
     )
     return collect_point, force
 
 
 @nb.jit(nopython=True)
 def identify_flocks(agents, flock_distance):
+    """
+    Identifies the individual agents into distinct flocks of all agents.
+
+    @param agents: The agents to be sorted into flocks.
+    @param flock_distance: The distance an agent has to be within to a member of
+    a flock to also be considered part of that flock.
+
+    @postcondition: The agents array contains information about which agent is
+    in which flock.
+    """
     # Calculates the flocks using full DFS.
-    i = 0  # Flock number
+    i = 1  # Flock number
     agents[agents[:, 21] == 1, 24] = -1.0  # Clears flock membership.
     agents[agents[:, 21] == 0, 24] = 0.0  # Clears flock membership.
     # Tracks agents remaining.
     remaining_agents = np.where(agents[:, 21] == 0)[0]
 
     while remaining_agents.shape[0] > 0:
-        # Increments counter.
-        i += 1
         # Gets the first unvisited agent.
         seed = remaining_agents[0]
         # Marks the seed as visited.
@@ -264,6 +280,8 @@ def identify_flocks(agents, flock_distance):
 
         # Updates the remaining agents.
         remaining_agents = np.where(agents[:, 24] == 0)[0]
+        # Increments counter.
+        i += 1
 
 
 @nb.jit(nopython=True)
@@ -273,30 +291,23 @@ def keep_distance_from_other_shepherd(shepherd):
     if shepherd.shape[0] > 0:
         l3 = shepherd[0][19]  # L3 Equilibrium distance from other shepherd
     for shepherd_index in range(shepherd.shape[0]):
-        x_i = shepherd[shepherd_index][0]
-        y_i = shepherd[shepherd_index][1]
+        us = shepherd[shepherd_index][:2]
         neighbor_num = 0
-        r_x = 0
-        r_y = 0
+        r = np.zeros(2)
         for neighbor_index in range(shepherd.shape[0]):
             if shepherd_index != neighbor_index:
-                x_j = shepherd[neighbor_index][0]
-                y_j = shepherd[neighbor_index][1]
-                distance = np.sqrt((x_i - x_j) ** 2 + (y_i - y_j) ** 2)
+                them = shepherd[neighbor_index][:2]
+                distance = np.linalg.norm(us - them)
                 if distance <= l3:  # Distance_from_other_shepherd
                     neighbor_num = neighbor_num + 1
-                    r_x = r_x + (x_i - x_j)
-                    r_y = r_y + (y_i - y_j)
+                    r  += us - them
         if neighbor_num != 0:
-            r_x = r_x / neighbor_num
-            r_y = r_y / neighbor_num
-            angle = math.atan2(r_y, r_x)
+            r /= neighbor_num
+            angle = np.atan2(r[1], r[0])
             angle_other_shepherd[shepherd_index] = reflect_angle(
                 angle
             )  # Angle of the repulsion vector
-            distance_other_shepherd[shepherd_index] = np.sqrt(
-                r_x**2 + r_y**2
-            )  # Distance of the repulsion vector
+            distance_other_shepherd[shepherd_index] = np.linalg.norm(r)  # Distance of the repulsion vector
     return distance_other_shepherd, angle_other_shepherd
 
 
@@ -408,13 +419,13 @@ def herd(
 ) -> tuple[np.ndarray, np.ndarray]:
     """
     Herds the agents using the shepherds by some specified mode.
-    Args:
-        @param agents: The agents to be herded.
-        @param shepherd: The shepherds herding the agents.
-        @param target: The target location.
-    Returns:
-        shepherd: The shepherds after herding.
-        max_indexes: The agents being collected.
+
+    @param agents: The agents to be herded.
+    @param shepherd: The shepherds herding the agents.
+    @param target: The target location.
+
+    @returns shepherd: The shepherds after herding.
+    @returns max_indexes: The agents being collected.
     """
     # record the furthest agent index
     max_agents_indexes = np.zeros(shepherd.shape[0])
@@ -597,7 +608,7 @@ def herd(
                     # using visible convex hull
                     _, _, center_of_mass, subset = (
                         drive_the_herd_using_visible_convex_hull(
-                            agents, *shepherd_pos, shepherd_index, target
+                            agents, shepherd_pos, shepherd_index, target
                         )
                     )
                     collect_point, force = collect_furthest_agent(
