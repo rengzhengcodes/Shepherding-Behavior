@@ -395,11 +395,11 @@ def herd_trigger_collect(
     """
     if subset is None:
         max_agent_index, _, max_angle_target_to_agent = get_furthest_agent(
-            agents, *shepherd_pos, *target
+            agents, shepherd_pos[0], shepherd_pos[1], *target
         )
     else:
         max_agent_index, _, max_angle_target_to_agent = get_furthest_agent(
-            agents[subset], *shepherd_pos, *target
+            agents[subset], shepherd_pos[0], shepherd_pos[1], *target
         )
         # Converts max agent index in visible hull to the original index.
         max_agent_index = subset[max_agent_index]
@@ -471,7 +471,7 @@ def herd(
     )
 
     for shepherd_index in range(shepherd.shape[0]):
-        shepherd_pos = shepherd[shepherd_index][(0, 1),]
+        shepherd_pos = shepherd[shepherd_index][:2]
         shepherd_angle = shepherd[shepherd_index][2]
 
         # drive_mode: attract by the mass center and the target, repulsion from
@@ -483,7 +483,7 @@ def herd(
                     # find the drive point and calculate the force attraction
                     # from the drive point; drive_point_x,
                     drive_point, drive_force = drive_the_herd(
-                        agents, *shepherd_pos, *target
+                        agents, shepherd_pos[0], shepherd_pos[1], *target
                     )
                     subset = None
                 case 1:
@@ -529,7 +529,7 @@ def herd(
             if FENCE:
                 f_net += f_fence_shepherd[shepherd_index]
 
-            shepherd[shepherd_index][(14, 15),] = drive_point
+            shepherd[shepherd_index][14:16] = drive_point
 
             # check the current furthest agent which triggers the switch of collect mode;
             # get the info of the furthest agent;
@@ -555,7 +555,7 @@ def herd(
                     agent_y = agents[int(max_agent_index)][1]
                     max_agents_indexes[shepherd_index] = int(max_agent_index)
                     distance_agent_mass, _ = get_relative_distance_angle(
-                        agent_x, agent_y, *center_of_mass
+                        agent_x, agent_y, center_of_mass[0], center_of_mass[1]
                     )
                     # switch to the collect mode if the furthest agent are far
                     # enough from the center, and moving outside the target
@@ -594,7 +594,12 @@ def herd(
                     # attract by the furthest agent out of FOV;
                     # using target place: x/y;
                     collect_point_x, collect_point_y, force = collect_furthest_agent(
-                        *agent_pos, *shepherd_pos, *target, l0
+                        agent_pos[0],
+                        agent_pos[1],
+                        shepherd_pos[0],
+                        shepherd_pos[1],
+                        *target,
+                        l0,
                     )
                 case 3:
                     # using visible convex hull
@@ -604,7 +609,12 @@ def herd(
                         )
                     )
                     collect_point_x, collect_point_y, force = collect_furthest_agent(
-                        *agent_pos, *shepherd_pos, *target, l0
+                        agent_pos[0],
+                        agent_pos[1],
+                        shepherd_pos[0],
+                        shepherd_pos[1],
+                        *target,
+                        l0,
                     )
                 case 4:
                     # using subflock convex hulls
@@ -617,14 +627,21 @@ def herd(
                         agents, shepherd_pos, shepherd_index, *target
                     )
                     collect_point_x, collect_point_y, force = collect_furthest_agent(
-                        *agent_pos, *shepherd_pos, *target, l0
+                        agent_pos[0],
+                        agent_pos[1],
+                        shepherd_pos[0],
+                        shepherd_pos[1],
+                        *target,
+                        l0,
                     )
                 case 0 | 2:
                     # attract by the furthest agent;
                     # using center of mas: x/y;
                     collect_point_x, collect_point_y, force = collect_furthest_agent(
-                        *agent_pos,
-                        *shepherd_pos,
+                        agent_pos[0],
+                        agent_pos[1],
+                        shepherd_pos[0],
+                        shepherd_pos[1],
                         center_of_mass[0],
                         center_of_mass[1],
                         l0,
