@@ -2,8 +2,6 @@
 All collective shepherding herding interactions are defined here.
 """
 
-import math
-
 import numba as nb
 import numpy as np
 from scipy.spatial import ConvexHull
@@ -232,9 +230,7 @@ def collect_furthest_agent(
     # print("distance_cp_herd:", distance_cp_herd)
     # attraction force is linear with the distance between the herd and the
     # collect point;
-    force = distance_cp_herd * np.array(
-        [np.cos(angle_cp_herd), np.sin(angle_cp_herd)]
-    )
+    force = distance_cp_herd * np.array([np.cos(angle_cp_herd), np.sin(angle_cp_herd)])
     return collect_point, force
 
 
@@ -300,14 +296,16 @@ def keep_distance_from_other_shepherd(shepherd):
                 distance = np.linalg.norm(us - them)
                 if distance <= l3:  # Distance_from_other_shepherd
                     neighbor_num = neighbor_num + 1
-                    r  += us - them
+                    r += us - them
         if neighbor_num != 0:
             r /= neighbor_num
             angle = np.atan2(r[1], r[0])
             angle_other_shepherd[shepherd_index] = reflect_angle(
                 angle
             )  # Angle of the repulsion vector
-            distance_other_shepherd[shepherd_index] = np.linalg.norm(r)  # Distance of the repulsion vector
+            distance_other_shepherd[shepherd_index] = np.linalg.norm(
+                r
+            )  # Distance of the repulsion vector
     return distance_other_shepherd, angle_other_shepherd
 
 
