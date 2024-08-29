@@ -184,10 +184,9 @@ def get_furthest_agent(agents, shepherd_x, shepherd_y, target_x, target_y):
     for agent_index in range(num_agents):
         # the furthest agent should only in the moving state;
         if agents[agent_index][21] == 0:
-            agent_x = agents[agent_index][0]
-            agent_y = agents[agent_index][1]
+            agent_pos: np.ndarray = agents[agent_index][:2]
             r_agent_herd, angle_agent_herd = get_relative_distance_angle(
-                agent_x, agent_y, shepherd_x, shepherd_y
+                agent_pos[0], agent_pos[1], shepherd_x, shepherd_y
             )
             angle_herd_agents[agent_index] = angle_agent_herd  # [-pi, pi]
             dirt_angle_from_target_to_herd = transform_angle(
@@ -478,6 +477,7 @@ def herd(
         # other shepherd;
         if shepherd[shepherd_index][13] == 1.0:
             current_drive_agent_id = int(shepherd[shepherd_index][20])
+            subset: np.ndarray = None   # Subset of agents to consider for CoM estimation.
             match MODE:
                 case 0:
                     # find the drive point and calculate the force attraction
@@ -485,7 +485,6 @@ def herd(
                     drive_point, drive_force = drive_the_herd(
                         agents, shepherd_pos[0], shepherd_pos[1], *target
                     )
-                    subset = None
                 case 1:
                     # using vision
                     (
@@ -494,11 +493,10 @@ def herd(
                         drive_agent_id,
                     ) = drive_the_herd_using_vision(agents, *shepherd_pos, *target)
                     shepherd[shepherd_index][20] = drive_agent_id
-                    subset = None
                 case 2:
                     # using convex hull
                     (drive_point, drive_force) = drive_the_herd_using_convex_hull(
-                        agents, *shepherd_pos, *target
+                        agents, shepherd_pos[0], shepherd_pos[1], *target
                     )
                 case 3:
                     # using visible convex hull
@@ -551,11 +549,10 @@ def herd(
                         # mode;
                         shepherd[shepherd_index][16] = int(max_agent_index)
                 case 0 | 2 | 3 | 4:
-                    agent_x = agents[int(max_agent_index)][0]
-                    agent_y = agents[int(max_agent_index)][1]
+                    agent_pos = agents[int(max_agent_index)][:2]
                     max_agents_indexes[shepherd_index] = int(max_agent_index)
                     distance_agent_mass, _ = get_relative_distance_angle(
-                        agent_x, agent_y, center_of_mass[0], center_of_mass[1]
+                        agent_pos[0], agent_pos[1], center_of_mass[0], center_of_mass[1]
                     )
                     # switch to the collect mode if the furthest agent are far
                     # enough from the center, and moving outside the target
