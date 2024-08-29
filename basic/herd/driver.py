@@ -9,14 +9,11 @@ from scipy.spatial import ConvexHull
 
 
 @nb.jit(nopython=True)
-def get_relative_distance_angle(
-    vector_head_x, vector_head_y, vector_end_x, vector_end_y
-):
+def get_relative_distance_angle(vector_head, vector_end):
     """Gets the relative distance and angle, with 0 degrees being i_hat."""
-    r_x = vector_head_x - vector_end_x
-    r_y = vector_head_y - vector_end_y
-    r_length = np.sqrt(r_x**2 + r_y**2)
-    r_angle = np.arctan2(r_y, r_x)  # range[-pi, pi]
+    r = vector_head - vector_end
+    r_length = np.linalg.norm(r)
+    r_angle = np.arctan2(r[1], r[0])  # range[-pi, pi]
     return r_length, r_angle
 
 
@@ -39,7 +36,7 @@ def calculate_mass_center(agents):
 
 
 @nb.jit(nopython=True)
-def drive_the_herd(agents, shepherd_x, shepherd_y, target_pos):
+def drive_the_herd(agents, shepherd_pos, target_pos):
     """
     Drives the herd towards the target using the center of mass model described
     in Yating's paper.
@@ -64,7 +61,7 @@ def drive_the_herd(agents, shepherd_x, shepherd_y, target_pos):
     )
     # the shepherd should be attracted by the drive point
     distance_drive_herd, angle_drive_herd = get_relative_distance_angle(
-        drive_point[0], drive_point[1], shepherd_x, shepherd_y
+        drive_point, shepherd_pos
     )
     # print("distance_drive_herd", distance_drive_herd)
     # the drive force is linear to the distance between the shepherd and the
@@ -83,7 +80,7 @@ def drive_the_herd(agents, shepherd_x, shepherd_y, target_pos):
 
 
 @nb.jit(nopython=True)
-def drive_the_herd_using_convex_hull(agents, shepherd_x, shepherd_y, target_pos):
+def drive_the_herd_using_convex_hull(agents, shepherd_pos, target_pos):
     """
     Drives the herd ina  method similar to Yating's paper, but using the center
     of the convex hull of the flock (estimated through the average of the vertices
@@ -116,7 +113,7 @@ def drive_the_herd_using_convex_hull(agents, shepherd_x, shepherd_y, target_pos)
 
     # the shepherd should be attracted by the drive point
     distance_drive_herd, angle_drive_herd = get_relative_distance_angle(
-        *drive_point, shepherd_x, shepherd_y
+        drive_point, shepherd_pos
     )
 
     # the drive force is linear to the distance between the shepherd and the
@@ -197,9 +194,7 @@ def drive_the_herd_using_visible_convex_hull(
 
     # calculate the distance, angle between the center of the mass and the
     # shepherd;
-    _, angle_mass_target = get_relative_distance_angle(
-        center_of_hull[0], center_of_hull[1], *target_pos
-    )
+    _, angle_mass_target = get_relative_distance_angle(center_of_hull, target_pos)
 
     # update the safe drive distance to the center according to the CURRENT num of moving agents,
     # initial parameter of shepherd swarm[:,5];
@@ -217,7 +212,7 @@ def drive_the_herd_using_visible_convex_hull(
 
     # the shepherd should be attracted by the drive point
     distance_drive_herd, angle_drive_herd = get_relative_distance_angle(
-        drive_point[0], drive_point[1], *shepherd_pos
+        drive_point, shepherd_pos
     )
 
     # the drive force is linear to the distance between the shepherd and the
@@ -258,11 +253,11 @@ def drive_the_herd_using_subflock_convex_hulls(
         # Gets the flock.
         flock = agents[agents[:, 24] == flock_index]
         # Gets the visible convex hull.
-        _, _, _, _, _, visible_flock_hull = drive_the_herd_using_visible_convex_hull(
+        _, _, _, visible_flock_hull = drive_the_herd_using_visible_convex_hull(
             flock,
-            *shepherd_pos,
+            shepherd_pos,
             shepherd_index,
-            *target_pos,
+            target_pos,
         )
         # Corrects the indices.
         visible_flock_hull = np.where(agents[:, 24] == flock_index)[0][
@@ -317,7 +312,7 @@ def drive_the_herd_using_subflock_convex_hulls(
 
     # the shepherd should be attracted by the drive point
     distance_drive_herd, angle_drive_herd = get_relative_distance_angle(
-        drive_point[0], drive_point[1], *shepherd_pos
+        drive_point, shepherd_pos
     )
 
     # the drive force is linear to the distance between the shepherd and the

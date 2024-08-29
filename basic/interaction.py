@@ -64,7 +64,7 @@ def reflect_angle(angle):  # [-2pi, 2pi]
 
 @nb.jit(nopython=True)
 def update_agents_state(
-    agents: np.ndarray, target_x: float, target_y: float, target_size: float
+    agents: np.ndarray, target_pos: np.ndarray, target_size: float
 ) -> np.ndarray:
     """
     Updates the state of the agents if they are within the target.
@@ -78,16 +78,16 @@ def update_agents_state(
     """
     for agent_index in range(agents.shape[0]):
         agent_pos: np.ndarray = agents[agent_index][:2]
-        distance, _ = get_relative_distance_angle(
-            target_x, target_y, agent_pos[0], agent_pos[1]
-        )
+        distance, _ = get_relative_distance_angle(target_pos, agent_pos)
         if not MORPHOLOGY and (
             (distance < target_size)
             or (
                 FENCE
                 and (
                     FENCE_MIDDLE_ANGLE - GATE_ANGULAR_WIDTH / 2
-                    <= np.arctan2(agent_pos[0] - target_x, agent_pos[1] - target_y)
+                    <= np.arctan2(
+                        agent_pos[0] - target_pos[0], agent_pos[1] - target_pos[1]
+                    )
                     <= FENCE_MIDDLE_ANGLE + GATE_ANGULAR_WIDTH / 2
                 )
                 or agents[agent_index][21] == 1
@@ -169,7 +169,7 @@ def update(agents, shepherd, target_x, target_y):
 
 
 @nb.jit(nopython=True)
-def get_furthest_agent(agents, shepherd_x, shepherd_y, target_x, target_y):
+def get_furthest_agent(agents, shepherd_pos: np.ndarray, target_pos: np.ndarray):
     """
     Sets which agent is the furthest from the shepherd and collects it.
     """
@@ -178,15 +178,13 @@ def get_furthest_agent(agents, shepherd_x, shepherd_y, target_x, target_y):
     distance_herd_agents = np.zeros(agents.shape[0])
     dirt_angles_of_target_to_agent = np.zeros(agents.shape[0])
 
-    _, angle_target_herd = get_relative_distance_angle(
-        target_x, target_y, shepherd_x, shepherd_y
-    )
+    _, angle_target_herd = get_relative_distance_angle(target_pos, shepherd_pos)
     for agent_index in range(num_agents):
         # the furthest agent should only in the moving state;
         if agents[agent_index][21] == 0:
             agent_pos: np.ndarray = agents[agent_index][:2]
             r_agent_herd, angle_agent_herd = get_relative_distance_angle(
-                agent_pos[0], agent_pos[1], shepherd_x, shepherd_y
+                agent_pos, shepherd_pos
             )
             angle_herd_agents[agent_index] = angle_agent_herd  # [-pi, pi]
             dirt_angle_from_target_to_herd = transform_angle(
@@ -212,18 +210,17 @@ def get_furthest_agent(agents, shepherd_x, shepherd_y, target_x, target_y):
 
 @nb.jit(nopython=True)
 def collect_furthest_agent(
-    agent_x, agent_y, shepherd_x, shepherd_y, target_x, target_y, l0
+    agent_pos: np.ndarray, shepherd_pos: np.ndarray, target_pos, l0
 ):
     # get the angle from agent to target first;
-    _, angle_agent_target = get_relative_distance_angle(
-        agent_x, agent_y, target_x, target_y
-    )
+    _, angle_agent_target = get_relative_distance_angle(agent_pos, target_pos)
     # keep l0 distance from the collect agent;
-    collect_point_x = agent_x + l0 * np.cos(angle_agent_target)
-    collect_point_y = agent_y + l0 * np.sin(angle_agent_target)
+    collect_point: np.ndarray = agent_pos + l0 * np.array(
+        np.cos(angle_agent_target), np.sin(angle_agent_target)
+    )
     # attracted by the collect point;
     distance_cp_herd, angle_cp_herd = get_relative_distance_angle(
-        collect_point_x, collect_point_y, shepherd_x, shepherd_y
+        collect_point, shepherd_pos
     )
     # print("distance_cp_herd:", distance_cp_herd)
     # attraction force is linear with the distance between the herd and the
@@ -231,7 +228,7 @@ def collect_furthest_agent(
     force = distance_cp_herd * np.array(
         [np.cos(angle_cp_herd), distance_cp_herd * np.sin(angle_cp_herd)]
     )
-    return collect_point_x, collect_point_y, force
+    return collect_point, force
 
 
 @nb.jit(nopython=True)
@@ -408,7 +405,7 @@ def herd_trigger_collect(
 
 @nb.jit(nopython=True)
 def herd(
-    agents, shepherd, target: tuple[float, float]
+    agents, shepherd, target: np.ndarray[float, float]
 ) -> tuple[np.ndarray, np.ndarray]:
     """
     Herds the agents using the shepherds by some specified mode.
@@ -485,7 +482,7 @@ def herd(
                     # find the drive point and calculate the force attraction
                     # from the drive point; drive_point_x,
                     drive_point, drive_force = drive_the_herd(
-                        agents, shepherd_pos[0], shepherd_pos[1], target
+                        agents, shepherd_pos, target
                     )
                 case 1:
                     # using vision
@@ -500,7 +497,7 @@ def herd(
                 case 2:
                     # using convex hull
                     (drive_point, drive_force) = drive_the_herd_using_convex_hull(
-                        agents, shepherd_pos[0], shepherd_pos[1], target
+                        agents, shepherd_pos, target
                     )
                 case 3:
                     # using visible convex hull
@@ -510,7 +507,7 @@ def herd(
                         center_of_mass,
                         subset,
                     ) = drive_the_herd_using_visible_convex_hull(
-                        agents, shepherd_pos[0], shepherd_pos[1], shepherd_index, target
+                        agents, shepherd_pos, shepherd_index, target
                     )
                 case 4:
                     # using subflock convex hulls
@@ -556,7 +553,7 @@ def herd(
                     agent_pos = agents[int(max_agent_index)][:2]
                     max_agents_indexes[shepherd_index] = int(max_agent_index)
                     distance_agent_mass, _ = get_relative_distance_angle(
-                        agent_pos[0], agent_pos[1], center_of_mass[0], center_of_mass[1]
+                        agent_pos, center_of_mass
                     )
                     # switch to the collect mode if the furthest agent are far
                     # enough from the center, and moving outside the target
@@ -594,12 +591,10 @@ def herd(
                 case 1:
                     # attract by the furthest agent out of FOV;
                     # using target place: x/y;
-                    collect_point_x, collect_point_y, force = collect_furthest_agent(
-                        agent_pos[0],
-                        agent_pos[1],
-                        shepherd_pos[0],
-                        shepherd_pos[1],
-                        *target,
+                    collect_point, force = collect_furthest_agent(
+                        agent_pos,
+                        shepherd_pos,
+                        target,
                         l0,
                     )
                 case 3:
@@ -609,12 +604,10 @@ def herd(
                             agents, *shepherd_pos, shepherd_index, target
                         )
                     )
-                    collect_point_x, collect_point_y, force = collect_furthest_agent(
-                        agent_pos[0],
-                        agent_pos[1],
-                        shepherd_pos[0],
-                        shepherd_pos[1],
-                        *target,
+                    collect_point, force = collect_furthest_agent(
+                        agent_pos,
+                        shepherd_pos,
+                        target,
                         l0,
                     )
                 case 4:
@@ -627,24 +620,19 @@ def herd(
                     ) = drive_the_herd_using_subflock_convex_hulls(
                         agents, shepherd_pos, shepherd_index, target
                     )
-                    collect_point_x, collect_point_y, force = collect_furthest_agent(
-                        agent_pos[0],
-                        agent_pos[1],
-                        shepherd_pos[0],
-                        shepherd_pos[1],
-                        *target,
+                    collect_point, force = collect_furthest_agent(
+                        agent_pos,
+                        shepherd_pos,
+                        target,
                         l0,
                     )
                 case 0 | 2:
                     # attract by the furthest agent;
                     # using center of mas: x/y;
-                    collect_point_x, collect_point_y, force = collect_furthest_agent(
-                        agent_pos[0],
-                        agent_pos[1],
-                        shepherd_pos[0],
-                        shepherd_pos[1],
-                        center_of_mass[0],
-                        center_of_mass[1],
+                    collect_point, force = collect_furthest_agent(
+                        agent_pos,
+                        shepherd_pos,
+                        center_of_mass,
                         l0,
                     )
                 case _:
@@ -659,11 +647,10 @@ def herd(
             if FENCE:
                 f_net += f_fence_shepherd[shepherd_index]
 
-            shepherd[shepherd_index][14] = collect_point_x  # collect_x
-            shepherd[shepherd_index][15] = collect_point_y  # collect_y
+            shepherd[shepherd_index][14:16] = collect_point
 
             distance_agent_mass, _ = get_relative_distance_angle(
-                collect_point_x, collect_point_y, center_of_mass[0], center_of_mass[1]
+                collect_point, center_of_mass
             )
             # !!! switch to the drive mode:
             match MODE:
@@ -741,16 +728,16 @@ def evolve(agents, shepherd, target_x, target_y, target_size):
     """
     Evolves the agents and shepherds for one time step.
     """
-    target = (target_x, target_y)
+    target = np.array(target_x, target_y)
     # network_matrix = create_metric_network((agents, R, Fov))
     # agent-agent, agent-shepherd interaction;
     agents_update = update(agents, shepherd, *target)
     ## shepherd switch between collect and drive mode;
     # Changes target to center of group if FENCE.
     if FENCE:
-        target = (
-            target_x + target_size * np.cos(FENCE_MIDDLE_ANGLE),
-            target_y + target_size * np.sin(FENCE_MIDDLE_ANGLE),
+        target += target_size * np.array(
+            np.cos(FENCE_MIDDLE_ANGLE),
+            np.sin(FENCE_MIDDLE_ANGLE),
         )
     shepherd_update, max_agents_indexes = herd(agents, shepherd, target)
     # update agents state
