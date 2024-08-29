@@ -214,9 +214,9 @@ def collect_furthest_agent(
     # get the angle from agent to target first;
     _, angle_agent_target = get_relative_distance_angle(agent_pos, target_pos)
     # keep l0 distance from the collect agent;
-    collect_point: np.ndarray = agent_pos + l0 * np.array([
-        np.cos(angle_agent_target), np.sin(angle_agent_target)
-    ])
+    collect_point: np.ndarray = agent_pos + l0 * np.array(
+        [np.cos(angle_agent_target), np.sin(angle_agent_target)]
+    )
     # attracted by the collect point;
     distance_cp_herd, angle_cp_herd = get_relative_distance_angle(
         collect_point, shepherd_pos

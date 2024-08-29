@@ -45,9 +45,7 @@ def drive_the_herd(agents, shepherd_pos, target_pos):
     num_agents_moving, center_of_mass = calculate_mass_center(agents)
     # calculate the distance, angle between the center of the mass and the
     # shepherd;
-    _, angle_mass_target = get_relative_distance_angle(
-        center_of_mass, target_pos
-    )
+    _, angle_mass_target = get_relative_distance_angle(center_of_mass, target_pos)
     # update the safe drive distance to the center according to the CURRENT num of moving agents,
     # initial parameter of shepherd swarm[:,5];
     if num_agents_moving >= 10:
