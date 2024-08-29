@@ -485,7 +485,7 @@ def herd(
                     # find the drive point and calculate the force attraction
                     # from the drive point; drive_point_x,
                     drive_point, drive_force = drive_the_herd(
-                        agents, shepherd_pos[0], shepherd_pos[1], *target
+                        agents, shepherd_pos[0], shepherd_pos[1], target
                     )
                 case 1:
                     # using vision
@@ -493,12 +493,14 @@ def herd(
                         drive_point,
                         drive_force,
                         drive_agent_id,
-                    ) = drive_the_herd_using_vision(agents, *shepherd_pos, *target)
+                    ) = drive_the_herd_using_vision(
+                        agents, shepherd_pos[0], shepherd_pos[1], *target
+                    )
                     shepherd[shepherd_index][20] = drive_agent_id
                 case 2:
                     # using convex hull
                     (drive_point, drive_force) = drive_the_herd_using_convex_hull(
-                        agents, shepherd_pos[0], shepherd_pos[1], *target
+                        agents, shepherd_pos[0], shepherd_pos[1], target
                     )
                 case 3:
                     # using visible convex hull
@@ -508,7 +510,7 @@ def herd(
                         center_of_mass,
                         subset,
                     ) = drive_the_herd_using_visible_convex_hull(
-                        agents, *shepherd_pos, shepherd_index, *target
+                        agents, shepherd_pos[0], shepherd_pos[1], shepherd_index, target
                     )
                 case 4:
                     # using subflock convex hulls
@@ -518,7 +520,7 @@ def herd(
                         center_of_mass,
                         subset,
                     ) = drive_the_herd_using_subflock_convex_hulls(
-                        agents, shepherd_pos, shepherd_index, *target
+                        agents, shepherd_pos, shepherd_index, target
                     )
                 case _:
                     raise NotImplementedError(
@@ -558,7 +560,7 @@ def herd(
                     )
                     # switch to the collect mode if the furthest agent are far
                     # enough from the center, and moving outside the target
-                    # circle/
+                    # circle.
                     if (distance_agent_mass > d_furthest) and (
                         agents[max_agent_index][21] == 0.0
                     ):
@@ -604,7 +606,7 @@ def herd(
                     # using visible convex hull
                     _, _, center_of_mass, subset = (
                         drive_the_herd_using_visible_convex_hull(
-                            agents, *shepherd_pos, shepherd_index, *target
+                            agents, *shepherd_pos, shepherd_index, target
                         )
                     )
                     collect_point_x, collect_point_y, force = collect_furthest_agent(
@@ -623,7 +625,7 @@ def herd(
                         center_of_mass,
                         subset,
                     ) = drive_the_herd_using_subflock_convex_hulls(
-                        agents, shepherd_pos, shepherd_index, *target
+                        agents, shepherd_pos, shepherd_index, target
                     )
                     collect_point_x, collect_point_y, force = collect_furthest_agent(
                         agent_pos[0],
