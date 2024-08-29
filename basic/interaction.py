@@ -477,7 +477,9 @@ def herd(
         # other shepherd;
         if shepherd[shepherd_index][13] == 1.0:
             current_drive_agent_id = int(shepherd[shepherd_index][20])
-            subset: np.ndarray = None   # Subset of agents to consider for CoM estimation.
+            subset: np.ndarray = (
+                None  # Subset of agents to consider for CoM estimation.
+            )
             match MODE:
                 case 0:
                     # find the drive point and calculate the force attraction
