@@ -131,7 +131,7 @@ def update(agents, shepherd, target_x, target_y):
     # Attraction to the target.
     force: np.ndarray = np.where(
         np.expand_dims((agents[:, 21] == 1) & (num_avoid == 0), axis=1),
-        0.1 * (agents[:, :2] - target),
+        0.1 * (target - agents[:, :2]),
         force,
     )
     # Gets the force from the fences.

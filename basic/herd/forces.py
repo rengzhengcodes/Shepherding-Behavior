@@ -28,24 +28,19 @@ def get_attraction_force(
     f_attraction: np.ndarray = np.zeros((agents.shape[0], 2))
     for agent_index in range(agents.shape[0]):
         neighbor_num = 0
-        r_x = 0
-        r_y = 0
-        x_i = agents[agent_index][0]
-        y_i = agents[agent_index][1]
+        r: np.ndarray = np.zeros(2)
+        agent_pos: np.ndarray = agents[agent_index][:2]
         for neighbor_index in range(agents.shape[0]):
             if (
                 agent_index != neighbor_index
             ):  # and (map_att[agent_index, neighbor_index] == 1)
-                x_j = agents[neighbor_index][0]
-                y_j = agents[neighbor_index][1]
-                distance = np.sqrt((x_i - x_j) ** 2 + (y_i - y_j) ** 2)
+                neighbor_pos = agents[neighbor_index][:2]
+                distance = np.linalg.norm(agent_pos - neighbor_pos)
                 if agents[0][3] <= distance <= agents[0][5]:
                     neighbor_num = neighbor_num + 1
-                    r_x = r_x + (x_j - x_i) / distance  # unit vector
-                    r_y = r_y + (y_j - y_i) / distance  # unit vector
+                    r += (neighbor_pos - agent_pos) / distance
         num_att[agent_index] = neighbor_num
-        f_attraction[agent_index, 0] = r_x
-        f_attraction[agent_index, 1] = r_y
+        f_attraction[agent_index, :2] = r
 
     return num_att, f_attraction
 
