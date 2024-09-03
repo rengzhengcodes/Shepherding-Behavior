@@ -18,6 +18,7 @@ from .herd.forces import (
 )
 from .herd.driver import (
     get_relative_distance_angle,
+    get_relative_distance_angle_vectorized,
     calculate_mass_center,
     drive_the_herd,
     drive_the_herd_using_convex_hull,
@@ -145,7 +146,7 @@ def update(agents, shepherd, target_x, target_y):
     w_dot: np.ndarray = (
         force * np.stack((-np.sin(agents[:, 2]), np.cos(agents[:, 2])), axis=1)
     ).sum(axis=1)
-    w_dot *= 1 / v0  # inertia
+    w_dot *= (1 / v0)  # inertia
     w_dot = np.clip(w_dot, -agents[:, 18], agents[:, 18])
 
     # Calculates the random noise.
@@ -295,11 +296,11 @@ def keep_distance_from_other_shepherd(shepherd):
                 them = shepherd[neighbor_index][:2]
                 distance = np.linalg.norm(us - them)
                 if distance <= l3:  # Distance_from_other_shepherd
-                    neighbor_num = neighbor_num + 1
-                    r += us - them
+                    neighbor_num += 1
+                    r += (us - them)
         if neighbor_num != 0:
             r /= neighbor_num
-            angle = np.atan2(r[1], r[0])
+            angle = np.arctan2(r[1], r[0])
             angle_other_shepherd[shepherd_index] = reflect_angle(
                 angle
             )  # Angle of the repulsion vector
@@ -576,7 +577,7 @@ def herd(
                         shepherd[shepherd_index][16] = int(max_agent_index)
                 case _:
                     raise NotImplementedError(
-                        "Mode {MODE} does not have collect agent identification implemented."
+                        f"Mode {MODE} does not have collect agent identification implemented."
                     )
 
             # if the drive agent is staying, then switch to collect mode:  ???
@@ -680,7 +681,7 @@ def herd(
                         shepherd[shepherd_index][13] = 1.0  # drive_mode_true
                 case _:
                     raise NotImplementedError(
-                        "Mode {MODE} does not have a way to exit collect mode."
+                        f"Mode {MODE} does not have a way to exit collect mode."
                     )
 
         # calculate the linear speed and angular speed;

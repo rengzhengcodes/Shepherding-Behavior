@@ -18,6 +18,20 @@ def get_relative_distance_angle(vector_head, vector_end):
 
 
 @nb.jit(nopython=True)
+def get_relative_distance_angle_vectorized(vector_heads: np.ndarray, vector_ends: np.ndarray):
+    """
+    Gets the relative distance ang angle, with 0 degrees being i_hat, between
+    element-coordinated vectors of a 2D array.
+    """
+    vectors: np.ndarray = vector_heads - vector_ends
+    r_lengths: np.ndarray = np.array(
+        [np.linalg.norm(vector) for vector in vectors]
+    )
+    r_angles: np.ndarray = np.arctan2(vectors[:, 1], vectors[:, 0])
+    return r_lengths, r_angles
+
+
+@nb.jit(nopython=True)
 def calculate_mass_center(agents):
     """Calculates the mass center of the moving agents."""
     sum_x = 0
