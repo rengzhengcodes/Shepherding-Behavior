@@ -146,7 +146,7 @@ def update(agents, shepherd, target_x, target_y):
     w_dot: np.ndarray = (
         force * np.stack((-np.sin(agents[:, 2]), np.cos(agents[:, 2])), axis=1)
     ).sum(axis=1)
-    w_dot *= (1 / v0)  # inertia
+    w_dot *= 1 / v0  # inertia
     w_dot = np.clip(w_dot, -agents[:, 18], agents[:, 18])
 
     # Calculates the random noise.
@@ -297,7 +297,7 @@ def keep_distance_from_other_shepherd(shepherd):
                 distance = np.linalg.norm(us - them)
                 if distance <= l3:  # Distance_from_other_shepherd
                     neighbor_num += 1
-                    r += (us - them)
+                    r += us - them
         if neighbor_num != 0:
             r /= neighbor_num
             angle = np.arctan2(r[1], r[0])
