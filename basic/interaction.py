@@ -320,11 +320,12 @@ def herd_preprocessor(agents: np.ndarray) -> tuple[int, tuple[float, float]]:
 
     @return: The number of agents still moving and the default [estimated] center of mass.
     """
+    estimated_CoM: np.ndarray = np.array([np.nan, np.nan])
     match MODE:
         case 0 | 1:
             # first get the position of the center of the mass
             num_agents_moving, center_of_mass = calculate_mass_center(agents)
-            center_of_mass_x, center_of_mass_y = center_of_mass
+            estimated_CoM = center_of_mass
         case 2:
             # Reset hull status.
             agents[:, 22] = 0
@@ -340,14 +341,12 @@ def herd_preprocessor(agents: np.ndarray) -> tuple[int, tuple[float, float]]:
             # Sets the hull items in their CCW order.
             agents[hull, 22] = np.arange(1, hull.shape[0] + 1)
 
-            # Finds the center of the hull.
-            num_agents_moving, center_of_hull_x, center_of_hull_y = (
-                np.count_nonzero(agents[:, 21] == 0),
+            # Finds the center of the hull as the estimated CoM.
+            num_agents_moving = np.count_nonzero(agents[:, 21] == 0)
+            estimated_CoM = np.array([
                 np.mean(agents[hull, 0]),
                 np.mean(agents[hull, 1]),
-            )
-            # Proxy for code concision later.
-            center_of_mass_x, center_of_mass_y = center_of_hull_x, center_of_hull_y
+            ])
         case 3:
             # Reset hull status.
             agents[:, 22] = 0
@@ -355,8 +354,6 @@ def herd_preprocessor(agents: np.ndarray) -> tuple[int, tuple[float, float]]:
             # or else each shepherd erases information for all other shepherds in this
             # call of herd.
             agents[:, 23] = 0.0
-            # Sets center of mass values for error handling.
-            center_of_mass_x, center_of_mass_y = np.nan, np.nan
             # Sets the number of moving agents.
             num_agents_moving = np.count_nonzero(agents[:, 21] == 0)
         case 4:
@@ -366,8 +363,6 @@ def herd_preprocessor(agents: np.ndarray) -> tuple[int, tuple[float, float]]:
             # or else each shepherd erases information for all other shepherds in this
             # call of herd.
             agents[:, 23] = 0.0
-            # Sets center of mass values for error handling.
-            center_of_mass_x, center_of_mass_y = np.nan, np.nan
             # Sets the number of moving agents.
             num_agents_moving = np.count_nonzero(agents[:, 21] == 0)
             # Resets the flock membership.
@@ -377,7 +372,7 @@ def herd_preprocessor(agents: np.ndarray) -> tuple[int, tuple[float, float]]:
                 "Mode {MODE} does not have pre-processing implemented."
             )
 
-    return num_agents_moving, np.array([center_of_mass_x, center_of_mass_y])
+    return num_agents_moving, estimated_CoM
 
 
 @nb.jit(nopython=True)
