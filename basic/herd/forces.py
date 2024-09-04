@@ -61,22 +61,17 @@ def get_repulsion_force(
     f_avoid = np.zeros((agents.shape[0], 2))
     for agent_index in range(agents.shape[0]):
         neighbor_num = 0
-        r_x = 0
-        r_y = 0
-        x_i = agents[agent_index][0]
-        y_i = agents[agent_index][1]
+        r: np.ndarray = np.zeros(2)
+        agent_pos: np.ndarray = agents[agent_index][:2]
         for neighbor_index in range(agents.shape[0]):
             if agent_index != neighbor_index:
-                x_j = agents[neighbor_index][0]
-                y_j = agents[neighbor_index][1]
-                distance = np.sqrt((x_i - x_j) ** 2 + (y_i - y_j) ** 2)
+                neighbor_pos: np.ndarray = agents[neighbor_index][:2]
+                distance = np.linalg.norm(agent_pos - neighbor_pos)
                 if distance <= agents[0][3]:  # R_repulsion
                     neighbor_num = neighbor_num + 1
-                    r_x = r_x + (x_i - x_j) / distance  # unit vector
-                    r_y = r_y + (y_i - y_j) / distance  # unit vector
+                    r += (agent_pos - neighbor_pos) / distance  # unit vector
         num_avoid[agent_index] = neighbor_num
-        f_avoid[agent_index, 0] = r_x
-        f_avoid[agent_index, 1] = r_y
+        f_avoid[agent_index] = r
 
     return num_avoid, f_avoid
 
@@ -108,7 +103,7 @@ def get_shepherd_force(agents, shepherd):
                 r_pos = r_pos + (agent_pos - shepherd_pos) / distance
         num_shepherd_avoid[agent_index] = num_shepherd
         f_shepherd_force[agent_index] = r_pos
-    return num_shepherd_avoid, f_shepherd_force[:, :2]
+    return num_shepherd_avoid, f_shepherd_force
 
 
 @nb.jit(nopython=True)
