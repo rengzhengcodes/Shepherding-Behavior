@@ -4,7 +4,7 @@ import os
 import h5py
 
 
-def Get_final_tick(file_name):
+def get_final_tick(file_name):
     file_name_string = os.path.splitext(file_name)[0].split("_")
     for item in file_name_string:
         if "tick" in item:
@@ -46,7 +46,7 @@ def calculate_time_in_different_modes(list_of_l3, list_of_n_sheep, list_of_n_she
                             # print(file)
                             file_path = data_folder + file
                             agents_pos, agents_state, shepherd_pos, shepherd_state = read_hdf5_data(file_path)
-                            Iterations = Get_final_tick(file)
+                            Iterations = get_final_tick(file)
                             # print("Iterations:", Iterations)
                             drive_ratio.append(np.sum(shepherd_state) / (Iterations + 1))
                             collect_ratio.append(1 - np.sum(shepherd_state) / (Iterations + 1))

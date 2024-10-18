@@ -7,7 +7,7 @@ import os, sys
 import numba as nb
 import numpy as np
 import matplotlib.pyplot as plt
-from basic.initiation import initiate, initiate_shepherd
+from basic.initiation import initiate, initiate_shepherds
 from basic.interaction import evolve, make_preodic_boundary
 from basic.save_data import save_data
 from basic.draw_states import draw_state, draw_state_single
@@ -45,7 +45,7 @@ if __name__ == '__main__':
     TICK = parameter["TICK"]
     # Initiation
     agents = initiate(N_sheep, Space_x, Space_y, Target_size)
-    shepherd = initiate_shepherd(0, N_sheep)
+    shepherd = initiate_shepherds(0, N_sheep)
     Data_agents = np.zeros((agents.shape[0], agents.shape[1], Iterations), float)
     Data_shepherds = np.zeros((shepherd.shape[0], shepherd.shape[1], Iterations), float)
     # Map_agents = np.zeros((N_sheep, N_sheep, Iterations), float)
@@ -55,7 +55,7 @@ if __name__ == '__main__':
     for tick in range(Iterations):
         if tick == TICK:
             # Insert shepherd
-            shepherd = initiate_shepherd(N_shepherd, N_sheep)  # add shepherd at certain tick
+            shepherd = initiate_shepherds(N_shepherd, N_sheep)  # add shepherd at certain tick
             Data_shepherds = np.zeros((shepherd.shape[0], shepherd.shape[1], Iterations), float)
             Max_agents_indexes = np.zeros((N_shepherd, Iterations), int)
 
