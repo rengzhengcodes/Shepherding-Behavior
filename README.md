@@ -15,17 +15,46 @@ Two experiment types are supported:
   fixed target; shepherds compact the flock toward its own center of mass, and
   a run succeeds when all sheep are within radius L2 of it.
 
-Shepherds estimate where the flock is using one of several strategies,
-selected by `MODE` in `basic/__init__.py` (implementations in
-`basic/herd/driver.py`):
+## Shepherd strategies (`MODE`)
 
-| MODE | Strategy |
-|---|---|
-| 0 | Center of mass (Yating's original model) |
-| 1 | Vision projection (`basic/vision_functions.py`) |
-| 2 | Convex hull center |
-| 3 | Visible convex hull (only hull vertices the shepherd can see) |
-| 4 | Local visible convex hull (nearest subflock's visible hull) |
+Every strategy shares the same two-state controller per shepherd
+(`herd()` in `basic/interaction.py`); what changes between modes is how the
+shepherd *estimates the flock's center*, moving from global knowledge toward
+information the shepherd could plausibly sense itself.
+
+- **Drive mode** — the shepherd estimates a flock center, places a *drive
+  point* a distance L1 behind that center (on the far side from the target,
+  along the target→center ray), and steers toward it with a force linear in
+  distance, plus repulsion from other shepherds and the fence force when
+  `FENCE` is on. L1 grows with the number of moving sheep
+  (`(2/3)·√n·10` in modes 0/2, `(2/3)·√n·2` in modes 3/4, floor of 15).
+- **Collect mode** — each tick the shepherd finds the moving sheep whose
+  bearing deviates most from its own line to the target
+  (`get_furthest_agent`). If that straggler is more than L2 from the
+  estimated center (mode 1: if its bearing deviation exceeds the half-FOV
+  threshold π/2), the shepherd locks onto it and switches to collecting:
+  it steers to a point L0 beyond the straggler — opposite the flock center
+  (modes 0/2) or opposite the target (modes 1/3/4) — pushing it back toward
+  the group. It returns to drive mode once the straggler is back within L2
+  of the center (mode 1: within π/3 of the flock's mean bearing) or enters
+  the staying state.
+
+The center estimators (modes 0 and 2–4 in `basic/herd/driver.py`, mode 1 in
+`basic/vision_functions.py`):
+
+| MODE | Strategy | Center estimate |
+|---|---|---|
+| 0 | Center of mass | True mean position of all moving sheep (Yating's original model — full global knowledge). |
+| 1 | Vision projection | No positions at all: each sheep is reduced to what it occupies on the shepherd's 1-D retina — a bearing (`arctan2` of relative position) and an angular width (`arctan(radius/distance)`, wider = closer). The shepherd drives behind the visually largest (nearest) sheep, and collect decisions compare bearings on the retina rather than distances. |
+| 2 | Convex hull | Mean of the convex-hull vertices of the moving sheep (hull computed once per tick, stored in agent column 22) — only boundary sheep matter. |
+| 3 | Visible convex hull | Per shepherd: the hull is computed with the shepherd included (qhull `QG0`), keeping only the facets *visible from its position*; the center is the mean of those visible vertices (biased toward the near edge, hence the smaller L1). Falls back to the nearest sheep when nothing is visible, e.g. with the shepherd inside the flock. Visibility is recorded per shepherd as a bitmask in column 23. |
+| 4 | Local visible convex hull | Moving sheep are first clustered into subflocks by connected components with link distance equal to the attraction radius (`identify_flocks`, column 24); the shepherd computes each subflock's visible hull as in mode 3 and attends to the subflock with the closest visible vertex. |
+
+Status: modes 0 and 3 are verified to herd to success end-to-end (see the
+smoke driver below). Mode 1 is the least maintained — it appears to be broken
+(`basic/vision_functions.py:239` builds the drive point as
+`np.array(x, y)` instead of `np.array([x, y])`) and has no alias in
+`parse.py`.
 
 ## Repository layout
 
