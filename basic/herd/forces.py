@@ -101,8 +101,12 @@ def get_sheep_forces(
         and sqrt is correctly rounded, so d2 > 625 implies sqrt(d2) > 25
         exactly: the early-out can never drop a pair the full comparison would
         have kept. Surviving pairs use the original comparisons on the
-        distance itself (this exactness needs the square of the attraction
-        radius to be representable; it holds for any integer radius < 2^26).
+        distance itself. CAUTION: this exactness does NOT hold for every
+        radius R with representable R^2 -- it needs sqrt(R^2 + ulp(R^2)) to
+        round AWAY from R, i.e. ulp(R^2) > R * ulp(R). R = 25 satisfies it
+        (2^-43 > 25 * 2^-48); e.g. R = 17 does not. Verify before changing
+        the radius. The early-out also assumes repulsion_distance <=
+        attraction_distance (it gates BOTH branches); true here (10 <= 25).
       * An agent exactly at the repulsion radius contributes to BOTH forces,
         and coincident agents produce the same 0/0 = nan repulsion, as before.
 
