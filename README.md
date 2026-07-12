@@ -82,16 +82,21 @@ smoke driver below). Mode 1 is the least maintained — it appears to be broken
 
 ## Getting started
 
-Requires Python 3.12+. Set up a virtual environment:
+Requires Python 3.12 or newer. Every pinned dependency ships prebuilt wheels for
+CPython 3.12–3.14, so no compiler is needed. Create a virtual environment and
+install through *its* pip:
 
 ```bash
 python3 -m venv .venv
-.venv/bin/pip install numba matplotlib joblib scipy
+.venv/bin/pip install -r requirements.txt
 ```
 
-(`requirements.txt` carries stale 2024 pins; current numba/numpy work. The
-`data_analysis/` scripts and `basic/save_data.py` additionally need
-`pandas` and `h5py`.)
+Install via `.venv/bin/pip` (or run `source .venv/bin/activate` first) rather
+than a bare `pip install` — a bare `pip` runs against the system Python, which on
+newer distros has no matching wheels and falls back to compiling the pins from
+source (needs `python3-devel`, and fails without it). If your `python3` predates
+3.12, create the venv with an explicit interpreter, e.g.
+`python3.12 -m venv .venv`.
 
 For a quick end-to-end run (~45 s: ~20 s of JIT compilation, then the
 simulation) that herds 30 sheep with 2 shepherds and saves snapshot PNGs to
