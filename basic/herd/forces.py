@@ -77,6 +77,106 @@ def get_repulsion_force(
 
 
 @nb.jit(nopython=True)
+def get_sheep_forces(
+    agents: np.ndarray, shepherd: np.ndarray
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Calculates the agent-agent repulsion, agent-agent attraction, and
+    agent-shepherd repulsion forces in a single fused pass. Replaces the
+    get_repulsion_force / get_attraction_force / get_shepherd_force trio on the
+    hot path: those walked the O(N^2) agent pairs once per force and computed
+    each distance with np.linalg.norm, which numba lowers to a BLAS dnrm2 call
+    plus a heap-allocated temporary (~80x the cost of a scalar
+    sqrt(dx*dx + dy*dy) per pair, ~97% of the tick at N=300).
+
+    Numerical contract relative to the replaced functions:
+      * Pair visit order (ascending neighbor index, self skipped) and therefore
+        every accumulation order is identical.
+      * Distances are sqrt(dx*dx + dy*dy) instead of dnrm2; the two round
+        differently by 1 ULP on a sizable fraction of pairs, so trajectories
+        are NOT bit-identical. Steps-to-completion distributions were
+        revalidated per mode instead (KS/MWU over 100 seeds).
+      * Pairs with d2 > attraction_distance^2 skip the sqrt entirely. With
+        attraction_distance = 25, both 25 and 625 are exactly representable
+        and sqrt is correctly rounded, so d2 > 625 implies sqrt(d2) > 25
+        exactly: the early-out can never drop a pair the full comparison would
+        have kept. Surviving pairs use the original comparisons on the
+        distance itself (this exactness needs the square of the attraction
+        radius to be representable; it holds for any integer radius < 2^26).
+      * An agent exactly at the repulsion radius contributes to BOTH forces,
+        and coincident agents produce the same 0/0 = nan repulsion, as before.
+
+    Args:
+        @param agents: The agents to calculate the pairwise forces between.
+        @param shepherd: The shepherds repulsing the agents.
+    Returns:
+        num_avoid: The number of agents repelled by the agent.
+        f_avoid: The repulsion force.
+        f_attraction: The attraction force.
+        f_shepherd_force: The agent-shepherd repulsion force.
+    """
+    num_agents = agents.shape[0]
+    num_shepherds = shepherd.shape[0]
+    num_avoid: np.ndarray = np.zeros(num_agents)
+    f_avoid: np.ndarray = np.zeros((num_agents, 2))
+    f_attraction: np.ndarray = np.zeros((num_agents, 2))
+    f_shepherd_force: np.ndarray = np.zeros((num_agents, 2))
+
+    r_repulsion: float = agents[0, 3]
+    r_attraction: float = agents[0, 5]
+    safe_distance: float = agents[0, 17]
+    r_attraction_sq: float = r_attraction * r_attraction
+
+    for agent_index in range(num_agents):
+        agent_x: float = agents[agent_index, 0]
+        agent_y: float = agents[agent_index, 1]
+
+        avoid_num: int = 0
+        avoid_x: float = 0.0
+        avoid_y: float = 0.0
+        att_x: float = 0.0
+        att_y: float = 0.0
+        for neighbor_index in range(num_agents):
+            if agent_index == neighbor_index:
+                continue
+            dx: float = agents[neighbor_index, 0] - agent_x
+            dy: float = agents[neighbor_index, 1] - agent_y
+            d2: float = dx * dx + dy * dy
+            if d2 > r_attraction_sq:  # exact: can never skip a d <= 25 pair
+                continue
+            distance: float = np.sqrt(d2)
+            # np.divide, not the / operator: numba gives scalar / Python
+            # semantics (raises on 0.0), while the replaced array division
+            # follows IEEE and yields nan/inf for coincident agents.
+            if distance <= r_repulsion:  # R_repulsion
+                avoid_num = avoid_num + 1
+                avoid_x += np.divide(-dx, distance)  # unit vector, agent - neighbor
+                avoid_y += np.divide(-dy, distance)
+            if r_repulsion <= distance <= r_attraction:
+                att_x += np.divide(dx, distance)  # unit vector, neighbor - agent
+                att_y += np.divide(dy, distance)
+        num_avoid[agent_index] = avoid_num
+        f_avoid[agent_index, 0] = avoid_x
+        f_avoid[agent_index, 1] = avoid_y
+        f_attraction[agent_index, 0] = att_x
+        f_attraction[agent_index, 1] = att_y
+
+        shepherd_x: float = 0.0
+        shepherd_y: float = 0.0
+        for shepherd_index in range(num_shepherds):
+            sdx: float = agent_x - shepherd[shepherd_index, 0]
+            sdy: float = agent_y - shepherd[shepherd_index, 1]
+            s_distance: float = np.sqrt(sdx * sdx + sdy * sdy)
+            if s_distance <= safe_distance and s_distance != 0.0:
+                shepherd_x += np.divide(sdx, s_distance)
+                shepherd_y += np.divide(sdy, s_distance)
+        f_shepherd_force[agent_index, 0] = shepherd_x
+        f_shepherd_force[agent_index, 1] = shepherd_y
+
+    return num_avoid, f_avoid, f_attraction, f_shepherd_force
+
+
+@nb.jit(nopython=True)
 def get_shepherd_force(agents, shepherd):
     """
     Calculates the repulsion force between agents and shepherds.

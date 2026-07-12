@@ -11,9 +11,7 @@ from basic.vision_functions import (
 )
 from . import MODE, MORPHOLOGY, TARGET, FENCE
 from .herd.forces import (
-    get_attraction_force,
-    get_repulsion_force,
-    get_shepherd_force,
+    get_sheep_forces,
     get_fence_force,
 )
 from .herd.driver import (
@@ -70,17 +68,24 @@ def update_agents_state(
 
     @return: The agents with updated states.
     """
+    # In-target test on the squared distance, skipping the old per-agent
+    # np.linalg.norm (BLAS dnrm2) call: target_size and its square are exactly
+    # representable and sqrt is correctly rounded, so d2 < target_size^2 is the
+    # same predicate as distance < target_size up to how dnrm2 rounded 1-ULP
+    # boundary cases (covered by the distributional revalidation).
+    target_size_sq: float = target_size * target_size
     for agent_index in range(agents.shape[0]):
-        agent_pos: np.ndarray = agents[agent_index][:2]
-        distance, _ = get_relative_distance_angle(target_pos, agent_pos)
+        dx: float = target_pos[0] - agents[agent_index, 0]
+        dy: float = target_pos[1] - agents[agent_index, 1]
         if not MORPHOLOGY and (
-            (distance < target_size)
+            (dx * dx + dy * dy < target_size_sq)
             or (
                 FENCE
                 and (
                     FENCE_MIDDLE_ANGLE - GATE_ANGULAR_WIDTH / 2
                     <= np.arctan2(
-                        agent_pos[0] - target_pos[0], agent_pos[1] - target_pos[1]
+                        agents[agent_index, 0] - target_pos[0],
+                        agents[agent_index, 1] - target_pos[1],
                     )
                     <= FENCE_MIDDLE_ANGLE + GATE_ANGULAR_WIDTH / 2
                 )
@@ -109,12 +114,11 @@ def update(agents, shepherd, target_x, target_y):
 
     target: np.ndarray = np.array((target_x, target_y))
 
-    # calculate agent-agent repulsion force
-    num_avoid, f_avoid = get_repulsion_force(agents)
-    # calculate agent-agent attraction force
-    _, f_attraction = get_attraction_force(agents)
-    # calculate agent-shepherd repulsion force
-    _, f_shepherd_force = get_shepherd_force(agents, shepherd)
+    # calculate the agent-agent repulsion, agent-agent attraction, and
+    # agent-shepherd repulsion forces in one fused pass over the pairs
+    num_avoid, f_avoid, f_attraction, f_shepherd_force = get_sheep_forces(
+        agents, shepherd
+    )
     # Determine the velocity and angular velocity of the agents.
     v0: np.ndarray = np.where(
         (agents[:, 21] == 1) & (num_avoid == 0), 0.5, agents[:, 6]
