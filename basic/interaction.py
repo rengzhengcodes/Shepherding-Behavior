@@ -169,16 +169,22 @@ def get_furthest_agent(agents, shepherd_pos: np.ndarray, target_pos: np.ndarray)
     """
     num_agents = agents.shape[0]
     angle_herd_agents = np.zeros(agents.shape[0])
-    distance_herd_agents = np.zeros(agents.shape[0])
     dirt_angles_of_target_to_agent = np.zeros(agents.shape[0])
 
-    _, angle_target_herd = get_relative_distance_angle(target_pos, shepherd_pos)
+    # Only the bearings are consumed below; the shepherd->target and
+    # shepherd->agent distances that used to be computed alongside them were
+    # discarded by every caller, so the norms are skipped entirely. The arctan2
+    # arguments are the same subtractions as get_relative_distance_angle's,
+    # keeping every angle bit-identical.
+    angle_target_herd = np.arctan2(
+        target_pos[1] - shepherd_pos[1], target_pos[0] - shepherd_pos[0]
+    )
     for agent_index in range(num_agents):
         # the furthest agent should only in the moving state;
         if agents[agent_index][21] == 0:
             agent_pos: np.ndarray = agents[agent_index][:2]
-            r_agent_herd, angle_agent_herd = get_relative_distance_angle(
-                agent_pos, shepherd_pos
+            angle_agent_herd = np.arctan2(
+                agent_pos[1] - shepherd_pos[1], agent_pos[0] - shepherd_pos[0]
             )
             angle_herd_agents[agent_index] = angle_agent_herd  # [-pi, pi]
             dirt_angle_from_target_to_herd = transform_angle(
@@ -187,7 +193,6 @@ def get_furthest_agent(agents, shepherd_pos: np.ndarray, target_pos: np.ndarray)
             # angle between two vector: [-np.pi, np.pi] negative: the agent its
             # on the left side of the target
             dirt_angles_of_target_to_agent[agent_index] = dirt_angle_from_target_to_herd
-            distance_herd_agents[agent_index] = r_agent_herd
 
     # max_agent_index = int(np.argmax(np.absolute(angle_herd_agents)))  # +:
     # clockwise, -: anti-clockwise
@@ -195,11 +200,7 @@ def get_furthest_agent(agents, shepherd_pos: np.ndarray, target_pos: np.ndarray)
         np.argmax(np.absolute(dirt_angles_of_target_to_agent))
     )  # +: clockwise, -: anti-clockwise
     max_angle_target_to_agent = dirt_angles_of_target_to_agent[max_agent_index]
-    return (
-        max_agent_index,
-        distance_herd_agents[max_agent_index],
-        max_angle_target_to_agent,
-    )
+    return max_agent_index, max_angle_target_to_agent
 
 
 @nb.jit(nopython=True)
@@ -389,15 +390,15 @@ def herd_trigger_collect(
     @param target: The target location.
     @param subset: The subset of agents to consider.
 
-    @return: The furthest agent index, the distance to the furthest agent, and
-    the angle from the target to the furthest agent.
+    @return: The furthest agent index and the angle from the target to the
+    furthest agent.
     """
     if subset is None:
-        max_agent_index, _, max_angle_target_to_agent = get_furthest_agent(
+        max_agent_index, max_angle_target_to_agent = get_furthest_agent(
             agents, shepherd_pos, target
         )
     else:
-        max_agent_index, _, max_angle_target_to_agent = get_furthest_agent(
+        max_agent_index, max_angle_target_to_agent = get_furthest_agent(
             agents[subset], shepherd_pos, target
         )
         # Converts max agent index in visible hull to the original index.
