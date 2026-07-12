@@ -4,7 +4,7 @@ All collective shepherding herding interactions are defined here.
 
 import numba as nb
 import numpy as np
-from scipy.spatial import ConvexHull
+from .herd.hull import convex_hull_2d
 from basic.vision_functions import (
     drive_the_herd_using_vision,
     collect_the_herd_using_vision,
@@ -329,14 +329,13 @@ def herd_preprocessor(agents: np.ndarray) -> tuple[int, tuple[float, float]]:
         case 2:
             # Reset hull status.
             agents[:, 22] = 0
-            # Finds the convex hull of the flock.
-            with nb.objmode(hull="int64[:]"):
-                if agents[agents[:, 21] == 0].shape[0] <= 2:
-                    hull = np.where(agents[:, 21] == 0)[0]
-                else:
-                    hull = ConvexHull(agents[agents[:, 21] == 0, :2]).vertices
-                    # Returns it back to the original indices.
-                    hull = np.where(agents[:, 21] == 0)[0][hull]
+            # Finds the convex hull of the flock (native monotone chain; no scipy).
+            if agents[agents[:, 21] == 0].shape[0] <= 2:
+                hull = np.where(agents[:, 21] == 0)[0]
+            else:
+                hull_local = convex_hull_2d(agents[agents[:, 21] == 0, :2])
+                # Returns it back to the original indices (native CCW order kept).
+                hull = np.where(agents[:, 21] == 0)[0][hull_local]
 
             # Sets the hull items in their CCW order.
             agents[hull, 22] = np.arange(1, hull.shape[0] + 1)

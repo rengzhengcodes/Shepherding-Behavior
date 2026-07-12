@@ -5,7 +5,8 @@ with their helper functions.
 
 import numba as nb
 import numpy as np
-from scipy.spatial import ConvexHull
+
+from .hull import convex_hull_2d, visible_chain
 
 
 @nb.jit(nopython=True)
@@ -150,41 +151,33 @@ def drive_the_herd_using_visible_convex_hull(
     vertices of the flock to the shepherd. l1_new is decreased as the estimated
     center of mass is closer to the edge of the flock.
     """
-    # Calculate the convex hull of the flock not staying.
+    # Calculate the convex hull of the flock not staying (native; no scipy/objmode).
     roaming_agents = agents[agents[:, 21] == 0]
-    sheperd_and_sheep_coordinates = np.concatenate(
-        (np.expand_dims(shepherd_pos, axis=0), roaming_agents[:, :2])
-    )
 
-    with nb.objmode(visible_hull="int64[:]"):
-        if roaming_agents.shape[0] <= 2:
-            visible_hull = np.where(agents[:, 21] == 0)[0]
-        else:
-            visible_hull = ConvexHull(
-                sheperd_and_sheep_coordinates, qhull_options="QG0"
-            )
-            # Takes the visible simplices (edges)/
-            visible_hull = visible_hull.simplices[visible_hull.good]
-            # Accounts for the shepherd inserted into the sheep swarm skewing
-            # indices.
-            visible_hull -= 1
-            visible_hull = np.unique(visible_hull).flatten()
-            # If there is no visible hull, e.g., if the shepherd is inside, the shepherd
-            # assumes the nearest sheep as the center of mass.
-            if visible_hull.shape[0] == 0:
-                visible_hull = np.array(
-                    [
-                        np.argmin(
-                            np.sqrt(
-                                (roaming_agents[:, 0] - shepherd_pos[0]) ** 2
-                                + (roaming_agents[:, 1] - shepherd_pos[1]) ** 2
-                            )
+    if roaming_agents.shape[0] <= 2:
+        visible_hull = np.where(agents[:, 21] == 0)[0]
+    else:
+        # Hull of the flock, then the near-side arc visible from the shepherd.
+        # Equivalent to scipy's ConvexHull(shepherd+sheep, "QG0"): QG0 leaves the
+        # shepherd out of the hull, so the visible facets are exactly this arc.
+        hull_local = convex_hull_2d(roaming_agents[:, :2])
+        visible_hull = visible_chain(roaming_agents[:, :2], hull_local, shepherd_pos)
+        # If there is no visible hull, e.g., if the shepherd is inside, the shepherd
+        # assumes the nearest sheep as the center of mass.
+        if visible_hull.shape[0] == 0:
+            visible_hull = np.array(
+                [
+                    np.argmin(
+                        np.sqrt(
+                            (roaming_agents[:, 0] - shepherd_pos[0]) ** 2
+                            + (roaming_agents[:, 1] - shepherd_pos[1]) ** 2
                         )
-                    ]
-                )
+                    )
+                ]
+            )
 
-            # Converts visible_hull back to the original indices.
-            visible_hull = np.where(agents[:, 21] == 0)[0][visible_hull]
+        # Converts visible_hull back to the original indices (already ascending).
+        visible_hull = np.where(agents[:, 21] == 0)[0][visible_hull]
 
     # Set hull and visibility status.
     agents[visible_hull, 22] = np.arange(1, visible_hull.shape[0] + 1)
