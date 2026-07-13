@@ -130,6 +130,20 @@ ffmpeg instead of saving summaries.
 `initiate`/`initiate_shepherds` signatures and no longer run unmodified; use
 `test.py` or the smoke driver instead.
 
+## Related work
+
+[`docs/collective-shepherding-literature-review.md`](docs/collective-shepherding-literature-review.md)
+collects foundational and recent papers on collective shepherding — including
+Zheng & Romanczuk's model that `MODE = 0` derives from. **It is an LLM-generated
+literature review (Claude Code deep-research, 2026-07-12) and has not been
+human-verified** — treat entries as leads and check primary sources before
+citing.
+
+[`docs/novelty-assessment.md`](docs/novelty-assessment.md) is a companion prior-art /
+novelty analysis of this repo's convex-hull center estimators (`MODE` 2–4) — whether
+they have been scooped and the nearest competing work. **Also LLM-generated and not
+human-verified; not a novelty search of record.**
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
