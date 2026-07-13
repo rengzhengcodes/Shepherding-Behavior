@@ -6,7 +6,6 @@ import json
 import os
 import random
 import shutil
-import subprocess
 import datetime
 from datetime import timedelta
 from timeit import default_timer as timer
@@ -19,7 +18,16 @@ from basic.initiation import initiate, initiate_shepherds
 from basic.interaction import evolve
 from basic.draw import draw_dynamic
 
-from basic import MODE, MORPHOLOGY, FENCE, TARGET_X, TARGET_Y, TARGET_SIZE, TARGET
+from basic import (
+    DRAW_INTERVAL,
+    MODE,
+    MORPHOLOGY,
+    FENCE,
+    TARGET_X,
+    TARGET_Y,
+    TARGET_SIZE,
+    TARGET,
+)
 
 THREADS = -1
 DRAW = False
@@ -82,28 +90,48 @@ def run_mode(rep: int, evolver: callable, terminator: callable, summarizer: call
 
     # prepare the shepherds and record data
     shepherds = initiate_shepherds(N_SHEPHERD, N_SHEEP, L3)
-    # Only record data per tick if we're drawing.
+    # Only record data if we're drawing, and only every DRAW_INTERVAL ticks
+    # (plus the run's true final tick) rather than every tick.
+    # Design: recording every tick at N_SHEEP=300 allocated a ~12 GB
+    # (300, 25, 200000) float64 buffer per rep -- an OOM risk once joblib
+    # fans multiple DRAW reps out across cores -- when draw_dynamic only
+    # ever consumed every DRAW_INTERVAL-th tick anyway. Sampling at record
+    # time instead of over-allocating and sub-sampling later shrinks this to
+    # a few hundred frames (well under 200 MB; see n_slots below).
     if DRAW:
+        n_slots = ITERATIONS // DRAW_INTERVAL + 2
         data_agents: np.ndarray = np.zeros(
-            (agents.shape[0], agents.shape[1], ITERATIONS), float
+            (agents.shape[0], agents.shape[1], n_slots), float
         )
         data_shepherds: np.ndarray = np.zeros(
-            (shepherds.shape[0], shepherds.shape[1], ITERATIONS), float
+            (shepherds.shape[0], shepherds.shape[1], n_slots), float
         )
-        data_max_agents_indices: np.ndarray = np.zeros((N_SHEPHERD, ITERATIONS), int)
+        # Real simulation tick recorded into each filled frame slot. Frames
+        # are not evenly spaced in tick-space when the final-state frame is
+        # appended out of cadence (see the loop below), so draw_dynamic
+        # needs the real tick per frame, not just a frame count.
+        frame_ticks: np.ndarray = np.zeros(n_slots, int)
+        frame: int = 0  # monotonic slot cursor, independent of `tick`
     final_tick: int = ITERATIONS
 
     # continue the sheep data with shepherds
     success: bool = False  # whether the simulation was successful
     for tick in range(ITERATIONS):
         agents, shepherds, max_agents_indices = evolver(agents, shepherds)
-        # save data
-        if DRAW:
-            data_agents[:, :, tick] = agents
-            data_shepherds[:, :, tick] = shepherds
-            data_max_agents_indices[:, tick] = max_agents_indices  # only two dimension
+        # Evaluate termination once per tick; both the record-check and the
+        # break below need the result, and terminator() is not free.
+        done = terminator(agents, shepherds)
+        # save data: every DRAW_INTERVAL-th tick, plus (per user decision)
+        # the exact termination tick and the last tick of the run, so a
+        # rendered video always ends on the true final state instead of
+        # potentially stopping up to DRAW_INTERVAL - 1 ticks early.
+        if DRAW and (tick % DRAW_INTERVAL == 0 or done or tick == ITERATIONS - 1):
+            data_agents[:, :, frame] = agents
+            data_shepherds[:, :, frame] = shepherds
+            frame_ticks[frame] = tick
+            frame += 1
         # stop program if all the sheep are within L2 of the center of mass.
-        if terminator(agents, shepherds):  # finish
+        if done:  # finish
             final_tick = tick
             success = True
             break
@@ -114,37 +142,20 @@ def run_mode(rep: int, evolver: callable, terminator: callable, summarizer: call
     # Draws the results.
     if DRAW:
         print(f"Drawing repetition {rep}")
+        # res_dir previously existed in DRAW mode only as a side effect of
+        # the (now-removed) per-rep PNG folder's makedirs; draw_dynamic no
+        # longer creates any folder, so it must be created explicitly here
+        # or ffmpeg's output-file open inside draw_dynamic would fail.
+        os.makedirs(res_dir, exist_ok=True)
+        # Naming is byte-identical to the previous implementation's contract.
+        video_path = f"{res_dir}/MODE_{MODE}|Rep_{rep}|final_{final_tick}.mp4"
         draw_dynamic(
-            (final_tick, results["L3"], MODE),
-            (data_agents, data_shepherds),
+            (frame_ticks[:frame], results["L3"], MODE),
+            (data_agents[:, :, :frame], data_shepherds[:, :, :frame]),
             (results["BOUNDARY_X"], results["BOUNDARY_Y"]),
             (results["TARGET_X"], results["TARGET_Y"], results["TARGET_SIZE"]),
-            folder_path=f"{res_dir}/repetition_{rep}",
+            video_path,
         )
-        # Runs the ffmpeg command to create a video.
-        # ffmpeg -framerate 10 -start_number 0 -i %d.png -c:v libx264 \
-        #        -r 30 -pix_fmt yuv420p output.mp4
-        subprocess.run(
-            [
-                "ffmpeg",
-                "-framerate",
-                "10",
-                "-start_number",
-                "0",
-                "-i",
-                f"{res_dir}/repetition_{rep}/%d.png",
-                "-c:v",
-                "libx264",
-                "-r",
-                "30",
-                "-pix_fmt",
-                "yuv420p",
-                f"{res_dir}/MODE_{MODE}|Rep_{rep}|final_{final_tick}.mp4",
-            ],
-            check=True,
-        )
-        # Deletes all the images.
-        shutil.rmtree(f"{res_dir}/repetition_{rep}")
 
     return results
 
@@ -249,6 +260,15 @@ def run_morph(rep):
 
 
 if __name__ == "__main__":
+    # Fail fast: a missing ffmpeg binary would otherwise only surface once
+    # draw_dynamic tries to Popen it, potentially after hours of simulation
+    # work across every rep has already completed.
+    if DRAW and shutil.which("ffmpeg") is None:
+        raise SystemExit(
+            "DRAW=True but ffmpeg was not found on PATH; aborting before "
+            "running the simulation."
+        )
+
     start = timer()
     sims: tuple[dict] = Parallel(n_jobs=THREADS)(
         delayed(run_morph if MORPHOLOGY else run_target)(seed) for seed in seeds

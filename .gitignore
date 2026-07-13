@@ -13,6 +13,11 @@ images/
 results/
 *.log/
 
+# Python packaging build artifacts.
+*.egg-info/
+build/
+dist/
+
 # Compressed data files.
 *.7z
 *.tar.gz

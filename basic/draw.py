@@ -3,14 +3,18 @@ The visualization functions for the simulation.
 """
 
 import os
+import subprocess
 import numba as nb
 import numpy as np
 from scipy.spatial import ConvexHull
 import matplotlib.pyplot as plt
+from matplotlib import colors as mcolors
 from matplotlib import patches
-from joblib import Parallel, delayed
+from matplotlib.collections import EllipseCollection
+from matplotlib.backends.backend_agg import FigureCanvasAgg
+from matplotlib.figure import Figure
 
-from basic import DRAW_THREADS, FENCE
+from basic import DRAW_DPI, DRAW_FIGSIZE, DRAW_FPS, FENCE
 
 if FENCE:
     from basic import FENCE_MIDDLE_ANGLE, GATE_ANGULAR_WIDTH
@@ -41,7 +45,12 @@ def calculate_mass_center(agents: np.ndarray):
 
 # @nb.jit(nopython=True)
 def draw_single(
-    swarm, shepherds, boundary: tuple[int, int], target: tuple[int, int], mode: int
+    swarm,
+    shepherds,
+    boundary: tuple[int, int],
+    target: tuple[int, int],
+    mode: int,
+    ax=None,
 ):
     """
     Draws one frame of the simulation.
@@ -51,22 +60,56 @@ def draw_single(
         @param boundary: Max x and y to draw.
         @param target: Target location.
         @param mode: What mode the sim is from.
+        @param ax: The matplotlib Axes to draw into. Defaults to the current
+        pyplot Axes (`plt.gca()`) when omitted, which preserves the historical
+        pyplot-global calling convention used by `plot_snapshot` and the smoke
+        driver (`.claude/skills/run-shepherding-behavior/driver.py`). Callers
+        that own an explicit Figure/Axes (e.g. `draw_dynamic`) should pass it
+        explicitly to avoid touching pyplot's global figure/axes stack.
     """
-    # Draw sheep
-    for agent in swarm:
-        plt.gca().add_patch(
-            plt.Circle(
-                agent[:2],
-                radius=swarm[0, 7],
-                facecolor=(
-                    "g" if agent[22] != 0 and agent[21] != 1 else "none"
-                ),  # Color face if in hull
-                edgecolor="b" if agent[21] == 1 else "g",  # Blue if staying
-                alpha=0.8,
-                lw=0.5,
-            )
-        )
-    plt.quiver(
+    # Design: default to plt.gca() rather than requiring ax so every existing
+    # positional caller (plot_snapshot below, driver.py's snapshot()) keeps
+    # working unchanged, while draw_dynamic can pass its own owned Axes to
+    # avoid registering a figure with pyplot (which would leak across
+    # loky-reused worker processes under joblib parallelism).
+    if ax is None:
+        ax = plt.gca()
+
+    # Draw sheep as one EllipseCollection instead of one Circle patch per
+    # sheep. Design: a per-sheep `ax.add_patch(plt.Circle(...))` loop measured
+    # ~98 ms/frame at N=300 in profiling; a single EllipseCollection with
+    # vectorized offsets/colors measures ~5 ms (20x) for the identical visual
+    # result. `radius` on the old Circle is a half-width, so the collection's
+    # widths/heights (full diameter) must be doubled to match.
+    diameter = 2 * swarm[0, 7]
+    # Colors are precomputed RGBA rows with the 0.8 alpha baked in, and no
+    # collection-level `alpha=` is set: a scalar collection alpha is forced
+    # onto every color by mcolors.to_rgba_array(colors, alpha), which turns
+    # "none" (0,0,0,0) into 80%-opaque BLACK -- unlike the old per-patch
+    # Circle path, where a "none" facecolor stayed transparent under alpha.
+    in_hull = (swarm[:, 22] != 0) & (swarm[:, 21] != 1)  # Color face if in hull
+    staying = swarm[:, 21] == 1  # Blue if staying
+    face_rgba = np.where(
+        in_hull[:, None], mcolors.to_rgba("g", 0.8), (0.0, 0.0, 0.0, 0.0)
+    )
+    edge_rgba = np.where(
+        staying[:, None], mcolors.to_rgba("b", 0.8), mcolors.to_rgba("g", 0.8)
+    )
+    sheep_collection = EllipseCollection(
+        widths=diameter,
+        heights=diameter,
+        angles=0,
+        units="xy",  # sizes in data units, matching the old Circle(radius=...) sizing
+        offsets=swarm[:, :2],
+        # matplotlib 3.11 renamed/removed the old `transOffset` kwarg in favor
+        # of `offset_transform`; ax.transData maps offsets from data space.
+        offset_transform=ax.transData,
+        facecolors=face_rgba,
+        edgecolors=edge_rgba,
+        linewidths=0.5,
+    )
+    ax.add_collection(sheep_collection)
+    ax.quiver(
         *(swarm[:, :2].T),
         np.cos(swarm[:, 2]),
         np.sin(swarm[:, 2]),
@@ -82,20 +125,18 @@ def draw_single(
 
     # draw shepherds and its collect point
     # shepherds to collect_x/drive_x collect_y/drive_y
-    plt.plot(shepherds[:, (14, 0)].T, shepherds[:, (15, 1)].T, color="cyan")
+    ax.plot(shepherds[:, (14, 0)].T, shepherds[:, (15, 1)].T, color="cyan")
     # Plots collect vs drive mode.
-    plt.gca().set_prop_cycle(
-        plt.cycler(color=np.where(shepherds[:, 13] == 1, "r", "b"))
-    )
-    plt.plot(
+    ax.set_prop_cycle(plt.cycler(color=np.where(shepherds[:, 13] == 1, "r", "b")))
+    ax.plot(
         *(shepherds[:, :2].T),
         marker="o",
         markersize=swarm[0, 7],
         alpha=0.2,
     )
-    plt.gca().set_prop_cycle(None)
+    ax.set_prop_cycle(None)
     # Plots orientation of movement.
-    plt.quiver(
+    ax.quiver(
         *(shepherds[:, :2].T),
         np.cos(shepherds[:, 2]),
         np.sin(shepherds[:, 2]),
@@ -110,12 +151,12 @@ def draw_single(
     )
 
     # Draw center of mass
-    plt.plot(*calculate_mass_center(swarm), "r*", markersize=5)
+    ax.plot(*calculate_mass_center(swarm), "r*", markersize=5)
 
     # Plots the agent being collected.
     for agent in shepherds[shepherds[:, 13] == 0]:
         collecting_agent = swarm[int(agent[16])]
-        plt.plot(
+        ax.plot(
             (agent[0], collecting_agent[0]),
             (agent[1], collecting_agent[1]),
             color="y",
@@ -132,10 +173,10 @@ def draw_single(
                 hull = hull[np.argsort(hull[:, 22])]
 
                 # Calculates and plots the center of the hull.
-                plt.plot(np.mean(hull[:, 0]), np.mean(hull[:, 1]), "k*", markersize=5)
+                ax.plot(np.mean(hull[:, 0]), np.mean(hull[:, 1]), "k*", markersize=5)
 
                 # Draws the convex hull.
-                plt.fill(
+                ax.fill(
                     hull[:, 0], hull[:, 1], color="g", linestyle=":", lw=2, fill=False
                 )
         # Draw the direct line between shepherds and agent it can see.
@@ -148,7 +189,7 @@ def draw_single(
                 else np.arange(moving_swarm.shape[0])
             )
             # Plots the convex hull.
-            plt.fill(
+            ax.fill(
                 moving_swarm[hull, 0],
                 moving_swarm[hull, 1],
                 color="g",
@@ -161,7 +202,7 @@ def draw_single(
                 relevant_swarm = swarm[
                     (swarm[:, 23].view("uint64") & (0b01 << i)) != 0b0
                 ]
-                plt.plot(
+                ax.plot(
                     [
                         np.repeat(shepherd[0], relevant_swarm.shape[0]),
                         relevant_swarm[:, 0],
@@ -175,7 +216,10 @@ def draw_single(
                     alpha=0.25,
                 )
                 # draw center of visible sheep. If no visible sheep it assumes self as CoM.
-                plt.plot(
+                # NOTE: np.mean of an empty relevant_swarm slice is a deliberate
+                # no-op RuntimeWarning->nan (matches pre-existing behavior; not
+                # "fixed" here per spec).
+                ax.plot(
                     np.mean(relevant_swarm[:, 0]),
                     np.mean(relevant_swarm[:, 1]),
                     "m*",
@@ -189,7 +233,7 @@ def draw_single(
                     hull = ConvexHull(flock[:, :2]).vertices
                 else:
                     hull = np.arange(flock.shape[0])
-                plt.fill(
+                ax.fill(
                     flock[hull, 0],
                     flock[hull, 1],
                     color="g",
@@ -198,11 +242,17 @@ def draw_single(
                     fill=False,
                 )
 
-            for shepherd in shepherds:
+            # Bug fix: this loop previously read `for shepherd in shepherds:`
+            # while indexing the visibility bitmask with `i`, the stale loop
+            # variable left over from the flock-hull loop above (always
+            # `int(np.max(swarm[:, 24]))`, not the shepherd's own index).
+            # Ported the mode-3 pattern (`enumerate`) so each shepherd's
+            # bit-index matches its own visibility bit, as originally intended.
+            for i, shepherd in enumerate(shepherds):
                 relevant_swarm = swarm[
                     (swarm[:, 23].view("uint64") & (0b01 << i)) != 0b0
                 ]
-                plt.plot(
+                ax.plot(
                     [
                         np.repeat(shepherd[0], relevant_swarm.shape[0]),
                         relevant_swarm[:, 0],
@@ -216,7 +266,7 @@ def draw_single(
                     alpha=0.25,
                 )
                 # draw center of visible sheep. If no visible sheep it assumes self as CoM.
-                plt.plot(
+                ax.plot(
                     np.mean(relevant_swarm[:, 0]),
                     np.mean(relevant_swarm[:, 1]),
                     "m*",
@@ -224,14 +274,14 @@ def draw_single(
                 )
 
     # draw target center
-    plt.plot(*target[:2], "b*")
-    plt.gca().add_patch(
+    ax.plot(*target[:2], "b*")
+    ax.add_patch(
         plt.Circle(
             target[:2], radius=target[-1], facecolor="none", edgecolor="b", alpha=0.5
         )
     )
-    plt.xlim(xmin=-boundary[0] // 4, xmax=boundary[0])
-    plt.ylim(ymin=-boundary[1] // 4, ymax=boundary[1])
+    ax.set_xlim(xmin=-boundary[0] // 4, xmax=boundary[0])
+    ax.set_ylim(ymin=-boundary[1] // 4, ymax=boundary[1])
     # draw gate to the fence.
     if FENCE:
         # Calculate the angles of the fence.
@@ -241,7 +291,7 @@ def draw_single(
         theta_1 = np.degrees(theta_1) - 90
         theta_2 = np.degrees(theta_2) - 90
         # Draws arc that represents the gate.
-        plt.gca().add_patch(
+        ax.add_patch(
             patches.Arc(
                 target[:2],
                 2 * target[-1],
@@ -256,70 +306,281 @@ def draw_single(
     # plt.axis('square')
 
 
+def _ffmpeg_pipe_cmd(w: int, h: int, out_path: str) -> list[str]:
+    """
+    Build the argv for an ffmpeg process that consumes raw RGBA frames on
+    stdin and encodes them to an H.264/yuv420p mp4.
+
+    Parameters
+    ----------
+    w : int
+        Frame width in pixels, as actually rendered (see `draw_dynamic`,
+        which measures this from the first rendered frame rather than
+        recomputing it from `DRAW_FIGSIZE * DRAW_DPI`).
+    h : int
+        Frame height in pixels, as actually rendered.
+    out_path : str
+        Destination path for the encoded mp4.
+
+    Returns
+    -------
+    list of str
+        The ffmpeg command in list (argv) form, suitable for
+        `subprocess.Popen(..., shell=False)`.
+
+    Notes
+    -----
+    This is returned as a list, never a shell string, and callers must never
+    pass it through `shell=True`: result mp4 paths built by this project
+    embed a literal `|` character (see `test.py`'s
+    `MODE_{MODE}|Rep_{rep}|final_{final_tick}.mp4` naming), which a shell
+    would interpret as a pipe operator.
+
+    No `-r 30` output frame-rate override is used (unlike the previous
+    PNG-based pipeline) -- with one input frame per `DRAW_INTERVAL` ticks,
+    tripling to 30 fps only re-encoded every frame 3x for no visual gain.
+    `-framerate DRAW_FPS` on the *input* is sufficient to set playback speed.
+
+    `-threads 1` caps each ffmpeg process to one encoder thread. Reps are
+    parallelized at the joblib level (potentially one ffmpeg process per
+    CPU core running concurrently); an unbounded per-process thread pool
+    would oversubscribe the machine.
+    """
+    return [
+        "ffmpeg",
+        "-y",
+        "-f",
+        "rawvideo",
+        "-pix_fmt",
+        "rgba",
+        "-video_size",
+        f"{w}x{h}",
+        "-framerate",
+        str(DRAW_FPS),
+        "-i",
+        "-",
+        "-an",
+        "-c:v",
+        "libx264",
+        "-preset",
+        "veryfast",
+        "-threads",
+        "1",
+        "-pix_fmt",
+        "yuv420p",
+        "-vf",
+        "scale=trunc(iw/2)*2:trunc(ih/2)*2",
+        "-movflags",
+        "+faststart",
+        out_path,
+    ]
+
+
+def _tail_log(log_path: str, n_lines: int = 30) -> str:
+    """
+    Reads the last few lines of a log file, for embedding in error messages.
+    Args:
+        @param log_path: Path to the log file.
+        @param n_lines: Number of trailing lines to return.
+    """
+    with open(log_path, "rb") as log_file:
+        lines = log_file.read().splitlines()[-n_lines:]
+    return b"\n".join(lines).decode("utf-8", errors="replace")
+
+
 def draw_dynamic(
-    setup: tuple[int, int, int],
+    setup: tuple[np.ndarray, float, int],
     data: tuple[np.ndarray, np.ndarray],
-    space: tuple[int],
-    target: tuple[int],
-    folder_path: str = None,
+    space: tuple[int, int],
+    target: tuple[int, int, int],
+    video_path: str,
 ):
     """
-    Draws frames of an experiment run.
-    Args:
-        @param setup: Number of ticks calculated, l3, and mode run in that order.
-        @param data: All agents across time, all shepherds across time.
-        @param space: Boundary of visualization.
-        @param target: Target location.
-        @param folder_path: Where to store rendered images.
+    Stream-renders an experiment run directly to an mp4 via a piped ffmpeg process.
+
+    Renders one frame per column of `data`'s trailing (frame) axis into a
+    single, reused Matplotlib Axes that is never registered with pyplot, and
+    writes each frame's raw RGBA pixel buffer straight to an ffmpeg
+    subprocess's stdin, which encodes it as H.264 video as frames arrive.
+    This replaces a previous implementation that wrote one PNG per frame to
+    disk (via `plt.savefig`), had ffmpeg re-decode every PNG, and then
+    deleted them -- a pure temp-file round trip that also could not run
+    safely under joblib parallelism (allocating one full-resolution PNG
+    write per rep, per frame, concurrently).
+
+    Parameters
+    ----------
+    setup : tuple of (numpy.ndarray, float, int)
+        `(frame_ticks, l3, mode)`. `frame_ticks` is a 1-D int array giving
+        the real simulation tick each frame corresponds to; frames need not
+        be evenly spaced in tick-space (callers may append an out-of-cadence
+        final frame showing the exact termination state). `l3` and `mode`
+        are simulation parameters shown in each frame's title and forwarded
+        to `draw_single`, respectively.
+    data : tuple of (numpy.ndarray, numpy.ndarray)
+        `(data_agents, data_shepherds)`, each shaped `(n_agents, n_fields,
+        n_frames)` with `n_frames == len(frame_ticks)`. Must already be
+        trimmed by the caller to exactly the frames to render -- this
+        function does no further slicing along the frame axis.
+    space : tuple of int
+        `(boundary_x, boundary_y)` forwarded to `draw_single` as the axis
+        boundary.
+    target : tuple of int
+        `(target_x, target_y, target_size)` forwarded to `draw_single`.
+    video_path : str
+        Destination `.mp4` path. May contain characters that are unsafe to
+        pass through a shell (this project's naming convention embeds `|`);
+        ffmpeg is always invoked via the list form of `subprocess.Popen`
+        (never `shell=True`), so this is safe. The ffmpeg stderr log is
+        written alongside it at `f"{video_path}.log"`.
+
+    Returns
+    -------
+    None
+        The video is written to `video_path` as a side effect.
+
+    Raises
+    ------
+    ValueError
+        If `frame_ticks` (and therefore `data`) contains zero frames --
+        there is nothing to render and no frame to measure pixel dimensions
+        from.
+    RuntimeError
+        If the ffmpeg subprocess exits with a nonzero return code, including
+        the case where it exits mid-stream and writing to its stdin raises
+        `BrokenPipeError`. The message includes the last ~30 lines of
+        ffmpeg's stderr log to aid diagnosis.
+
+    Notes
+    -----
+    Owns an explicit `Figure`/`FigureCanvasAgg`/`Axes` rather than using
+    `plt.figure()` / `plt.gca()`: this function runs inside joblib/loky
+    worker processes that are reused across repetitions, and a
+    pyplot-registered figure would leak for the worker's remaining lifetime.
+    There is no `plt.ion()`/`plt.ioff()` for the same reason those calls
+    were dead in the original implementation -- Agg is a non-interactive,
+    headless backend.
+
+    `canvas.buffer_rgba()` returns a top-down, contiguous RGBA8888 buffer,
+    which is exactly the `-f rawvideo -pix_fmt rgba` layout declared to
+    ffmpeg by `_ffmpeg_pipe_cmd` -- no flip or channel reorder is needed.
+
+    Rendering and encoding overlap: ffmpeg consumes and encodes frames from
+    its stdin pipe while this process is still rendering and writing later
+    frames, so wall-clock cost is close to `max(render_time, encode_time)`
+    rather than their sum. Encoding runs single-threaded (`-threads 1`)
+    because many reps' ffmpeg processes may run concurrently under joblib.
+
+    On success, the ffmpeg stderr log file is deleted. On failure it is left
+    on disk for inspection (in addition to being embedded in the raised
+    exception).
     """
     # Unpacks setup variables for easier use.
-    iterations: int
-    l3: int
+    frame_ticks: np.ndarray
+    l3: float
     mode: int
-    iterations, l3, mode = setup
+    frame_ticks, l3, mode = setup
     # Unpacks data for easier use.
     data_agents: np.ndarray
     data_shepherds: np.ndarray
     data_agents, data_shepherds = data
 
-    # Creates the figure.
-    plt.figure(figsize=(8, 6), dpi=300)
-    plt.ion()
+    n_frames = frame_ticks.shape[0]
+    if n_frames == 0:
+        raise ValueError("draw_dynamic received zero frames to render")
+    n_sheep = data_agents.shape[0]
 
-    # Default folder path.
-    if folder_path is None:
-        folder_path: str = f"{os.getcwd()}/images"
+    # Design: an explicit Figure + FigureCanvasAgg + one Axes, created
+    # without ever touching pyplot's global figure stack (no plt.figure(),
+    # no plt.gca()). See the "Notes" section of this function's docstring
+    # for why (loky worker figure leaks).
+    fig = Figure(figsize=DRAW_FIGSIZE, dpi=DRAW_DPI)
+    canvas = FigureCanvasAgg(fig)
+    ax = fig.add_subplot()
 
-    # If the folder does not exist, create it.
-    if not os.path.exists(folder_path):
-        os.makedirs(folder_path)
-
-    # Deletes all previous images in the folder.
-    file_list = os.listdir(folder_path)
-    for file_name in file_list:
-        file_path = os.path.join(folder_path, file_name)
-        if os.path.isfile(file_path):
-            file_ext = os.path.splitext(file_path)[1]
-            if file_ext.lower() in [".png", ".mp4"]:
-                os.remove(file_path)
-
-    # Draws each frame.
-    def savefig(index: int):
-        plt.cla()
+    def render(frame_index: int):
+        """Renders one frame into the shared Axes; returns its Agg buffer."""
+        ax.cla()
         draw_single(
-            data_agents[:, :, index], data_shepherds[:, :, index], space, target, mode
+            data_agents[:, :, frame_index],
+            data_shepherds[:, :, frame_index],
+            space,
+            target,
+            mode,
+            ax=ax,
+        )
+        ax.set_title(
+            f"N_sheep = {n_sheep} | L3 = {l3} | Tick = {int(frame_ticks[frame_index])}"
+        )
+        canvas.draw()
+        return canvas.buffer_rgba()
+
+    # Render frame 0 before spawning ffmpeg: the exact pixel dimensions of
+    # an Agg-rendered figure can differ by rounding from a naive
+    # figsize * dpi computation, and ffmpeg needs the true -video_size up
+    # front (rawvideo has no header to carry it).
+    first_buffer = render(0)
+    height, width, _ = np.asarray(first_buffer).shape
+    first_frame_bytes = bytes(first_buffer)
+
+    log_path = f"{video_path}.log"
+    log_file = open(log_path, "wb")
+    try:
+        proc = subprocess.Popen(
+            _ffmpeg_pipe_cmd(width, height, video_path),
+            stdin=subprocess.PIPE,
+            stdout=subprocess.DEVNULL,
+            # Design: stderr goes to a file, not PIPE and not DEVNULL. A
+            # PIPE's OS buffer is only tens of KB; nothing here reads it
+            # concurrently (this process is busy writing stdin), so ffmpeg's
+            # routine progress/diagnostic chatter on stderr would eventually
+            # fill the buffer and deadlock ffmpeg against us. DEVNULL would
+            # avoid the deadlock but discard diagnostics needed to debug a
+            # failed render. A file write has no such bound and survives the
+            # process for inspection.
+            stderr=log_file,
+        )
+    except BaseException:
+        # Popen itself failed (e.g. ffmpeg vanished from PATH after the
+        # caller's fail-fast check): there is no ffmpeg stderr to keep, so
+        # close and remove the just-created empty log rather than orphaning
+        # a zero-byte file next to a video that was never started.
+        log_file.close()
+        os.remove(log_path)
+        raise
+
+    try:
+        try:
+            proc.stdin.write(first_frame_bytes)
+            for frame_index in range(1, n_frames):
+                proc.stdin.write(bytes(render(frame_index)))
+        except BrokenPipeError:
+            # ffmpeg exited early (bad args, codec error, disk full, ...).
+            # Nothing to do here but stop writing; the shared
+            # close/wait/returncode check below raises with the log tail
+            # regardless of whether we got here via BrokenPipeError or a
+            # clean write loop that ffmpeg still failed after.
+            pass
+        finally:
+            # Closing stdin signals EOF to ffmpeg so it can finish encoding
+            # and exit; must happen even on exception so wait() cannot hang.
+            try:
+                proc.stdin.close()
+            except BrokenPipeError:
+                pass
+            proc.wait()
+    finally:
+        log_file.close()
+
+    if proc.returncode != 0:
+        raise RuntimeError(
+            f"ffmpeg exited with code {proc.returncode} while writing "
+            f"{video_path!r}. Last log lines:\n{_tail_log(log_path)}"
         )
 
-        plt.title(
-            f"N_sheep = {data_agents[:, :, 0].shape[0]} | L3 = {l3} | Tick = {index}"
-        )
-        plt.savefig(f"{folder_path}/{int(index / 100)}.png")
-
-    # Draws each frame in parallel.
-    for index in range(0, iterations, 100):
-        savefig(index)
-
-    plt.ioff()
+    # Only reached on success; a failed run's log stays on disk for
+    # inspection (and is already embedded in the exception above).
+    os.remove(log_path)
 
 
 def plot_snapshot(
@@ -428,7 +689,3 @@ def plot_snapshot(
             + f"repetition={repetition}.png"
         )
     plt.savefig(filepath)
-
-
-# ffmpeg -framerate 10 -start_number 0 -i %d.png -c:v libx264 -r 30 -pix_fmt yuv420p output.mp4
-## ffplay output.mp4

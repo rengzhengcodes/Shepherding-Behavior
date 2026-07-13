@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "shepherding-behavior"
+version = "0.1.0"
+description = "Agent-based shepherding model: numba-accelerated flock and shepherd dynamics (import name: basic)."
+readme = "README.md"
+requires-python = ">=3.12"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Yating Zheng" }]
+dependencies = [
+    "numpy>=2.4",
+    "numba>=0.66",
+    "scipy>=1.18",
+    "matplotlib>=3.11",
+    "pandas>=3.0",
+    "h5py>=3.16",
+    "joblib>=1.5",
+]
+
+[tool.setuptools]
+packages = ["basic", "basic.herd"]

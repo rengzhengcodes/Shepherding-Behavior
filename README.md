@@ -91,6 +91,14 @@ python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 ```
 
+Alternatively, install the simulation core as an editable package (pulls in the
+same dependencies and makes `import basic` work from any directory, while edits
+to the constants in `basic/__init__.py` still take effect immediately):
+
+```bash
+.venv/bin/pip install -e .
+```
+
 Install via `.venv/bin/pip` (or run `source .venv/bin/activate` first) rather
 than a bare `pip install` — a bare `pip` runs against the system Python, which on
 newer distros has no matching wheels and falls back to compiling the pins from

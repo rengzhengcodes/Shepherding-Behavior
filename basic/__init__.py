@@ -20,8 +20,11 @@ K_FENCE = 1e3
 FENCE_MIDDLE_ANGLE = 0
 GATE_ANGULAR_WIDTH = 1
 
-# Number of threads each experiment thread can use to draw.
-DRAW_THREADS = -1
+# Rendering parameters for draw_dynamic (basic/draw.py).
+DRAW_INTERVAL = 100  # record + render every Nth herding tick
+DRAW_DPI = 150  # 8x6 in @ 150 dpi -> 1200x900, both even (yuv420p-safe)
+DRAW_FIGSIZE = (8, 6)
+DRAW_FPS = 10  # playback fps; 1 rendered frame per DRAW_INTERVAL ticks
 
 # Cannot have a fence without a target.
 assert not FENCE or not MORPHOLOGY
