@@ -22,4 +22,4 @@ dependencies = [
 ]
 
 [tool.setuptools]
-packages = ["basic", "basic.herd"]
+packages = ["basic", "basic.herding", "basic.drawing", "basic.analysis"]

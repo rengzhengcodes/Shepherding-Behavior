@@ -332,7 +332,7 @@ def _ffmpeg_pipe_cmd(w: int, h: int, out_path: str) -> list[str]:
     -----
     This is returned as a list, never a shell string, and callers must never
     pass it through `shell=True`: result mp4 paths built by this project
-    embed a literal `|` character (see `test.py`'s
+    embed a literal `|` character (see `experiments/test.py`'s
     `MODE_{MODE}|Rep_{rep}|final_{final_tick}.mp4` naming), which a shell
     would interpret as a pipe operator.
 

@@ -18,7 +18,7 @@ Two experiment types are supported:
 ## Shepherd strategies (`MODE`)
 
 Every strategy shares the same two-state controller per shepherd
-(`herd()` in `basic/interaction.py`); what changes between modes is how the
+(`herd()` in `basic/herding/interaction.py`); what changes between modes is how the
 shepherd *estimates the flock's center*, moving from global knowledge toward
 information the shepherd could plausibly sense itself.
 
@@ -39,8 +39,8 @@ information the shepherd could plausibly sense itself.
   of the center (mode 1: within π/3 of the flock's mean bearing) or enters
   the staying state.
 
-The center estimators (modes 0 and 2–4 in `basic/herd/driver.py`, mode 1 in
-`basic/vision_functions.py`):
+The center estimators (modes 0 and 2–4 in `basic/herding/driver.py`, mode 1 in
+`basic/herding/vision_functions.py`):
 
 | MODE | Strategy | Center estimate |
 |---|---|---|
@@ -52,30 +52,41 @@ The center estimators (modes 0 and 2–4 in `basic/herd/driver.py`, mode 1 in
 
 Status: modes 0 and 3 are verified to herd to success end-to-end (see the
 smoke driver below). Mode 1 is the least maintained — it appears to be broken
-(`basic/vision_functions.py:239` builds the drive point as
+(`basic/herding/vision_functions.py:239` builds the drive point as
 `np.array(x, y)` instead of `np.array([x, y])`) and has no alias in
-`parse.py`.
+`data_analysis/parse.py`.
 
 ## Repository layout
 
-- `basic/` — simulation core.
+- `basic/` — simulation core, split into sub-packages by concern.
   - `__init__.py` — **experiment configuration**: `MODE`, `MORPHOLOGY`,
     `FENCE`, target position/size, `DEBUG` (disables numba JIT). These are
     frozen into JIT-compiled code at import time; edit the file and start a
     fresh process to change them.
-  - `interaction.py` — `evolve()`, the per-tick update of all agents.
-  - `initiation.py` — agent/shepherd array construction (column meanings are
-    commented here).
-  - `herd/` — shepherd driving strategies (`driver.py`) and social force
-    calculations (`forces.py`).
-  - `draw.py`, `save_data.py`, `vision_functions.py` — rendering, HDF5/JSON
-    persistence, and an experimental vision-projection herding model.
-- `test.py` — **the experiment runner** (despite the name): runs many seeded
-  repetitions in parallel with joblib and writes per-run summaries to
-  `results/fence/<MODE>/` as JSON plus a final-tick histogram.
-- `parse.py` — cross-mode analysis of those results (histograms, boxplots,
-  percentile runs).
-- `data_analysis/` — plotting scripts for success rate, guiding time, and
+  - `herding/` — the herding mechanisms.
+    - `interaction.py` — `evolve()`, the per-tick update of all agents.
+    - `initiation.py` — agent/shepherd array construction (column meanings
+      are commented here).
+    - `driver.py` — shepherd drive strategies.
+    - `forces.py` — social force calculations.
+    - `hull.py` — convex-hull kernels backing modes 2–4.
+    - `vision_functions.py` — the experimental mode-1 vision-projection
+      herding model.
+    - `create_network.py` — interaction network construction.
+  - `drawing/` — the drawing mechanisms.
+    - `draw.py` — snapshot rendering and ffmpeg mp4 assembly.
+  - `analysis/` — the data mechanisms.
+    - `save_data.py` — HDF5/JSON persistence.
+- `experiments/` — **the experiment runners**.
+  - `test.py` — the main experiment runner (despite the name): runs many
+    seeded repetitions in parallel with joblib and writes per-run summaries
+    to `results/fence/<MODE>/` (at the repo root) as JSON plus a final-tick
+    histogram.
+  - `legacy/` — broken legacy scripts predating the current package layout
+    (see "Legacy scripts" below).
+- `data_analysis/` — standalone analysis and plotting scripts, including
+  `parse.py` (cross-mode analysis of `test.py` results: histograms,
+  boxplots, percentile runs) and scripts for success rate, guiding time, and
   shepherd-state analyses.
 - `.claude/skills/run-shepherding-behavior/` — smoke-run driver and verified
   run instructions (see below).
@@ -119,24 +130,28 @@ and troubleshooting.
 
 ## Running full experiments
 
-Edit the constants at the top of `test.py` (`N_SHEEP`, `N_SHEPHERD`, `REPS`,
-`ITERATIONS`, `DRAW`, `THREADS`) and in `basic/__init__.py`, then:
+Edit the constants at the top of `experiments/test.py` (`N_SHEEP`,
+`N_SHEPHERD`, `REPS`, `ITERATIONS`, `DRAW`, `THREADS`) and in
+`basic/__init__.py`, then:
 
 ```bash
-PYTHONUNBUFFERED=1 .venv/bin/python test.py
+PYTHONUNBUFFERED=1 .venv/bin/python experiments/test.py
 ```
 
 This is a batch job — the default 64 repetitions of 300 sheep for up to
-200,000 ticks take hours across all cores. Results land in gitignored
-`results/`. With `DRAW = True`, per-run frame videos are assembled with
-ffmpeg instead of saving summaries.
+200,000 ticks take hours across all cores. `experiments/test.py`'s results
+directory is re-anchored to the repo root, so results still land in
+gitignored `results/fence/<MODE>/` at the repo root, same as before. With
+`DRAW = True`, per-run frame videos are assembled with ffmpeg instead of
+saving summaries.
 
 ## Legacy scripts
 
 `main.py`, `main_interface.py`, `main_interface_metric.py`, `metric_test.py`,
 `vision_test.py`, and `run_iterate_L3.sh` predate the current
-`initiate`/`initiate_shepherds` signatures and no longer run unmodified; use
-`test.py` or the smoke driver instead.
+`initiate`/`initiate_shepherds` signatures and no longer run unmodified; they
+now live in `experiments/legacy/`. Use `experiments/test.py` or the smoke
+driver instead.
 
 ## Related work
 

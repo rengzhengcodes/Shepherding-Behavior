@@ -14,9 +14,9 @@ from joblib import Parallel, delayed
 import numba as nb
 import numpy as np
 import matplotlib.pyplot as plt
-from basic.initiation import initiate, initiate_shepherds
-from basic.interaction import evolve
-from basic.draw import draw_dynamic
+from basic.herding.initiation import initiate, initiate_shepherds
+from basic.herding.interaction import evolve
+from basic.drawing.draw import draw_dynamic
 
 from basic import (
     DRAW_INTERVAL,
@@ -50,8 +50,9 @@ seeds = range(REPS)
 
 NUM_NEAREST_NEIGHBOR = 5
 
-# Defines where to save the results.
-cur_dir = os.path.dirname(os.path.realpath(__file__))
+# Defines where to save the results, anchored to the repo root (one level up
+# from experiments/) so results/ stays where parse.py expects it.
+cur_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 res_dir = f"{cur_dir}/results/fence/{MODE}"
 
 

@@ -20,7 +20,7 @@ K_FENCE = 1e3
 FENCE_MIDDLE_ANGLE = 0
 GATE_ANGULAR_WIDTH = 1
 
-# Rendering parameters for draw_dynamic (basic/draw.py).
+# Rendering parameters for draw_dynamic (basic/drawing/draw.py).
 DRAW_INTERVAL = 100  # record + render every Nth herding tick
 DRAW_DPI = 150  # 8x6 in @ 150 dpi -> 1200x900, both even (yuv420p-safe)
 DRAW_FIGSIZE = (8, 6)

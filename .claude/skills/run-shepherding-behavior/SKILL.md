@@ -1,6 +1,6 @@
 ---
 name: run-shepherding-behavior
-description: Run, smoke-test, and screenshot the Shepherding-Behavior simulation. Use when asked to run/start the simulation, verify a change to the herding model works, render/screenshot a simulation snapshot, or launch the full test.py experiment batch.
+description: Run, smoke-test, and screenshot the Shepherding-Behavior simulation. Use when asked to run/start the simulation, verify a change to the herding model works, render/screenshot a simulation snapshot, or launch the full experiments/test.py experiment batch.
 ---
 
 Headless agent-based shepherding simulation (numba-JIT'd numpy core, no GUI/server).
@@ -38,7 +38,7 @@ turn blue when "staying" (inside the target). Exit 0 = herding succeeded,
 | flag | default | meaning |
 |---|---|---|
 | `--sheep` / `--shepherds` | 30 / 2 | swarm sizes |
-| `--seed` | 0 | RNG seed (seeded inside JIT code, as in test.py) |
+| `--seed` | 0 | RNG seed (seeded inside JIT code, as in experiments/test.py) |
 | `--flock-ticks` | 1000 | shepherd-free self-organization phase |
 | `--max-iterations` | 100000 | herding tick budget |
 | `--snapshot-every` | 0 | also snapshot every N ticks (0 = start/end only) |
@@ -55,8 +55,8 @@ For changes to one function in `basic/`, skip the full run:
 
 ```bash
 .venv/bin/python -c "
-from basic.initiation import initiate, initiate_shepherds
-from basic.interaction import evolve
+from basic.herding.initiation import initiate, initiate_shepherds
+from basic.herding.interaction import evolve
 import numpy as np
 agents = initiate(20, 2, 150, 150, 125)        # (N_sheep, N_shepherd, space_x, space_y, target_size)
 shepherds = initiate_shepherds(2, 20, 10.0)    # (N_shepherd, agent_num, L3)
@@ -65,43 +65,44 @@ print('OK', agents.shape, shepherds.shape)"
 ```
 
 Agents are row-per-sheep float arrays; column meanings are commented in
-`basic/initiation.py` (e.g. `[:, 21]` = staying flag, `[:, 22]` = hull membership).
+`basic/herding/initiation.py` (e.g. `[:, 21]` = staying flag, `[:, 22]` = hull membership).
 
 ## Run (full experiments)
 
-`test.py` is the real experiment runner: 64 reps × 300 sheep × ≤200k
+`experiments/test.py` is the real experiment runner: 64 reps × 300 sheep × ≤200k
 iterations, joblib-parallel across all cores — **hours** of runtime, each
 worker paying its own ~20s JIT compile. It takes no CLI args; edit the
-constants at the top of `test.py` (`N_SHEEP`, `N_SHEPHERD`, `REPS`,
+constants at the top of `experiments/test.py` (`N_SHEEP`, `N_SHEPHERD`, `REPS`,
 `ITERATIONS`, `DRAW`, `THREADS`). Results land in gitignored
 `results/fence/<MODE>/` as a JSON `.txt` + histogram PNG, written only after
 all reps finish.
 
 ```bash
-PYTHONUNBUFFERED=1 .venv/bin/python test.py   # prints "Starting repetition N" per rep
+PYTHONUNBUFFERED=1 .venv/bin/python experiments/test.py   # prints "Starting repetition N" per rep
 ```
 
 Killing it early leaves no partial results and no live orphan processes
-(only reaped-on-exit zombies). `DRAW = True` in test.py additionally needs
+(only reaped-on-exit zombies). `DRAW = True` in experiments/test.py additionally needs
 ffmpeg (not installed here) to assemble frame videos.
 
 ## Test
 
-No pytest suite exists — despite the name, `test.py` is the experiment
-runner, and `metric_test.py` / `vision_test.py` / `temp.py` are stale scratch
-scripts. The driver above is the smoke test.
+No pytest suite exists — despite the name, `experiments/test.py` is the experiment
+runner, and `experiments/legacy/metric_test.py` / `experiments/legacy/vision_test.py` /
+`experiments/legacy/temp.py` are stale scratch scripts. The driver above is the smoke test.
 
 ## Gotchas
 
-- **Legacy entry points are broken on this branch** — `main.py`,
-  `main_interface.py`, `main_interface_metric.py`, `vision_test.py`,
-  `metric_test.py` call `initiate()` with 4 args / `initiate_shepherds()`
-  with 2; the current signatures (`basic/initiation.py`) take 5 and 3.
-  Don't run or document them; use the driver or `test.py`.
+- **Legacy entry points are broken on this branch** — `experiments/legacy/main.py`,
+  `experiments/legacy/main_interface.py`, `experiments/legacy/main_interface_metric.py`,
+  `experiments/legacy/vision_test.py`,
+  `experiments/legacy/metric_test.py` call `initiate()` with 4 args / `initiate_shepherds()`
+  with 2; the current signatures (`basic/herding/initiation.py`) take 5 and 3.
+  Don't run or document them; use the driver or `experiments/test.py`.
 - **`NUMBA_DISABLE_JIT=1` silently does nothing** — `basic/__init__.py` runs
   `config.DISABLE_JIT = DEBUG` at import, clobbering the env var. To run
   interpreted (for pdb/coverage), edit `DEBUG = True` in `basic/__init__.py`.
-- **No test.py output when piped** — joblib's loky workers block-buffer
+- **No experiments/test.py output when piped** — joblib's loky workers block-buffer
   stdout; run with `PYTHONUNBUFFERED=1` to see per-repetition progress.
 - **Mode changes need a fresh process** — MODE/MORPHOLOGY/FENCE are baked
   into compiled code at import; re-importing in the same interpreter won't

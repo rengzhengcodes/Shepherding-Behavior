@@ -5,7 +5,7 @@ import numba as nb
 import numpy as np
 import matplotlib.pyplot as plt
 import h5py
-from basic.draw import draw_single, draw_dynamic, plot_snapshot, calculate_mass_center
+from basic.drawing.draw import draw_single, draw_dynamic, plot_snapshot, calculate_mass_center
 
 
 @nb.jit(nopython=True)

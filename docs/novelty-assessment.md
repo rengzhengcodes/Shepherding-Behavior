@@ -11,8 +11,8 @@
 
 ## What is being assessed
 
-This repo's **convex-hull-based drive-center estimators** (`basic/herd/driver.py`,
-`basic/herd/hull.py`), which replace the omniscient global-center-of-mass (GCM)
+This repo's **convex-hull-based drive-center estimators** (`basic/herding/driver.py`,
+`basic/herding/hull.py`), which replace the omniscient global-center-of-mass (GCM)
 drive-target of the Strömbom 2014 / Zheng & Romanczuk baseline with sensing-realistic
 geometry:
 

@@ -22,11 +22,11 @@ collective models, swarm robotics, control theory, and learning-based (RL).
 
 ## Relevance to this repository
 
-This simulation implements exactly this lineage. `MODE = 0` (`basic/herd/driver.py`) is
+This simulation implements exactly this lineage. `MODE = 0` (`basic/herding/driver.py`) is
 described in the README as *"Yating's original model"* — i.e. the center-of-mass
 collect/drive shepherding heuristic that Zheng & Romanczuk 2024 (below) formalize, run
-over a three-zone-style social-force flock (`basic/interaction.py`,
-`basic/herd/forces.py`). Modes 2–4 (convex-hull / visible-hull center estimators) are
+over a three-zone-style social-force flock (`basic/herding/interaction.py`,
+`basic/herding/forces.py`). Modes 2–4 (convex-hull / visible-hull center estimators) are
 this repo's own extensions to how the shepherd *estimates the flock center*.
 
 For a focused prior-art / novelty analysis of those convex-hull extensions — whether they

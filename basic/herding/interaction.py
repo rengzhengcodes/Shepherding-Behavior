@@ -4,17 +4,17 @@ All collective shepherding herding interactions are defined here.
 
 import numba as nb
 import numpy as np
-from .herd.hull import convex_hull_2d
-from basic.vision_functions import (
+from .hull import convex_hull_2d
+from .vision_functions import (
     drive_the_herd_using_vision,
     collect_the_herd_using_vision,
 )
-from . import MODE, MORPHOLOGY, TARGET, FENCE
-from .herd.forces import (
+from .. import MODE, MORPHOLOGY, TARGET, FENCE
+from .forces import (
     get_sheep_forces,
     get_fence_force,
 )
-from .herd.driver import (
+from .driver import (
     get_relative_distance_angle,
     get_relative_distance_angle_vectorized,
     calculate_mass_center,
@@ -24,7 +24,7 @@ from .herd.driver import (
     drive_the_herd_using_subflock_convex_hulls,
 )
 
-from . import FENCE_MIDDLE_ANGLE, GATE_ANGULAR_WIDTH
+from .. import FENCE_MIDDLE_ANGLE, GATE_ANGULAR_WIDTH
 
 if not FENCE:
     FENCE_MIDDLE_ANGLE = 0

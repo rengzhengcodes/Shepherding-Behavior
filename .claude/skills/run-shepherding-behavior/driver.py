@@ -36,9 +36,9 @@ import numba as nb
 import numpy as np
 
 from basic import MODE, MORPHOLOGY, TARGET, TARGET_SIZE, TARGET_X, TARGET_Y
-from basic.draw import draw_single
-from basic.initiation import initiate, initiate_shepherds
-from basic.interaction import evolve
+from basic.drawing.draw import draw_single
+from basic.herding.initiation import initiate, initiate_shepherds
+from basic.herding.interaction import evolve
 
 SPACE_X = 150
 SPACE_Y = 150
