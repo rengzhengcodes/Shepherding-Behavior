@@ -88,6 +88,10 @@ smoke driver below). Mode 1 is the least maintained — it appears to be broken
   `parse.py` (cross-mode analysis of `test.py` results: histograms,
   boxplots, percentile runs) and scripts for success rate, guiding time, and
   shepherd-state analyses.
+- `notebooks/` — Jupyter walkthroughs. `basic_experiment.ipynb` runs one
+  seeded repetition of the basic experiment end to end — flocking warm-up,
+  herding, mp4 render — and plays the resulting video inline (tooling:
+  `pip install -e ".[notebook]"`).
 - `.claude/skills/run-shepherding-behavior/` — smoke-run driver and verified
   run instructions (see below).
 

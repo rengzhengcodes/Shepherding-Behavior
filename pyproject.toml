@@ -21,5 +21,16 @@ dependencies = [
     "joblib>=1.5",
 ]
 
+[project.optional-dependencies]
+# Tooling for notebooks/ — a Jupyter kernel, headless execution, and a
+# bundled ffmpeg fallback for machines without a system one:
+#   uv pip install -e ".[notebook]"
+notebook = [
+    "ipykernel>=6.29",
+    "nbformat>=5.10",
+    "nbclient>=0.10",
+    "imageio-ffmpeg>=0.5",
+]
+
 [tool.setuptools]
 packages = ["basic", "basic.herding", "basic.drawing", "basic.analysis"]

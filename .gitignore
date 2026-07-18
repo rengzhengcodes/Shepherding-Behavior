@@ -13,6 +13,10 @@ images/
 results/
 *.log/
 
+# Notebook-generated media and the notebook's ffmpeg PATH shim.
+notebooks/media/
+notebooks/.ffmpeg-shim/
+
 # Python packaging build artifacts.
 *.egg-info/
 build/
