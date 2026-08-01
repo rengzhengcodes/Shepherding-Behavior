@@ -59,6 +59,61 @@ def seed_run(seed: int):
     np.random.seed(seed)
 
 
+def build_results(
+    experiment_type: str,
+    target_x: float,
+    target_y: float,
+    target_size: float,
+    rep: int,
+    final_tick: int,
+    success: bool,
+) -> dict:
+    """
+    Builds the result record for one repetition.
+
+    Both experiments emit the same keys so that a run of either can be loaded
+    into one table. Keys are snake_case throughout; `target_*` describe the
+    target the simulation was actually driven towards, which for the morphology
+    experiment is the flock centroid and its containment radius rather than the
+    static TARGET_* constants.
+
+    Args:
+        @param experiment_type: Which driver produced this record.
+        @param target_x: x of the target the run was driven towards.
+        @param target_y: y of the target the run was driven towards.
+        @param target_size: Radius the success criterion was measured against.
+        @param rep: The repetition number, which is also the seed.
+        @param final_tick: Tick the run stopped on.
+        @param success: Whether the run met its success criterion.
+
+    @return: The result record.
+    """
+    return {
+        # Which experiment this record came from.
+        "experiment_type": experiment_type,
+        # Static parameters, for reference.
+        "space_x": SPACE_X,
+        "space_y": SPACE_Y,
+        "target_x": float(target_x),
+        "target_y": float(target_y),
+        "target_size": float(target_size),
+        # Viewing parameters.
+        "boundary_x": BOUNDARY_X,
+        "boundary_y": BOUNDARY_Y,
+        "tick": TICK,
+        "iterations": ITERATIONS,
+        # Model parameters.
+        "n_shepherd": N_SHEPHERD,
+        "n_sheep": N_SHEEP,
+        "l3": float(L3),
+        "repetition": rep,
+        "mode": MODE,
+        # Results.
+        "final_tick": final_tick,
+        "success": bool(success),
+    }
+
+
 def run_target(rep):
     """
     Runs the point-to-point herding simulation.
@@ -102,31 +157,15 @@ def run_target(rep):
             break
 
     # Output logging, print the final tick.
-    results = {
-        # Static parameters, for reference.
-        "SPACE_X": SPACE_X,
-        "SPACE_Y": SPACE_Y,
-        "TARGET_X": TARGET_X,
-        "TARGET_Y": TARGET_Y,
-        "TARGET_SIZE": TARGET_SIZE,
-        # Viewing parameters.
-        "BOUNDARY_X": BOUNDARY_X,
-        "BOUNDARY_Y": BOUNDARY_Y,
-        "TICK": TICK,
-        "ITERATIONS": ITERATIONS,
-        # Model parameters
-        "N_SHEPHERD": N_SHEPHERD,
-        "N_SHEEP": N_SHEEP,
-        "L3": L3,
-        "Repetition": rep,
-        "MODE": MODE,
-        # Results
-        "final_tick": final_tick,
-        "Success": bool(np.all(agents[:, 21] == 1)),
-        "Experiment_type": "target",
-    }
-
-    return results
+    return build_results(
+        experiment_type="target",
+        target_x=TARGET_X,
+        target_y=TARGET_Y,
+        target_size=TARGET_SIZE,
+        rep=rep,
+        final_tick=final_tick,
+        success=bool(np.all(agents[:, 21] == 1)),
+    )
 
 
 def run_morph(rep):
@@ -156,13 +195,15 @@ def run_morph(rep):
     final_tick = ITERATIONS
     # continue the sheep data with shepherds
     success: bool = False  # whether the simulation was successful
+    #! @note L2 is defined in initiate_agent and copied here for brevity.
+    # Loop-invariant, so hoisted out: it is also reported in the results.
+    l2 = 10 * (np.sqrt(N_SHEEP)) * 2 / 3
     for tick in range(ITERATIONS):
         # Defines the target as the global center of mass.
         center: tuple[float, float] = (np.mean(agents[:, 0]), np.mean(agents[:, 1]))
         # start evolve function
-        #! @note L2 is defined in initiate_agent and copied here for brevity.
         agents, shepherds, max_agents_indices = evolve(
-            agents, shepherds, *center, l2 := 10 * (np.sqrt(N_SHEEP)) * 2 / 3
+            agents, shepherds, *center, l2
         )
         # save data
         data_agents[:, :, tick] = agents
@@ -219,31 +260,17 @@ def run_morph(rep):
         shutil.rmtree(f"{folder_path}/repetition_{rep}")
 
     # Output logging, print the final tick.
-    results = {
-        # Static parameters, for reference.
-        "SPACE_X": SPACE_X,
-        "SPACE_Y": SPACE_Y,
-        "center_x": center[0],
-        "center_y": center[1],
-        "TARGET_SIZE": TARGET_SIZE,
-        # Viewing parameters.
-        "BOUNDARY_X": BOUNDARY_X,
-        "BOUNDARY_Y": BOUNDARY_Y,
-        "TICK": TICK,
-        "ITERATIONS": ITERATIONS,
-        # Model parameters
-        "N_SHEPHERD": N_SHEPHERD,
-        "N_SHEEP": N_SHEEP,
-        "L3": L3,
-        "Repetition": rep,
-        "MODE": MODE,
-        # Results
-        "final_tick": final_tick,
-        "Success": success,
-        "Experiment_type": "Morphology",
-    }
-
-    return results
+    # target_size is l2, not TARGET_SIZE: l2 is what the measured loop actually
+    # passed to evolve and what the success criterion was measured against.
+    return build_results(
+        experiment_type="morphology",
+        target_x=center[0],
+        target_y=center[1],
+        target_size=l2,
+        rep=rep,
+        final_tick=final_tick,
+        success=success,
+    )
 
 
 if __name__ == "__main__":
@@ -272,7 +299,7 @@ if __name__ == "__main__":
             json.dump(sims, f)
 
         # Prints out result summary.
-        successes = sum(result["Success"] for result in sims)
+        successes = sum(result["success"] for result in sims)
         print(f"Success rate: {successes/REPS}")
 
         # Retrieves all final ticks.

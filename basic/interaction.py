@@ -632,6 +632,19 @@ def keep_distance_from_other_shepherd(shepherd):
 @nb.jit(nopython=True)
 def herd(agents, shepherd, target_place_x, target_place_y):
     max_agents_indexes = np.zeros(shepherd.shape[0])  # record the furthest agent index
+
+    # Nothing is moving, so there is nothing to herd: with an empty roaming set
+    # there is no center of mass, no convex hull and no furthest agent to speak
+    # of.  Modes 3 and 4 would take argmax over the empty visible hull and die
+    # with "attempt to get argmax of an empty sequence"; modes 0 and 2 would
+    # quietly average an empty slice and drive the shepherds towards a nan.
+    # Leave the shepherds untouched for this tick instead.  In the target
+    # experiment this state is the success condition, so the caller stops here
+    # anyway; it is only reachable when the flock is already inside the target
+    # circle before the shepherds are introduced.
+    if np.count_nonzero(agents[:, 21] == 0) == 0:
+        return shepherd, max_agents_indexes
+
     l0 = shepherd[0][3]
     # k = shepherd[0][4]
     # l1 = shepherd[0][5]  # distance from the center of mass to the drive point ###related to N
@@ -699,6 +712,10 @@ def herd(agents, shepherd, target_place_x, target_place_y):
         num_agents_moving = np.count_nonzero(agents[:, 21] == 0)
         # Resets the flock membership.
         identify_flocks(agents, max(agents[0][3], agents[0][5]))
+    else:
+        raise NotImplementedError(
+            f"Mode {MODE} does not have pre-processing implemented."
+        )
 
     # d_furthest = shepherd[0][12]    # L2
     if num_agents_moving >= 50:
@@ -794,6 +811,10 @@ def herd(agents, shepherd, target_place_x, target_place_y):
                     target_place_y,
                 )
                 center_of_mass_x, center_of_mass_y = center_of_hull_x, center_of_hull_y
+            else:
+                raise NotImplementedError(
+                    f"Mode {MODE} does not have drive mode implemented."
+                )
 
             # calculate the attraction force from the target;
             distance_shepherd_target, angle_shepherd_target = (
@@ -839,11 +860,17 @@ def herd(agents, shepherd, target_place_x, target_place_y):
                 )
                 # Converts max agent index in visible hull to the original index.
                 max_agent_index = visible_hulls_section[max_agent_index]
-            else:
+            elif MODE == 0 or MODE == 1 or MODE == 2:
+                # Mode 2 degenerates to this: the furthest agent must be an
+                # extreme point, so searching the whole flock finds it anyway.
                 max_agent_index, r_agent, max_angle_target_to_agent = (
                     get_furthest_agent(
                         agents, shepherd_x, shepherd_y, target_place_x, target_place_y
                     )
+                )
+            else:
+                raise NotImplementedError(
+                    f"Mode {MODE} does not have furthest agent identification implemented."
                 )
 
             if MODE == 1:
@@ -855,7 +882,7 @@ def herd(agents, shepherd, target_place_x, target_place_y):
                     shepherd[shepherd_index][13] = 0.0
                     # lock the ID of the furthest agent for the collect mode;
                     shepherd[shepherd_index][16] = int(max_agent_index)
-            else:
+            elif MODE == 0 or MODE == 2 or MODE == 3 or MODE == 4:
                 agent_x = agents[int(max_agent_index)][0]
                 agent_y = agents[int(max_agent_index)][1]
                 max_agents_indexes[shepherd_index] = int(max_agent_index)
@@ -871,6 +898,10 @@ def herd(agents, shepherd, target_place_x, target_place_y):
                     shepherd[shepherd_index][13] = 0.0
                     # lock the ID of the furthest agent for the collect mode;
                     shepherd[shepherd_index][16] = int(max_agent_index)
+            else:
+                raise NotImplementedError(
+                    f"Mode {MODE} does not have collect agent identification implemented."
+                )
 
             # if the drive agent is staying, then switch to collect mode:  ??? to be checked;
             if agents[current_drive_agent_id][21]:
@@ -954,7 +985,7 @@ def herd(agents, shepherd, target_place_x, target_place_y):
                 )
                 # Aliased for code concision.
                 center_of_mass_x, center_of_mass_y = center_of_hull_x, center_of_hull_y
-            else:
+            elif MODE == 0 or MODE == 2:
                 # attract by the furthest agent;
                 # using center of mas: x/y;
                 collect_point_x, collect_point_y, force_x, force_y = (
@@ -967,6 +998,10 @@ def herd(agents, shepherd, target_place_x, target_place_y):
                         center_of_mass_y,
                         l0,
                     )
+                )
+            else:
+                raise NotImplementedError(
+                    f"Mode {MODE} does not have collect mode implemented."
                 )
 
             # repulsion from other shepherd and attraction from the furthest agent;
@@ -990,13 +1025,17 @@ def herd(agents, shepherd, target_place_x, target_place_y):
                     agents[int(shepherd[shepherd_index][16])][21] == 1.0
                 ):
                     shepherd[shepherd_index][13] = 1.0  # drive_mode_true
-            else:
+            elif MODE == 0 or MODE == 2 or MODE == 3 or MODE == 4:
                 # if the agent is closer enough to the center or the agents are staying inside the circle;
                 if (
                     distance_agent_mass <= d_furthest
                     or agents[int(shepherd[shepherd_index][16])][21] == 1.0
                 ):
                     shepherd[shepherd_index][13] = 1.0  # drive_mode_true
+            else:
+                raise NotImplementedError(
+                    f"Mode {MODE} does not have a way to exit collect mode."
+                )
 
         # calculate the linear speed and angular speed;
         v_dot = F_x * np.cos(shepherd_angle) + F_y * np.sin(
