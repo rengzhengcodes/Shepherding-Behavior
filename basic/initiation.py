@@ -37,7 +37,7 @@ def initiate(N_sheep, N_shepherd, space_x, space_y, Target_size):
 
 
 @nb.jit(nopython=True)
-def initiate_shepherd(N_shepherd, agent_num, L3):
+def initiate_shepherds(N_shepherd, agent_num, L3):
     shepherd_swarm = np.zeros(shape=(N_shepherd, 22), dtype=float)
     # parameter
     shepherd_swarm[:, 0] = np.random.uniform(0, 50, N_shepherd)  #0, 50

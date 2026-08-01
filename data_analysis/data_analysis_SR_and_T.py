@@ -8,7 +8,7 @@ from datetime import timedelta
 import glob
 
 
-def Get_dict_of_data(l3, N_sheep, N_shepherd, data_folder):
+def get_dict_of_data(l3, N_sheep, N_shepherd, data_folder):
     files = os.listdir(data_folder)
     dic = defaultdict(list)
     count = 0  # count repetitions
@@ -39,7 +39,7 @@ def plot_time_sheep_L2(list_of_L3, list_of_N_sheep, list_of_N_shepherd, path, SR
             for N_sheep in list_of_N_sheep:
                 data_folder = path + "/L3=" + str(l3) + "/N_sheep=" + str(N_sheep) + "/"
                 # print("N_shepherd:", N_shepherd)
-                data = Get_dict_of_data(l3, N_sheep, N_shepherd, data_folder)
+                data = get_dict_of_data(l3, N_sheep, N_shepherd, data_folder)
                 data_time = [t * 0.01 for t in data]  # seconds
                 success_rate = [1.0 / (t * 0.01) for t in data]
                 # print(data_time)
@@ -72,7 +72,7 @@ def plot_time_shepherd_force(list_of_L3, list_of_N_sheep, list_of_N_shepherd, pa
             # print("N_sheep:", N_sheep)
             for N_shepherd in list_of_N_shepherd:
                 # print("N_shepherd:", N_shepherd)
-                data = Get_dict_of_data(l3, N_sheep, N_shepherd, data_folder)
+                data = get_dict_of_data(l3, N_sheep, N_shepherd, data_folder)
                 # repetition = len(data[0])
                 # print(data)
                 data_time = [t * 0.01 for t in data]  # seconds
