@@ -644,7 +644,10 @@ def herd(agents, shepherd, target_place_x, target_place_y):
     Angle_Threshold_Collection = shepherd[0][17]  # HALF FOV threshold for collect mode;
     K_attraction_target = 0.01  # shepherd[0][18]  # K_attraction_target   0.01
 
-    if MODE == 0:
+    # MODE 1 (vision) shares MODE 0's preprocessing: it has no hull of its own,
+    # but it still reads num_agents_moving (for d_furthest) and the center of
+    # mass (when exiting collect mode), so both must be bound here.
+    if MODE == 0 or MODE == 1:
         # first get the position of the center of the mass
         num_agents_moving, center_of_mass_x, center_of_mass_y = calculate_mass_center(
             agents
