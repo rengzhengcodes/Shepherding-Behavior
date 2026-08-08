@@ -5,7 +5,14 @@ import numba as nb
 import numpy as np
 import matplotlib.pyplot as plt
 import h5py
-from basic.drawing.draw import draw_single, draw_dynamic, plot_snapshot, calculate_mass_center
+
+# This legacy script used to import draw_single/draw_dynamic/plot_snapshot/
+# calculate_mass_center from basic.drawing.draw, the matplotlib renderer that
+# was removed when the visualization moved to pygame (basic/drawing/
+# pygame_draw.py; see git history). The import was dead weight even then:
+# the two names this file actually uses -- calculate_mass_center and
+# draw_single -- are immediately shadowed by the local definitions below,
+# and the other two were never referenced.
 
 
 @nb.jit(nopython=True)

@@ -19,6 +19,10 @@ dependencies = [
     "pandas>=3.0",
     "h5py>=3.16",
     "joblib>=1.5",
+    "pygame>=2.6",
+    # Bundled-ffmpeg fallback for basic.drawing.video.ffmpeg_exe(): mp4
+    # export must work on machines (and containers) with no system ffmpeg.
+    "imageio-ffmpeg>=0.5",
 ]
 
 [project.optional-dependencies]

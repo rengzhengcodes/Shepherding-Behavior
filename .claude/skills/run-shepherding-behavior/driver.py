@@ -28,15 +28,11 @@ REPO_ROOT = os.path.dirname(
 )
 sys.path.insert(0, REPO_ROOT)
 
-import matplotlib
-
-matplotlib.use("Agg")  # headless container: never try to open a window
-import matplotlib.pyplot as plt
 import numba as nb
 import numpy as np
 
 from basic import MODE, MORPHOLOGY, TARGET, TARGET_SIZE, TARGET_X, TARGET_Y
-from basic.drawing.draw import draw_single
+from basic.drawing.pygame_draw import save_frame_png
 from basic.herding.initiation import initiate, initiate_shepherds
 from basic.herding.interaction import evolve
 
@@ -53,13 +49,31 @@ def seed_run(seed: int):
     np.random.seed(seed)
 
 
+def _fence_params():
+    """Fence-gate params for `save_frame_png`, or `None` if fencing is off.
+
+    Design: reads `basic.FENCE` (and the two angle constants) as a fresh
+    attribute access at call time via `import basic`, rather than binding
+    them once with `from basic import FENCE` at module import time --
+    mirrors `basic/drawing/video.py`'s `_fence_params()`, which documents
+    the same rationale (keeps the flag monkeypatchable / edit-and-rerun
+    friendly instead of freezing a stale value into this module's
+    namespace). FENCE is currently False, so this returns None on the
+    default run path and `save_frame_png` draws no fence overlay.
+    """
+    import basic
+
+    if basic.FENCE:
+        return (basic.FENCE_MIDDLE_ANGLE, basic.GATE_ANGULAR_WIDTH)
+    return None
+
+
 def snapshot(agents, shepherds, target, path: str, title: str):
-    """Renders one frame of the simulation state to a PNG."""
-    plt.figure(figsize=(8, 6), dpi=150)
-    draw_single(agents, shepherds, BOUNDARY, target, MODE)
-    plt.title(title)
-    plt.savefig(path)
-    plt.close()
+    """Renders one frame of the simulation state to a PNG via pygame."""
+    save_frame_png(
+        path, agents, shepherds, BOUNDARY, target, MODE,
+        hud=title, fence=_fence_params(),
+    )
     print(f"snapshot -> {path}")
 
 

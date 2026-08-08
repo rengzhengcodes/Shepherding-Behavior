@@ -5,7 +5,6 @@ Runs simulation parameters for the shepherding model being tested.
 import json
 import os
 import random
-import shutil
 import datetime
 from datetime import timedelta
 from timeit import default_timer as timer
@@ -16,7 +15,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from basic.herding.initiation import initiate, initiate_shepherds
 from basic.herding.interaction import evolve
-from basic.drawing.draw import draw_dynamic
+from basic.drawing.video import write_video as draw_dynamic, ffmpeg_exe
 
 from basic import (
     DRAW_INTERVAL,
@@ -263,11 +262,15 @@ def run_morph(rep):
 if __name__ == "__main__":
     # Fail fast: a missing ffmpeg binary would otherwise only surface once
     # draw_dynamic tries to Popen it, potentially after hours of simulation
-    # work across every rep has already completed.
-    if DRAW and shutil.which("ffmpeg") is None:
+    # work across every rep has already completed. ffmpeg_exe() checks PATH
+    # first, then falls back to the imageio-ffmpeg-bundled binary, so this
+    # only trips when neither is available.
+    if DRAW and ffmpeg_exe() is None:
         raise SystemExit(
-            "DRAW=True but ffmpeg was not found on PATH; aborting before "
-            "running the simulation."
+            "DRAW=True but no ffmpeg executable was found; aborting before "
+            "running the simulation. Install ffmpeg and ensure it is on "
+            "PATH, or run `uv pip install imageio-ffmpeg` to obtain a "
+            "bundled binary usable without a system-wide install."
         )
 
     start = timer()

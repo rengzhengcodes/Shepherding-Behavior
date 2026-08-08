@@ -73,8 +73,23 @@ smoke driver below). Mode 1 is the least maintained — it appears to be broken
     - `vision_functions.py` — the experimental mode-1 vision-projection
       herding model.
     - `create_network.py` — interaction network construction.
-  - `drawing/` — the drawing mechanisms.
-    - `draw.py` — snapshot rendering and ffmpeg mp4 assembly.
+  - `drawing/` — the drawing mechanisms, PyGame-backed.
+    - `pygame_draw.py` — offscreen frame renderer (`render_frame` draws one
+      frame into a caller-owned `pygame.Surface`; `save_frame_png` wraps it
+      for one-off snapshots).
+    - `video.py` — streams pygame-rendered frames into a piped ffmpeg
+      subprocess to assemble an mp4 (`write_video`), with no intermediate
+      frame files ever written to disk; resolves an ffmpeg executable from
+      `PATH` or, failing that, the bundled `imageio-ffmpeg` binary.
+    - `live.py` — interactive window viewer (`LiveViewer`; see "Live
+      viewer" below).
+
+    This PyGame renderer replaced an earlier Matplotlib one (`draw.py`,
+    removed; see git history); one deliberate visual change survives the
+    port — the old Matplotlib figure never equalized its axis scales
+    (~1.34:1 stretch), so bodies rendered as ellipses, while the PyGame
+    renderer uses a single uniform scale and always draws true circles, so
+    freshly rendered videos look slightly different from pre-port mp4s.
   - `analysis/` — the data mechanisms.
     - `save_data.py` — HDF5/JSON persistence.
 - `experiments/` — **the experiment runners**.
@@ -90,36 +105,39 @@ smoke driver below). Mode 1 is the least maintained — it appears to be broken
   shepherd-state analyses.
 - `notebooks/` — Jupyter walkthroughs. `basic_experiment.ipynb` runs one
   seeded repetition of the basic experiment end to end — flocking warm-up,
-  herding, mp4 render — and plays the resulting video inline (tooling:
-  `pip install -e ".[notebook]"`).
+  herding, mp4 render via `save_frame_png`/`write_video` — and plays the
+  resulting video inline (tooling: `uv pip install -e ".[notebook]"`).
 - `.claude/skills/run-shepherding-behavior/` — smoke-run driver and verified
   run instructions (see below).
 
 ## Getting started
 
 Requires Python 3.12 or newer. Every pinned dependency ships prebuilt wheels for
-CPython 3.12–3.14, so no compiler is needed. Create a virtual environment and
-install through *its* pip:
+CPython 3.12–3.14, so no compiler is needed. This project's `.venv` is
+`uv`-managed and has no `pip` binary inside it — create it, activate it, and
+install with `uv pip`, not a bare `pip`:
 
 ```bash
 python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
+source .venv/bin/activate
+uv pip install -r requirements.txt
 ```
 
 Alternatively, install the simulation core as an editable package (pulls in the
-same dependencies and makes `import basic` work from any directory, while edits
-to the constants in `basic/__init__.py` still take effect immediately):
+same dependencies — including `pygame` — and makes `import basic` work from any
+directory, while edits to the constants in `basic/__init__.py` still take effect
+immediately):
 
 ```bash
-.venv/bin/pip install -e .
+uv pip install -e .
 ```
 
-Install via `.venv/bin/pip` (or run `source .venv/bin/activate` first) rather
-than a bare `pip install` — a bare `pip` runs against the system Python, which on
-newer distros has no matching wheels and falls back to compiling the pins from
-source (needs `python3-devel`, and fails without it). If your `python3` predates
-3.12, create the venv with an explicit interpreter, e.g.
-`python3.12 -m venv .venv`.
+If your `python3` predates 3.12, create the venv with an explicit interpreter,
+e.g. `python3.12 -m venv .venv`. A bare `pip install` (or `python3 -m pip`)
+against the system Python on newer distros has no matching wheels and falls
+back to compiling the pins from source (needs `python3-devel`, and fails
+without it); `uv pip install` against the activated `.venv` avoids both that
+and the missing-`pip` problem above.
 
 For a quick end-to-end run (~45 s: ~20 s of JIT compilation, then the
 simulation) that herds 30 sheep with 2 shepherds and saves snapshot PNGs to
@@ -146,8 +164,30 @@ This is a batch job — the default 64 repetitions of 300 sheep for up to
 200,000 ticks take hours across all cores. `experiments/test.py`'s results
 directory is re-anchored to the repo root, so results still land in
 gitignored `results/fence/<MODE>/` at the repo root, same as before. With
-`DRAW = True`, per-run frame videos are assembled with ffmpeg instead of
-saving summaries.
+`DRAW = True`, per-run frame videos are rendered by PyGame
+(`basic/drawing/pygame_draw.py`) and streamed straight into a piped ffmpeg
+subprocess (`basic/drawing/video.py`) instead of saving summaries. ffmpeg is
+auto-resolved from `PATH` or, failing that, the bundled `imageio-ffmpeg`
+binary, so no separate system-wide ffmpeg install is required.
+
+## Live viewer
+
+For an interactive, real-time view of a run instead of a batch mp4 render:
+
+```bash
+.venv/bin/python experiments/live.py
+```
+
+On a machine with a display, this opens a PyGame window and drives it live
+from the simulation loop. Keys: `space` pause/resume, `right`/`.` single-step
+while paused, `+`/`-` halve/double the render cadence, `s` screenshot, `esc`/`q`
+quit. `--record out.mp4` additionally tees every drawn frame to an mp4 via the
+same ffmpeg pipe `video.py` uses. `--headless-ok` permits running with no
+display detected (renders into an invisible SDL "dummy" surface instead of
+raising) — useful in headless containers/CI, where `--record` and
+`--screenshot-every` still work normally. See `experiments/live.py --help` for
+the full flag list (`--sheep`, `--shepherds`, `--seed`, `--flock-ticks`,
+`--max-iterations`, `--render-every`, `--max-fps`, `--out`, ...).
 
 ## Legacy scripts
 

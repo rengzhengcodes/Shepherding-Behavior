@@ -10,16 +10,23 @@ snapshot PNGs. All paths below are relative to the repo root.
 
 ## Prerequisites
 
-No apt packages needed (matplotlib renders headless via Agg; no xvfb, no GPU).
-System Python is PEP 668 externally-managed, so use a venv:
+No apt packages needed (frames render into an offscreen `pygame.Surface`;
+no display, SDL video driver, xvfb, or GPU needed). System Python is PEP 668
+externally-managed, so use a venv:
 
 ```bash
 python3 -m venv .venv
-.venv/bin/pip install numba matplotlib joblib scipy
+uv pip install numba matplotlib joblib scipy pygame imageio-ffmpeg
 ```
 
-Ignore `requirements.txt` — its numba==0.60.0/numpy==2.0.0 pins are stale;
-numba 0.66 + numpy 2.4.6 run this codebase fine (verified).
+(The repo's existing `.venv` is uv-managed and contains no `pip` binary, so
+use `uv pip install` — with the venv activated or via `uv pip install -p
+.venv/bin/python` — rather than `.venv/bin/pip`. `imageio-ffmpeg` supplies
+the bundled ffmpeg that `basic.drawing.video.ffmpeg_exe()` falls back to
+for mp4 export when no system ffmpeg is on PATH.)
+
+`requirements.txt` is repinned and matches the venv (numba==0.66.0,
+numpy==2.4.6, pygame==2.6.1, verified) — no need to second-guess it.
 
 ## Run (agent path)
 
@@ -34,6 +41,10 @@ with `SUCCESS: final_tick=...` (≈48k ticks with the default seed) and writes
 the flock (green circles), shepherds (red), and target circle (blue). Sheep
 turn blue when "staying" (inside the target). Exit 0 = herding succeeded,
 2 = `--max-iterations` hit without success (snapshot still written).
+Snapshots are a plain rendered frame with no axis ticks/margins; the title
+is drawn as a HUD line inside the frame instead. For live/interactive
+viewing instead of static snapshots, see `experiments/live.py` (pass
+`--headless-ok` to run it in a headless container/smoke context).
 
 | flag | default | meaning |
 |---|---|---|
@@ -82,8 +93,11 @@ PYTHONUNBUFFERED=1 .venv/bin/python experiments/test.py   # prints "Starting rep
 ```
 
 Killing it early leaves no partial results and no live orphan processes
-(only reaped-on-exit zombies). `DRAW = True` in experiments/test.py additionally needs
-ffmpeg (not installed here) to assemble frame videos.
+(only reaped-on-exit zombies). `DRAW = True` in experiments/test.py additionally
+needs ffmpeg to assemble frame videos; video export resolves an ffmpeg
+executable from `PATH` or, failing that, falls back to the `imageio-ffmpeg`
+package's bundled binary (`basic.drawing.video.ffmpeg_exe`), so it works in
+this container without a system-wide ffmpeg install.
 
 ## Test
 
