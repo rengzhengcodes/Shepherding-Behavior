@@ -498,9 +498,7 @@ def herd(
                         drive_point,
                         drive_force,
                         drive_agent_id,
-                    ) = drive_the_herd_using_vision(
-                        agents, shepherd_pos[0], shepherd_pos[1], *target
-                    )
+                    ) = drive_the_herd_using_vision(agents, shepherd_pos, target)
                     shepherd[shepherd_index][20] = drive_agent_id
                 case 2:
                     # using convex hull
@@ -664,7 +662,7 @@ def herd(
                     # the agents are staying inside the circle; get the center of
                     # projection of the GROUP
                     angle_difference_agent_mass = collect_the_herd_using_vision(
-                        collect_agent_id, agents, *shepherd_pos
+                        collect_agent_id, agents, shepherd_pos
                     )
                     if (angle_difference_agent_mass <= np.pi / 3) or (
                         agents[int(shepherd[shepherd_index][16])][21] == 1.0

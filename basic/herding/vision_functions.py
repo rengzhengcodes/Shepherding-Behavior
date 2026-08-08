@@ -202,7 +202,22 @@ def plot_snapshot_of_vision_field_dynamic(Iterations, Data_agents, Data_shepherd
 
 
 @nb.jit(nopython=True)
-def drive_the_herd_using_vision(agents, shepherd_x, shepherd_y, target_place_x, target_place_y):
+def drive_the_herd_using_vision(agents, shepherd_pos, target_pos):
+    """
+    Finds the drive point and force for a shepherd using its vision field.
+
+    @param agents: The agents being herded.
+    @param shepherd_pos: The (x, y) position of the shepherd.
+    @param target_pos: The (x, y) position of the target.
+
+    @returns drive_point: The point the shepherd should drive towards.
+    @returns force: The shepherd's attraction force towards the drive point.
+    @returns max_agent_id: The agent being driven.
+    """
+    shepherd_x = shepherd_pos[0]
+    shepherd_y = shepherd_pos[1]
+    target_place_x = target_pos[0]
+    target_place_y = target_pos[1]
     # drive_mode: attract by the mass center and the target, repulsion from other shepherd;
     # calculate the projection angle of all the agents;
     agents_projection = calculate_projection(agents, shepherd_x, shepherd_y)  # 0: projection_pos, 1: projection_half_wid;
@@ -236,12 +251,25 @@ def drive_the_herd_using_vision(agents, shepherd_x, shepherd_y, target_place_x, 
 
     # b. find the closest agent from the target projection;
     # max_agent_id
-    return np.array(drive_point_x, drive_point_y), force, max_agent_id
+    return np.array([drive_point_x, drive_point_y]), force, max_agent_id
 
 
 
 @nb.jit(nopython=True)
-def collect_the_herd_using_vision(collect_agent_id, agents, shepherd_x, shepherd_y):
+def collect_the_herd_using_vision(collect_agent_id, agents, shepherd_pos):
+    """
+    Measures how far the collected agent is from the flock's projected center,
+    which is what decides when the shepherd may return to drive mode.
+
+    @param collect_agent_id: The agent being collected.
+    @param agents: The agents being herded.
+    @param shepherd_pos: The (x, y) position of the shepherd.
+
+    @returns angle_difference_agent_mass: Projected angle between the collected
+        agent and the center of mass.
+    """
+    shepherd_x = shepherd_pos[0]
+    shepherd_y = shepherd_pos[1]
     # collect mode: collect the agent until the agent is moving toward the group;
     # calculate the projection angle of all the agents;
     agents_projection = calculate_projection(agents, shepherd_x, shepherd_y)  # 0: projection_pos, 1: projection_half_wid;
